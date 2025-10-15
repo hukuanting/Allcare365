@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}新增健檢記錄{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid #e9ecef;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin: -25px -25px 20px -25px;
+        padding: 15px 25px;
+        border-radius: 15px 15px 0 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 600;
+    }
+    
+    .progress-nav {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    
+    .step {
+        text-align: center;
+        padding: 15px;
+        flex: 1;
+        position: relative;
+        color: #6c757d;
+        transition: all 0.3s ease;
+    }
+    
+    .step.active {
+        color: #667eea;
+        font-weight: 600;
+    }
+    
+    .step.completed {
+        color: #28a745;
+    }
+    
+    .step::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: -50%;
+        width: 100%;
+        height: 2px;
+        background-color: #dee2e6;
+        z-index: -1;
+    }
+    
+    .step:last-child::after {
+        display: none;
+    }
+    
+    .step.completed::after {
+        background-color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-primary fw-bold">
+                <i class="fas fa-plus-circle me-2"></i>新增健檢記錄
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢管理</a></li>
+                    <li class="breadcrumb-item active">新增記錄</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 進度條 -->
+    <div class="progress-nav">
+        <div class="d-flex">
+            <div class="step active" id="step-basic">
+                <i class="fas fa-info-circle mb-2 d-block"></i>
+                基本資訊
+            </div>
+            <div class="step" id="step-vitals">
+                <i class="fas fa-heartbeat mb-2 d-block"></i>
+                生命體徵
+            </div>
+            <div class="step" id="step-lab">
+                <i class="fas fa-flask mb-2 d-block"></i>
+                檢驗結果
+            </div>
+            <div class="step" id="step-history">
+                <i class="fas fa-history mb-2 d-block"></i>
+                病史問卷
+            </div>
+            <div class="step" id="step-review">
+                <i class="fas fa-check-circle mb-2 d-block"></i>
+                確認送出
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="health-screening-form">
+        {% csrf_token %}
+        
+        <!-- 第一步：基本資訊 -->
+        <div class="form-step" id="form-step-1">
+            <div class="form-section">
+                <div class="section-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>基本檢查資訊
+                    </h5>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">患者</label>
+                            <select class="form-select" name="patient">
+                                <option value="">請選擇患者</option>
+                                {% for patient_option in patients %}
+                                <option value="{{ patient_option.id }}" 
+                                        {% if patient and patient.id == patient_option.id %}selected{% endif %}>
+                                    {{ patient_option.first_name }} {{ patient_option.last_name }} ({{ patient_option.patient_id }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">檢查日期</label>
+                            <input type="date" class="form-control" name="screening_date" 
+                                   value="{% now 'Y-m-d' %}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">檢查類型</label>
+                            <select class="form-select" name="screening_type">
+                                <option value="annual_physical">年度體檢</option>
+                                <option value="preventive_care">預防保健</option>
+                                <option value="employment">就業體檢</option>
+                                <option value="insurance">保險體檢</option>
+                                <option value="school">入學體檢</option>
+                                <option value="specialized">專項檢查</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">執行醫師</label>
+                            <select class="form-select" name="provider">
+                                <option value="">請選擇醫師</option>
+                                {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">{{ doctor.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">檢查備註</label>
+                    <textarea class="form-control" name="notes" rows="3" 
+                              placeholder="請輸入檢查相關備註資訊..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第二步：生命體徵 -->
+        <div class="form-step d-none" id="form-step-2">
+            <div class="form-section">
+                <div class="section-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>生命體徵測量
+                    </h5>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">身高 (cm)</label>
+                            <input type="number" class="form-control" name="height" 
+                                   step="0.1" min="50" max="250" id="height-input">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">體重 (kg)</label>
+                            <input type="number" class="form-control" name="weight" 
+                                   step="0.1" min="20" max="300" id="weight-input">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">BMI</label>
+                            <input type="number" class="form-control calculated-field" 
+                                   name="bmi" step="0.1" id="bmi-display" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">體溫 (°C)</label>
+                            <input type="number" class="form-control" name="temperature" 
+                                   step="0.1" min="35" max="42">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">收縮壓 (mmHg)</label>
+                            <input type="number" class="form-control" name="systolic_pressure" 
+                                   min="70" max="250">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">舒張壓 (mmHg)</label>
+                            <input type="number" class="form-control" name="diastolic_pressure" 
+                                   min="40" max="150">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">心率 (bpm)</label>
+                            <input type="number" class="form-control" name="heart_rate" 
+                                   min="40" max="200">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">呼吸頻率 (/min)</label>
+                            <input type="number" class="form-control" name="respiratory_rate" 
+                                   min="8" max="40">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第三步：檢驗結果 -->
+        <div class="form-step d-none" id="form-step-3">
+            <div class="form-section">
+                <div class="section-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-flask me-2"></i>檢驗結果
+                    </h5>
+                </div>
+                
+                <h6 class="text-primary mb-3">血液檢查</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">空腹血糖 (mg/dL)</label>
+                            <input type="number" class="form-control" name="fasting_glucose" 
+                                   step="0.1" min="50" max="500">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">總膽固醇 (mg/dL)</label>
+                            <input type="number" class="form-control" name="total_cholesterol" 
+                                   step="0.1" min="100" max="400">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">HDL膽固醇 (mg/dL)</label>
+                            <input type="number" class="form-control" name="hdl_cholesterol" 
+                                   step="0.1" min="20" max="100">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">LDL膽固醇 (mg/dL)</label>
+                            <input type="number" class="form-control" name="ldl_cholesterol" 
+                                   step="0.1" min="50" max="300">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第四步：病史問卷 -->
+        <div class="form-step d-none" id="form-step-4">
+            <div class="form-section">
+                <div class="section-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>病史與生活習慣
+                    </h5>
+                </div>
+                
+                <h6 class="text-primary mb-3">既往病史</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_diabetes" id="has_diabetes">
+                            <label class="form-check-label" for="has_diabetes">糖尿病</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="has_hypertension" id="has_hypertension">
+                            <label class="form-check-label" for="has_hypertension">高血壓</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第五步：確認送出 -->
+        <div class="form-step d-none" id="form-step-5">
+            <div class="form-section">
+                <div class="section-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>確認資料
+                    </h5>
+                </div>
+                
+                <div class="alert alert-info">
+                    請確認以上輸入的資料正確無誤，送出後將儲存至 USCDI ONC 標準格式的資料庫中。
+                </div>
+                
+                <div id="data-summary" class="mt-4">
+                    <!-- 資料摘要將由 JavaScript 動態生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 導航按鈕 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" id="prev-btn" disabled>
+                        <i class="fas fa-arrow-left me-2"></i>上一步
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="window.history.back()">
+                            <i class="fas fa-times me-2"></i>取消
+                        </button>
+                        <button type="button" class="btn btn-primary" id="next-btn">
+                            下一步<i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                        <button type="submit" class="btn btn-success d-none" id="submit-btn">
+                            <i class="fas fa-save me-2"></i>儲存健檢記錄
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 使用原生JavaScript，避免jQuery依賴問題
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM已加載完成');
+    
+    let currentStep = 1;
+    const totalSteps = 5;
+    
+    // 步驟導航
+    function updateStepDisplay() {
+        console.log('更新步驟顯示，當前步驟:', currentStep);
+        
+        // 更新進度條
+        const steps = document.querySelectorAll('.step');
+        steps.forEach(step => {
+            step.classList.remove('active', 'completed');
+        });
+        
+        for (let i = 1; i <= totalSteps; i++) {
+            const stepName = getStepName(i);
+            const stepElement = document.getElementById(`step-${stepName}`);
+            if (stepElement) {
+                if (i < currentStep) {
+                    stepElement.classList.add('completed');
+                } else if (i === currentStep) {
+                    stepElement.classList.add('active');
+                }
+            }
+        }
+        
+        // 更新表單顯示
+        const formSteps = document.querySelectorAll('.form-step');
+        formSteps.forEach(step => {
+            step.classList.add('d-none');
+        });
+        
+        const currentFormStep = document.getElementById(`form-step-${currentStep}`);
+        if (currentFormStep) {
+            currentFormStep.classList.remove('d-none');
+            console.log(`顯示步驟 ${currentStep} 的表單`);
+        }
+        
+        // 更新按鈕狀態
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        if (prevBtn) {
+            prevBtn.disabled = currentStep === 1;
+        }
+        
+        if (nextBtn) {
+            if (currentStep === totalSteps) {
+                nextBtn.classList.add('d-none');
+            } else {
+                nextBtn.classList.remove('d-none');
+            }
+        }
+        
+        if (submitBtn) {
+            if (currentStep === totalSteps) {
+                submitBtn.classList.remove('d-none');
+            } else {
+                submitBtn.classList.add('d-none');
+            }
+        }
+    }
+    
+    function getStepName(step) {
+        const names = ['basic', 'vitals', 'lab', 'history', 'review'];
+        return names[step - 1];
+    }
+    
+    // 下一步按鈕事件
+    const nextBtn = document.getElementById('next-btn');
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function() {
+            console.log('下一步按鈕被點擊，當前步驟：', currentStep);
+            
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateStepDisplay();
+                console.log('已切換到步驟：', currentStep);
+            }
+        });
+        console.log('下一步按鈕事件已綁定');
+    } else {
+        console.error('找不到下一步按鈕');
+    }
+    
+    // 上一步按鈕事件
+    const prevBtn = document.getElementById('prev-btn');
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function() {
+            console.log('上一步按鈕被點擊');
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+                console.log('已切換到步驟：', currentStep);
+            }
+        });
+        console.log('上一步按鈕事件已綁定');
+    }
+    
+    // 初始化顯示
+    updateStepDisplay();
+    
+    console.log('所有事件綁定完成，初始化完成');
+});
+</script>
+{% endblock %}

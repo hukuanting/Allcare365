@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class EncountersConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'encounters'
+    verbose_name = '看診紀錄'

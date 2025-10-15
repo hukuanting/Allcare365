@@ -1,0 +1,132 @@
+{% extends 'clinical_decision_support/base.html' %}
+{% load static %}
+
+{% block title %}Drug Interactions - Clinical Decision Support{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <h1>Drug Interactions</h1>
+                <p class="lead">Check for potential drug interactions and contraindications</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Drug Interaction Checker</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="drug-interaction-form">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="drug1">First Drug</label>
+                            <input type="text" class="form-control" id="drug1" name="drug1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="drug2">Second Drug</label>
+                            <input type="text" class="form-control" id="drug2" name="drug2" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Check Interactions</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Interaction Results</h5>
+                </div>
+                <div class="card-body" id="interaction-results">
+                    <p class="text-muted">Enter drugs to check for interactions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Known Drug Interactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Drug 1</th>
+                                    <th>Drug 2</th>
+                                    <th>Severity</th>
+                                    <th>Description</th>
+                                    <th>Management</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for interaction in interactions %}
+                                <tr>
+                                    <td>{{ interaction.drug_1 }}</td>
+                                    <td>{{ interaction.drug_2 }}</td>
+                                    <td>
+                                        <span class="badge badge-{% if interaction.severity == 'severe' %}danger{% elif interaction.severity == 'moderate' %}warning{% else %}info{% endif %}">
+                                            {{ interaction.get_severity_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ interaction.description|truncatewords:15 }}</td>
+                                    <td>{{ interaction.management|truncatewords:10 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No drug interactions found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('drug-interaction-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const resultsDiv = document.getElementById('interaction-results');
+    
+    fetch('{% url "clinical_decision_support:check_drug_interactions" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.interactions && data.interactions.length > 0) {
+            let html = '<div class="alert alert-warning"><strong>Interactions Found:</strong></div>';
+            data.interactions.forEach(interaction => {
+                html += `<div class="alert alert-${interaction.severity === 'severe' ? 'danger' : 'warning'}">
+                    <strong>${interaction.drug_1} + ${interaction.drug_2}</strong><br>
+                    ${interaction.description}<br>
+                    <small><strong>Management:</strong> ${interaction.management}</small>
+                </div>`;
+            });
+            resultsDiv.innerHTML = html;
+        } else {
+            resultsDiv.innerHTML = '<div class="alert alert-success">No interactions found between these drugs.</div>';
+        }
+    })
+    .catch(error => {
+        resultsDiv.innerHTML = '<div class="alert alert-danger">Error checking interactions. Please try again.</div>';
+    });
+});
+</script>
+{% endblock %}

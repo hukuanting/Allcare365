@@ -1,0 +1,334 @@
+/* ========================================
+   MedicalCare System 冷色調醫療系統 - 統一設計系統
+   ======================================== */
+
+/* ---- CSS 變數定義（冷色系） ---- */
+:root {
+  /* 主色與輔色（冷色調，略帶溫度） */
+  --primary: #2563eb;         /* blue-600 */
+  --primary-700: #1d4ed8;     /* blue-700 */
+  --primary-900: #1e3a8a;     /* blue-900 */
+  --accent: #14b8a6;          /* teal-500 */
+  --accent-700: #0d9488;      /* teal-600 */
+  --indigo: #6366f1;          /* indigo-500 */
+
+  /* 中性色 */
+  --bg: #f1f5f9;              /* slate-100 */
+  --bg-soft: #eef2f7;         /* very soft cool */
+  --surface: #ffffff;         /* cards/surfaces */
+  --border: #e5e7eb;          /* slate-200 */
+  --muted: #64748b;           /* slate-500 */
+  --text: #0f172a;            /* slate-900 */
+  --text-soft: #334155;       /* slate-700 */
+
+  /* 狀態色 */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #06b6d4;
+
+  /* 陰影與圓角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* 漸層（冷色） */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--indigo) 100%);
+  --gradient-hero: linear-gradient(135deg, #e6eef5 0%, #d9e3f2 100%);
+}
+
+/* ---- 基礎樣式 ---- */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg) !important;
+  background-size: auto !important;
+  animation: none !important;
+  color: var(--text);
+  line-height: 1.6;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Microsoft JhengHei', sans-serif;
+}
+
+/* ---- 導航欄（Bootstrap 與自定義） ---- */
+.navbar,
+.main-navigation {
+  background: var(--gradient-primary) !important;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+}
+
+.navbar .navbar-brand, .brand-link, .navbar .nav-link {
+  color: #fff !important;
+}
+
+.navbar .nav-link:hover, .nav-link:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff !important;
+}
+
+.navbar .nav-link.active, .nav-link.active {
+  background: rgba(255,255,255,0.18);
+  color: #fff !important;
+}
+
+/* ---- 主要內容 ---- */
+.main-content {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  min-height: calc(100vh - 200px);
+}
+
+/* ---- 卡片 ---- */
+.card, .warm-card, .modern-card, .patients-table-container, .activities-list, .status-grid, .stat-card, .action-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.card-header {
+  background: var(--gradient-primary) !important;
+  color: #fff !important;
+  border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+  border: none !important;
+}
+
+/* ---- 標題與文字 ---- */
+h1, h2, h3, h4, h5, h6 { color: var(--text-soft); }
+.lead, .muted, .text-muted { color: var(--muted) !important; }
+
+/* ---- 按鈕 ---- */
+.btn,
+.btn-modern,
+.auth-link.register,
+.search-btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline-primary {
+  border-radius: var(--radius-sm) !important;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-primary,
+.auth-link.register {
+  background: var(--primary);
+  color: #fff !important;
+}
+
+.btn-primary:hover,
+.auth-link.register:hover {
+  background: var(--primary-700);
+}
+
+.btn-outline-primary {
+  border: 2px solid var(--primary) !important;
+  color: var(--primary) !important;
+  background: transparent !important;
+}
+
+.btn-outline-primary:hover {
+  background: var(--primary) !important;
+  color: #fff !important;
+}
+
+/* 二級按鈕/中性色 */
+.btn-secondary { background: var(--muted) !important; color: #fff !important; }
+.btn-secondary:hover { filter: brightness(0.95); }
+
+/* 細小操作按鈕（表格內） */
+.btn-edit { background: var(--accent) !important; color: #fff !important; }
+.btn-edit:hover { background: var(--accent-700) !important; }
+.btn-delete { background: var(--danger) !important; color: #fff !important; }
+.btn-delete:hover { filter: brightness(0.95); }
+
+/* ---- 表單 ---- */
+.form-control, .form-select, .search-input, .form-group input, .form-group select, input, select, textarea {
+  border-radius: var(--radius-sm) !important;
+  border: 2px solid var(--border) !important;
+  padding: 0.75rem 0.9rem !important;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.form-control:focus, .form-select:focus, .search-input:focus, .form-group input:focus, .form-group select:focus, input:focus, select:focus, textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  outline: none;
+}
+
+.form-label, .form-group label { color: var(--text-soft); font-weight: 600; }
+
+/* ---- 警告與提示 ---- */
+.alert { border-radius: var(--radius-md) !important; border: none !important; }
+.alert-success { background: linear-gradient(135deg, #d1fae5, #a7f3d0) !important; color: #065f46 !important; }
+.alert-danger { background: linear-gradient(135deg, #fee2e2, #fecaca) !important; color: #991b1b !important; }
+.alert-warning { background: linear-gradient(135deg, #fef3c7, #fde68a) !important; color: #92400e !important; }
+.alert-info { background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important; color: #1e40af !important; }
+
+/* ---- 表格 ---- */
+.patients-table thead,
+.table-warm th {
+  background: linear-gradient(135deg, var(--primary-900), var(--primary-700)) !important;
+  color: #fff !important;
+}
+
+.patients-table tbody tr:hover td, .table-warm tr:hover td { background: #f8fafc !important; }
+
+/* ---- 儀表板/首頁 ---- */
+.dashboard { background: var(--bg-soft) !important; }
+.dashboard-header h1 { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stats-grid .stat-card { border-left: 4px solid rgba(37,99,235,0.35) !important; }
+
+.action-card:hover .action-arrow { color: var(--primary) !important; }
+
+/* ---- Modern 布局（modern_base.html） ---- */
+.modern-sidebar {
+  background: linear-gradient(180deg, #0b1220 0%, #14233b 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modern-sidebar .nav-link { color: rgba(255,255,255,0.86); }
+.modern-sidebar .nav-link:hover, .modern-sidebar .nav-link.active { background: rgba(255,255,255,0.10); color: #fff; transform: translateX(4px); }
+
+.main-content { background: rgba(255,255,255,0.96); backdrop-filter: blur(10px); }
+
+.modern-header { background: #ffffff; border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.header-title { color: var(--text-soft); }
+.theme-toggle { color: var(--muted); }
+.theme-toggle:hover { color: var(--primary); }
+
+/* Dark theme 支援 */
+[data-bs-theme="dark"] {
+  --bg: #0b1220;
+  --bg-soft: #0f1b2e;
+  --surface: #111827;
+  --border: #243244;
+  --text: #e5e7eb;
+  --text-soft: #cbd5e1;
+  --muted: #94a3b8;
+}
+
+[data-bs-theme="dark"] .main-content { background: rgba(17,24,39,0.95); }
+[data-bs-theme="dark"] .modern-header { background: #0f172a; color: var(--text); }
+[data-bs-theme="dark"] .modern-card { background: #111827; border-color: var(--border); }
+
+/* ---- 表單文字對齊與佈局 ---- */
+.form-label, label, .form-group label {
+  text-align: left !important;
+  display: block !important;
+  margin-bottom: 6px !important;
+  color: var(--text-soft);
+}
+
+.form-control, .form-select, input, select, textarea {
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* 說明文字/輔助文字一致性 */
+.form-text, .form-help, small.text-muted {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted) !important;
+}
+
+/* 勾選與單選對齊 */
+.form-check { display: flex; align-items: center; gap: 8px; }
+.form-check-input { margin-top: 0; }
+
+/* 若使用 .form-horizontal 或 .form-row 容器，提供水平對齊 */
+.form-horizontal .form-group,
+.form-row .form-group {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .form-horizontal .form-group,
+  .form-row .form-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- 頁腳 ---- */
+.footer { background: #0f172a; color: #e5e7eb; }
+.footer a { color: #94a3b8; }
+.footer a:hover { color: #e5e7eb; }
+
+/* ---- Hero/首頁（通用選擇器，避免改功能） ---- */
+.home-page { background: var(--gradient-hero) !important; color: var(--text); }
+.hero-section { background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(8px); }
+.feature-card { border-color: var(--border) !important; }
+.feature-icon-large { opacity: .85; }
+
+/* ---- Typography scale & spacing ---- */
+:root {
+  --fs-xxs: 0.75rem;   /* 12px */
+  --fs-xs: 0.8125rem;  /* 13px */
+  --fs-sm: 0.875rem;   /* 14px */
+  --fs-base: 1rem;     /* 16px */
+  --fs-md: 1.125rem;   /* 18px */
+  --fs-lg: 1.25rem;    /* 20px */
+  --fs-xl: 1.5rem;     /* 24px */
+  --fs-2xl: 1.75rem;   /* 28px */
+  --fs-3xl: 2rem;      /* 32px */
+
+  --lh-tight: 1.25;
+  --lh-normal: 1.6;
+  --lh-relaxed: 1.75;
+}
+
+html, body { font-size: var(--fs-base); line-height: var(--lh-normal); letter-spacing: 0.01em; }
+
+h1, h2, h3, h4, h5, h6 { margin: 0 0 0.75rem 0; color: var(--text-soft); line-height: var(--lh-tight); }
+h1 { font-size: var(--fs-3xl); }
+h2 { font-size: var(--fs-2xl); }
+h3 { font-size: var(--fs-xl); }
+h4 { font-size: var(--fs-lg); }
+h5 { font-size: var(--fs-md); }
+h6 { font-size: var(--fs-base); }
+
+p { margin: 0 0 0.75rem 0; font-size: var(--fs-base); color: var(--text); }
+small, .small { font-size: var(--fs-xs); }
+
+/* Buttons */
+.btn, .btn-modern, .auth-link, .search-btn { font-size: var(--fs-sm) !important; letter-spacing: 0.01em; }
+.btn-sm { font-size: var(--fs-xs) !important; }
+
+/* Forms */
+.form-control, .form-select, input, select, textarea { font-size: var(--fs-sm) !important; }
+.form-label, .form-group label { font-size: var(--fs-sm) !important; }
+.form-text, .form-help, small.text-muted { font-size: var(--fs-xs) !important; }
+
+/* Tables */
+.patients-table th, .table-warm th { font-size: var(--fs-sm) !important; }
+.patients-table td, .table-warm td { font-size: var(--fs-sm) !important; }
+
+/* Navigation */
+.brand-link { font-size: var(--fs-lg) !important; }
+.nav-link .nav-text, .auth-link { font-size: var(--fs-sm) !important; }
+
+/* Home & Dashboard headings */
+.home-page .hero-content h1 { font-size: var(--fs-3xl) !important; }
+.features-section h2 { font-size: var(--fs-2xl) !important; }
+.feature-card h3 { font-size: var(--fs-md) !important; }
+.feature-card p { font-size: var(--fs-sm) !important; }
+.dashboard-header h1 { font-size: var(--fs-2xl) !important; }
+.dashboard-header p { font-size: var(--fs-sm) !important; }
+.stat-content h3 { font-size: var(--fs-xl) !important; }
+.stat-content p { font-size: var(--fs-sm) !important; }
+.action-content h3 { font-size: var(--fs-md) !important; }
+.action-content p { font-size: var(--fs-sm) !important; }
+.activity-content p { font-size: var(--fs-sm) !important; }
+.activity-time { font-size: var(--fs-xs) !important; }
+

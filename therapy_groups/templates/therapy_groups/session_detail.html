@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ session.group.name }} - Session Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">{{ session.group.name }} - Session Detail</h3>
+                    <div>
+                        {% if session.status == 'scheduled' %}
+                        <a href="#" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'therapy_groups:session_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Sessions
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Session Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Date:</strong></td>
+                                    <td>{{ session.session_date|date:"M d, Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Time:</strong></td>
+                                    <td>{{ session.session_date|time:"H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Duration:</strong></td>
+                                    <td>{{ session.duration }} minutes</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Facilitator:</strong></td>
+                                    <td>{{ session.facilitator.get_full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge badge-{% if session.status == 'completed' %}success{% elif session.status == 'scheduled' %}info{% elif session.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                            {{ session.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% if session.location %}
+                                <tr>
+                                    <td><strong>Location:</strong></td>
+                                    <td>{{ session.location }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if session.status == 'completed' %}
+                                <tr>
+                                    <td><strong>Attendance:</strong></td>
+                                    <td>{{ session.attendance_count }}/{{ session.group.current_participants_count }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Group Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Group:</strong></td>
+                                    <td>
+                                        <a href="{% url 'therapy_groups:group_detail' session.group.id %}">
+                                            {{ session.group.name }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Therapy Type:</strong></td>
+                                    <td>{{ session.group.get_therapy_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Primary Therapist:</strong></td>
+                                    <td>{{ session.group.primary_therapist.get_full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Participants:</strong></td>
+                                    <td>{{ session.group.current_participants_count }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if session.agenda %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Agenda</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    {{ session.agenda|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if session.summary %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Session Summary</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    {{ session.summary|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if session.notes %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Notes</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    {{ session.notes|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if session.status == 'completed' and attendance_records %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Attendance Record</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Participant</th>
+                                            <th>Status</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in attendance_records %}
+                                        <tr>
+                                            <td>{{ record.participant.patient.first_name }} {{ record.participant.patient.last_name }}</td>
+                                            <td>
+                                                <span class="badge badge-{% if record.status == 'present' %}success{% elif record.status == 'absent' %}danger{% elif record.status == 'late' %}warning{% else %}secondary{% endif %}">
+                                                    {{ record.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ record.notes|default:"-" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,373 @@
+{% extends 'modern_base.html' %}
+
+{% block title %}儀表板 - MedicalCare System{% endblock %}
+{% block page_title %}系統儀表板{% endblock %}
+
+{% block content %}
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="modern-card">
+            <div class="card-header">
+                <h5 class="mb-0">患者統計趨勢</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="patientsChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-4">
+        <div class="modern-card">
+            <div class="card-header">
+                <h5 class="mb-0">性別分布</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="genderChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="modern-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">最近活動</h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshActivity()">
+                    <i class="fas fa-refresh"></i> 刷新
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="recent-activity">
+                    <div class="text-center py-4">
+                        <div class="loading-spinner mx-auto mb-3"></div>
+                        <p class="text-muted">載入中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-4">
+        <div class="modern-card">
+            <div class="card-header">
+                <h5 class="mb-0">快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="/patients/" class="btn btn-primary btn-modern">
+                        <i class="fas fa-user-plus"></i>
+                        新增患者
+                    </a>
+                    <a href="/appointments/" class="btn btn-info btn-modern">
+                        <i class="fas fa-calendar-plus"></i>
+                        預約掛號
+                    </a>
+                    <a href="/medical-records/" class="btn btn-success btn-modern">
+                        <i class="fas fa-file-medical-alt"></i>
+                        建立病歷
+                    </a>
+                    <a href="/reports/" class="btn btn-warning btn-modern">
+                        <i class="fas fa-chart-bar"></i>
+                        查看報表
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+});
+
+async function initializeDashboard() {
+    try {
+        // Load dashboard data
+        await loadDashboardStats();
+        await loadPatientsChart();
+        await loadGenderChart();
+        await loadRecentActivity();
+    } catch (error) {
+        console.error('Failed to initialize dashboard:', error);
+    }
+}
+
+async function loadDashboardStats() {
+    try {
+        // Load patients count
+        const patientsData = await api.get('patients/api/patients/');
+        document.getElementById('total-patients').textContent = patientsData.count || 0;
+        
+        // TODO: Load other stats from API
+        document.getElementById('today-appointments').textContent = '0';
+        document.getElementById('monthly-revenue').textContent = '$0';
+        
+    } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+    }
+}
+
+function loadPatientsChart() {
+    const ctx = document.getElementById('patientsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
+            datasets: [{
+                label: '新增患者',
+                data: [65, 59, 80, 81, 56, 55, 40],
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function loadGenderChart() {
+    const ctx = document.getElementById('genderChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['男性', '女性'],
+            datasets: [{
+                data: [60, 40],
+                backgroundColor: ['#2563eb', '#ec4899'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+async function loadRecentActivity() {
+    const activityContainer = document.getElementById('recent-activity');
+    
+    try {
+        // 這裡可以從API載入真實的活動數據
+        const activities = [
+            { time: '10:30', action: '新患者註冊', user: '張大明', type: 'patient' },
+            { time: '09:15', action: '預約確認', user: '李小美', type: 'appointment' },
+            { time: '08:45', action: '病歷更新', user: '陳志強', type: 'medical' },
+            { time: '08:20', action: '檢驗報告', user: '王淑華', type: 'lab' }
+        ];
+        
+        const activityHTML = activities.map(activity => `
+            <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                <div class="me-3">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
+                        <i class="fas ${getActivityIcon(activity.type)} text-primary"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">${activity.action}</h6>
+                    <small class="text-muted">${activity.user} - ${activity.time}</small>
+                </div>
+            </div>
+        `).join('');
+        
+        activityContainer.innerHTML = activityHTML;
+        
+    } catch (error) {
+        activityContainer.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
+                <p class="text-muted">載入活動記錄失敗</p>
+            </div>
+        `;
+    }
+}
+
+function getActivityIcon(type) {
+    const icons = {
+        patient: 'fa-user-plus',
+        appointment: 'fa-calendar-check',
+        medical: 'fa-file-medical',
+        lab: 'fa-flask'
+    };
+    return icons[type] || 'fa-info-circle';
+}
+
+function refreshActivity() {
+    const button = event.target.closest('button');
+    const icon = button.querySelector('i');
+    
+    // Add loading state
+    icon.className = 'fas fa-spinner fa-spin';
+    button.disabled = true;
+    
+    setTimeout(() => {
+        loadRecentActivity();
+        icon.className = 'fas fa-refresh';
+        button.disabled = false;
+    }, 1000);
+}
+</script>
+{% endblock %}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api/auth/logout/">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="jumbotron bg-light p-5 rounded">
+                    <h1 class="display-4">
+                        <i class="fas fa-hospital-alt text-primary"></i>
+                        Welcome to MedicalCare System
+                    </h1>
+                    <p class="lead">
+                        A comprehensive medical information system built with Django,
+                        designed as a comprehensive medical management system while maintaining
+                        feature parity and improving maintainability.
+                    </p>
+                    <hr class="my-4">
+                    <p>
+                        This system provides complete patient management, appointment scheduling,
+                        medical records, billing, and administrative functions with HIPAA compliance
+                        and modern security features.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Patient Management</h5>
+                        <p class="card-text">Complete patient demographics, medical history, and records</p>
+                        <a href="/api/v1/patients/" class="btn btn-primary">View Patients</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar-alt fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Appointments</h5>
+                        <p class="card-text">Advanced scheduling system with recurring appointments</p>
+                        <a href="/api/v1/appointments/" class="btn btn-success">View Appointments</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-medical fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">Medical Records</h5>
+                        <p class="card-text">Electronic medical records with HL7 FHIR compliance</p>
+                        <a href="/api/v1/medical-records/" class="btn btn-info">View Records</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-dollar-sign fa-3x text-warning mb-3"></i>
+                        <h5 class="card-title">Billing</h5>
+                        <p class="card-text">Comprehensive billing, insurance claims, and payments</p>
+                        <a href="/api/v1/billing/" class="btn btn-warning">View Billing</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> System Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Security Features</h6>
+                                <ul>
+                                    <li>HIPAA Compliant</li>
+                                    <li>Role-based Access Control</li>
+                                    <li>Data Encryption</li>
+                                    <li>Audit Logging</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Medical Standards</h6>
+                                <ul>
+                                    <li>HL7 FHIR R4</li>
+                                    <li>ICD-10 Diagnosis Codes</li>
+                                    <li>CPT Procedure Codes</li>
+                                    <li>SNOMED Clinical Terms</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>MedicalCare System</h6>
+                    <p>Medical Information System</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p>&copy; 2024 MedicalCare System. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

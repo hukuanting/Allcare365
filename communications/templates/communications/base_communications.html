@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}通訊系統{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/communications.css' %}" rel="stylesheet">
+<style>
+/* 通訊系統專用樣式 */
+.communications-container {
+    background: #f8f9fa;
+    min-height: 100vh;
+    padding: 20px 0;
+}
+
+.communication-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.communication-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.channel-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+}
+
+.message-thread {
+    border-left: 4px solid #667eea;
+    padding: 15px;
+    margin: 10px 0;
+    background: #f8f9fa;
+    border-radius: 0 8px 8px 0;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 10px 15px;
+    margin: 5px 0;
+    border-radius: 18px;
+    position: relative;
+}
+
+.message-sent {
+    background: #007bff;
+    color: white;
+    margin-left: auto;
+    text-align: right;
+}
+
+.message-received {
+    background: #e9ecef;
+    color: #333;
+    margin-right: auto;
+}
+
+.notification-badge {
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
+
+.priority-urgent {
+    border-left-color: #dc3545 !important;
+}
+
+.priority-high {
+    border-left-color: #fd7e14 !important;
+}
+
+.priority-normal {
+    border-left-color: #28a745 !important;
+}
+
+.priority-low {
+    border-left-color: #6c757d !important;
+}
+
+.participant-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.online-indicator {
+    width: 8px;
+    height: 8px;
+    background: #28a745;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
+
+.search-bar {
+    background: white;
+    border-radius: 25px;
+    padding: 10px 20px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 20px;
+}
+
+.communication-sidebar {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.communication-main {
+    background: white;
+    border-radius: 8px;
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+}
+
+.message-input-area {
+    border-top: 1px solid #dee2e6;
+    padding: 20px;
+}
+
+.emoji-picker {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+}
+
+.reaction-button {
+    background: none;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 15px;
+    margin: 2px;
+    transition: background-color 0.2s;
+}
+
+.reaction-button:hover {
+    background: #f8f9fa;
+}
+
+.reaction-button.active {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.attachment-preview {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    margin: 5px 0;
+}
+
+.typing-indicator {
+    padding: 10px;
+    font-style: italic;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: 15px;
+    margin: 5px 0;
+}
+
+.loading-animation {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .communication-sidebar {
+        height: auto;
+        margin-bottom: 20px;
+    }
+    
+    .communication-main {
+        height: auto;
+        min-height: 500px;
+    }
+    
+    .message-bubble {
+        max-width: 85%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/communications.js' %}"></script>
+<script>
+// 全域通訊系統 JavaScript 功能
+document.addEventListener('DOMContentLoaded', function() {
+    // 自動刷新未讀數量
+    setInterval(updateUnreadCounts, 30000); // 每30秒更新一次
+    
+    // 初始化表情符號選擇器
+    initializeEmojiPicker();
+    
+    // 初始化檔案上傳
+    initializeFileUpload();
+    
+    // 初始化即時通知
+    initializeRealTimeNotifications();
+});
+
+function updateUnreadCounts() {
+    fetch('/communications/api/unread-counts/')
+        .then(response => response.json())
+        .then(data => {
+            // 更新通知徽章
+            const notificationBadge = document.querySelector('.notification-badge');
+            if (notificationBadge) {
+                notificationBadge.textContent = data.notifications;
+                notificationBadge.style.display = data.notifications > 0 ? 'block' : 'none';
+            }
+            
+            // 更新訊息徽章
+            const messageBadge = document.querySelector('.message-badge');
+            if (messageBadge) {
+                messageBadge.textContent = data.messages;
+                messageBadge.style.display = data.messages > 0 ? 'block' : 'none';
+            }
+        })
+        .catch(error => console.error('更新未讀數量失敗:', error));
+}
+
+function initializeEmojiPicker() {
+    // 簡單的表情符號選擇器
+    const emojiButton = document.querySelector('.emoji-button');
+    const emojiPicker = document.querySelector('.emoji-picker');
+    
+    if (emojiButton && emojiPicker) {
+        emojiButton.addEventListener('click', function() {
+            emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // 點擊其他地方關閉選擇器
+        document.addEventListener('click', function(e) {
+            if (!emojiButton.contains(e.target) && !emojiPicker.contains(e.target)) {
+                emojiPicker.style.display = 'none';
+            }
+        });
+    }
+}
+
+function initializeFileUpload() {
+    const fileInput = document.querySelector('#file-input');
+    const filePreview = document.querySelector('.file-preview');
+    
+    if (fileInput && filePreview) {
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            filePreview.innerHTML = '';
+            
+            for (let file of files) {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file-item mb-2';
+                
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.className = 'attachment-preview';
+                    fileDiv.appendChild(img);
+                } else {
+                    fileDiv.innerHTML = `<i class="fas fa-file"></i> ${file.name}`;
+                }
+                
+                filePreview.appendChild(fileDiv);
+            }
+        });
+    }
+}
+
+function initializeRealTimeNotifications() {
+    // 簡化版即時通知 (實際應用中可以使用 WebSocket)
+    if ('Notification' in window && Notification.permission === 'granted') {
+        // 設置推播通知
+        setInterval(checkNewMessages, 60000); // 每分鐘檢查一次新訊息
+    }
+}
+
+function checkNewMessages() {
+    // 檢查新訊息的邏輯
+    // 這裡可以實作 WebSocket 或定期 AJAX 請求
+}
+
+// 工具函數
+function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return '剛剛';
+    if (minutes < 60) return `${minutes}分鐘前`;
+    if (hours < 24) return `${hours}小時前`;
+    if (days < 7) return `${days}天前`;
+    
+    return date.toLocaleDateString();
+}
+
+function showNotification(title, message, type = 'info') {
+    // 顯示應用內通知
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <strong>${title}</strong><br>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // 5秒後自動移除
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

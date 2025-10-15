@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}健檢記錄詳情{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page-Title -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 class="page-title">健檢記錄詳情</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">儀表板</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢儀表板</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:list' %}">健檢記錄列表</a></li>
+                    <li class="breadcrumb-item active">詳情</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">基本資訊</h4>
+                    <dl class="row">
+                        <dt class="col-sm-3">患者姓名</dt>
+                        <dd class="col-sm-9">{{ screening.patient.full_name }}</dd>
+
+                        <dt class="col-sm-3">檢查日期</dt>
+                        <dd class="col-sm-9">{{ screening.screening_date|date:"Y-m-d" }}</dd>
+
+                        <dt class="col-sm-3">檢查類型</dt>
+                        <dd class="col-sm-9">{{ screening.screening_type }}</dd>
+
+                        <dt class="col-sm-3">檢查醫師</dt>
+                        <dd class="col-sm-9">{{ screening.provider.get_full_name|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">檢查時年齡</dt>
+                        <dd class="col-sm-9">{{ screening.age_at_screening|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">備註</dt>
+                        <dd class="col-sm-9">{{ screening.notes|default:"無" }}</dd>
+                    </dl>
+
+                    {% if screening.vital_signs %}
+                    <h4 class="card-title mt-4">生命體徵</h4>
+                    <dl class="row">
+                        <dt class="col-sm-3">身高 (cm)</dt>
+                        <dd class="col-sm-9">{{ screening.vital_signs.height_cm|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">體重 (kg)</dt>
+                        <dd class="col-sm-9">{{ screening.vital_signs.weight_kg|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">BMI</dt>
+                        <dd class="col-sm-9">{{ screening.vital_signs.bmi|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">脈搏 (次/分)</dt>
+                        <dd class="col-sm-9">{{ screening.vital_signs.pulse_rate_bpm|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">收縮壓 (mmHg)</dt>
+                        <dd class="col-sm-9">{{ screening.vital_signs.systolic_bp_mmhg|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">舒張壓 (mmHg)</dt>
+                        <dd class="col-sm-9">{{ screening.vital_signs.diastolic_bp_mmhg|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">腰圍 (cm)</dt>
+                        <dd class="col-sm-9">{{ screening.vital_signs.waist_circumference_cm|default:"N/A" }}</dd>
+                    </dl>
+                    {% endif %}
+
+                    {% if screening.laboratory_results %}
+                    <h4 class="card-title mt-4">檢驗結果</h4>
+                    <dl class="row">
+                        <dt class="col-sm-3">空腹血糖 (mg/dL)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.fasting_glucose_mgdl|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">糖化血色素 (%)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.hba1c_percent|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">總膽固醇 (mg/dL)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.total_cholesterol_mgdl|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">高密度膽固醇 (mg/dL)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.hdl_cholesterol_mgdl|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">低密度膽固醇 (mg/dL)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.ldl_cholesterol_mgdl|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">三酸甘油脂 (mg/dL)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.triglycerides_mgdl|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">ALT/GPT (U/L)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.alt_gpt_ul|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">AST/GOT (U/L)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.ast_got_ul|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">尿酸 (mg/dL)</dt>
+                        <dd class="col-sm-9">{{ screening.laboratory_results.uric_acid_mgdl|default:"N/A" }}</dd>
+                    </dl>
+                    {% endif %}
+
+                    {% if screening.medical_history %}
+                    <h4 class="card-title mt-4">病史</h4>
+                    <dl class="row">
+                        <dt class="col-sm-3">糖尿病治療中</dt>
+                        <dd class="col-sm-9">{% if screening.medical_history.diabetes_treated %}是{% else %}否{% endif %}</dd>
+
+                        <dt class="col-sm-3">高血壓治療中</dt>
+                        <dd class="col-sm-9">{% if screening.medical_history.hypertension_treated %}是{% else %}否{% endif %}</dd>
+
+                        <dt class="col-sm-3">高血脂治療中</dt>
+                        <dd class="col-sm-9">{% if screening.medical_history.hyperlipidemia_treated %}是{% else %}否{% endif %}</dd>
+
+                        <dt class="col-sm-3">高血壓病史</dt>
+                        <dd class="col-sm-9">{% if screening.medical_history.hypertension_history %}是{% else %}否{% endif %}</dd>
+
+                        <dt class="col-sm-3">APOE ε4陽性</dt>
+                        <dd class="col-sm-9">{% if screening.medical_history.apoe_e4_positive %}是{% else %}否{% endif %}</dd>
+                    </dl>
+                    {% endif %}
+
+                    {% if screening.lifestyle %}
+                    <h4 class="card-title mt-4">生活習慣問卷</h4>
+                    <dl class="row">
+                        <dt class="col-sm-3">飲食評分</dt>
+                        <dd class="col-sm-9">{{ screening.lifestyle.get_diet_score_display|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">運動評分</dt>
+                        <dd class="col-sm-9">{{ screening.lifestyle.get_exercise_score_display|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">目前吸菸</dt>
+                        <dd class="col-sm-9">{% if screening.lifestyle.is_current_smoker %}是{% else %}否{% endif %}</dd>
+
+                        <dt class="col-sm-3">吸菸年數</dt>
+                        <dd class="col-sm-9">{{ screening.lifestyle.smoking_years|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">每日菸量</dt>
+                        <dd class="col-sm-9">{{ screening.lifestyle.cigarettes_per_day|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">飲酒狀況</dt>
+                        <dd class="col-sm-9">{{ screening.lifestyle.get_drinking_status_display|default:"N/A" }}</dd>
+
+                        <dt class="col-sm-3">每週飲酒量</dt>
+                        <dd class="col-sm-9">{{ screening.lifestyle.drinks_per_week|default:"N/A" }}</dd>
+                    </dl>
+                    {% endif %}
+
+                    {% if screening.cardiovascular_risk %}
+<h4 class="card-title mt-4">心血管風險評估</h4>
+<dl class="row">
+    {% if screening.patient.gender == 'F' %}
+    <dt class="col-sm-3">女性10年CVD風險</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.cvd_10_year_risk_women|floatformat:4|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">女性10年ASCVD風險</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.ascvd_10_year_risk_women|floatformat:4|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">女性10年HF風險</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.hf_10_year_risk_women|floatformat:4|default:"N/A" }}</dd>
+    {% elif screening.patient.gender == 'M' %}
+    <dt class="col-sm-3">男性10年CVD風險</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.cvd_10_year_risk_men|floatformat:4|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">男性10年ASCVD風險</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.ascvd_10_year_risk_men|floatformat:4|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">男性10年HF風險</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.hf_10_year_risk_men|floatformat:4|default:"N/A" }}</dd>
+    {% endif %}
+
+    <dt class="col-sm-3">心血管代謝指數(CMI)</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.cardiometabolic_index|floatformat:3|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">動脈硬化風險(ARP)</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.atherogenic_risk_plasma|floatformat:2|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">女性內臟脂肪指數</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.visceral_adiposity_index_women|floatformat:3|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">男性內臟脂肪指數</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.visceral_adiposity_index_men|floatformat:3|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">女性中國內臟脂肪指數</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.cvai_female|floatformat:2|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">男性中國內臟脂肪指數</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.cvai_male|floatformat:2|default:"N/A" }}</dd>
+
+    <dt class="col-sm-3">單核球/HDL比值</dt>
+    <dd class="col-sm-9">{{ screening.cardiovascular_risk.monocyte_hdl_ratio|floatformat:3|default:"N/A" }}</dd>
+</dl>
+{% endif %}
+
+<div class="mt-4">
+    <a href="{% url 'health_screening:edit' screening.id %}" class="btn btn-warning me-2">編輯</a>
+    <a href="{% url 'health_screening:list' %}" class="btn btn-secondary">返回列表</a>
+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

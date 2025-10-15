@@ -1,0 +1,301 @@
+{% extends 'patient_portal/base.html' %}
+
+{% block title %}Prescriptions - Patient Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Prescriptions</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshPrescriptions()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-filter"></i> Filter Prescriptions</h5>
+            </div>
+            <div class="card-body">
+                <form id="filterForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="status_filter" class="form-label">Status</label>
+                            <select class="form-select" id="status_filter" name="status">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="provider_filter" class="form-label">Prescribing Provider</label>
+                            <select class="form-select" id="provider_filter" name="provider">
+                                <option value="">All Providers</option>
+                                <!-- Will be populated via AJAX -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_from" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_to" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to">
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prescriptions List -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-pills"></i> Your Prescriptions</h5>
+            </div>
+            <div class="card-body">
+                <div id="prescriptions-list">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prescription Details Modal -->
+<div class="modal fade" id="prescriptionModal" tabindex="-1" aria-labelledby="prescriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="prescriptionModalLabel">
+                    <i class="fas fa-prescription-bottle"></i> Prescription Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="prescriptionDetails">
+                <!-- Will be populated via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="requestRefill()">
+                    <i class="fas fa-redo"></i> Request Refill
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentFilters = {};
+let selectedPrescriptionId = null;
+
+function loadPrescriptions(filters = {}) {
+    currentFilters = filters;
+    
+    $('#prescriptions-list').html('<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    
+    $.ajax({
+        url: '{% url "patient_portal:get_prescriptions_ajax" %}',
+        method: 'GET',
+        data: filters,
+        success: function(data) {
+            displayPrescriptions(data.prescriptions);
+        },
+        error: function(xhr, status, error) {
+            // Mock data for demonstration
+            const mockPrescriptions = [
+                {
+                    id: 1,
+                    medication: 'Lisinopril',
+                    dosage: '10mg',
+                    frequency: 'Once daily',
+                    prescribed_date: 'January 15, 2024',
+                    expiry_date: 'January 15, 2025',
+                    refills_remaining: 3,
+                    status: 'active',
+                    prescribing_provider: 'Dr. John Smith'
+                },
+                {
+                    id: 2,
+                    medication: 'Metformin',
+                    dosage: '500mg',
+                    frequency: 'Twice daily',
+                    prescribed_date: 'February 10, 2024',
+                    expiry_date: 'February 10, 2025',
+                    refills_remaining: 2,
+                    status: 'active',
+                    prescribing_provider: 'Dr. Jane Doe'
+                }
+            ];
+            displayPrescriptions(mockPrescriptions);
+        }
+    });
+}
+
+function displayPrescriptions(prescriptions) {
+    const container = $('#prescriptions-list');
+    container.empty();
+    
+    if (prescriptions && prescriptions.length > 0) {
+        let prescriptionsHtml = '<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Prescribed Date</th><th>Refills Left</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        
+        prescriptions.forEach(function(prescription) {
+            const statusClass = getStatusClass(prescription.status);
+            prescriptionsHtml += `
+                <tr>
+                    <td><strong>${prescription.medication}</strong></td>
+                    <td>${prescription.dosage}</td>
+                    <td>${prescription.frequency}</td>
+                    <td>${prescription.prescribed_date}</td>
+                    <td>${prescription.refills_remaining}</td>
+                    <td><span class="badge ${statusClass}">${prescription.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewPrescription(${prescription.id})">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        ${prescription.status === 'active' ? `<button class="btn btn-sm btn-outline-success" onclick="requestRefill(${prescription.id})"><i class="fas fa-redo"></i> Refill</button>` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+        
+        prescriptionsHtml += '</tbody></table></div>';
+        container.html(prescriptionsHtml);
+    } else {
+        container.html('<div class="text-center"><p class="text-muted">No prescriptions found</p></div>');
+    }
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'active': return 'bg-success';
+        case 'inactive': return 'bg-secondary';
+        case 'expired': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+function viewPrescription(prescriptionId) {
+    selectedPrescriptionId = prescriptionId;
+    
+    // Mock prescription details
+    const prescriptionDetails = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-pills"></i> Medication Information</h6>
+                <p><strong>Medication:</strong> Lisinopril</p>
+                <p><strong>Generic Name:</strong> Lisinopril</p>
+                <p><strong>Dosage:</strong> 10mg</p>
+                <p><strong>Frequency:</strong> Once daily</p>
+                <p><strong>Route:</strong> Oral</p>
+                <p><strong>Quantity:</strong> 30 tablets</p>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-calendar-alt"></i> Prescription Details</h6>
+                <p><strong>Prescribed Date:</strong> January 15, 2024</p>
+                <p><strong>Expiry Date:</strong> January 15, 2025</p>
+                <p><strong>Refills Remaining:</strong> 3</p>
+                <p><strong>Status:</strong> <span class="badge bg-success">Active</span></p>
+                <p><strong>Prescribing Provider:</strong> Dr. John Smith</p>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-md-12">
+                <h6><i class="fas fa-info-circle"></i> Instructions</h6>
+                <p><strong>Directions:</strong> Take one tablet by mouth once daily in the morning with or without food.</p>
+                <p><strong>Indication:</strong> High blood pressure</p>
+                <p><strong>Side Effects:</strong> Dizziness, dry cough, headache</p>
+                <p><strong>Notes:</strong> Monitor blood pressure regularly. Contact your doctor if you experience persistent cough.</p>
+            </div>
+        </div>
+    `;
+    
+    $('#prescriptionDetails').html(prescriptionDetails);
+    $('#prescriptionModal').modal('show');
+}
+
+function requestRefill(prescriptionId = null) {
+    if (prescriptionId) {
+        selectedPrescriptionId = prescriptionId;
+    }
+    
+    if (confirm('Are you sure you want to request a refill for this prescription?')) {
+        // Mock refill request
+        showAlert('success', 'Refill request submitted successfully. You will be notified when ready.');
+        $('#prescriptionModal').modal('hide');
+        loadPrescriptions(currentFilters);
+    }
+}
+
+function refreshPrescriptions() {
+    loadPrescriptions(currentFilters);
+}
+
+function clearFilters() {
+    $('#filterForm')[0].reset();
+    currentFilters = {};
+    loadPrescriptions();
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $('body').prepend(alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        $('.alert').alert('close');
+    }, 5000);
+}
+
+// Filter form submission
+$('#filterForm').on('submit', function(e) {
+    e.preventDefault();
+    const filters = {};
+    
+    $(this).serializeArray().forEach(function(item) {
+        if (item.value) {
+            filters[item.name] = item.value;
+        }
+    });
+    
+    loadPrescriptions(filters);
+});
+
+// Load prescriptions on page load
+$(document).ready(function() {
+    loadPrescriptions();
+});
+</script>
+{% endblock %}

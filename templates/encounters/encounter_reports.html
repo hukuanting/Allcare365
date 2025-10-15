@@ -1,0 +1,486 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}診療記錄報告 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-card {
+        background: white;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .stats-card {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+        color: white;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
+        transition: transform 0.3s;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-form {
+        background: #f8f9fc;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .table-responsive {
+        border-radius: 0.35rem;
+        overflow: hidden;
+    }
+    
+    .export-buttons {
+        gap: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">診療記錄報告</h1>
+        <div class="d-flex export-buttons">
+            <button class="btn btn-success btn-sm" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> 匯出Excel
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i> 匯出PDF
+            </button>
+            <button class="btn btn-info btn-sm" onclick="window.print()">
+                <i class="fas fa-print"></i> 列印
+            </button>
+        </div>
+    </div>
+
+    <!-- 報告參數設定 -->
+    <div class="filter-form">
+        <form id="reportForm">
+            <div class="row">
+                <div class="col-md-2">
+                    <label for="dateFrom" class="form-label">開始日期</label>
+                    <input type="date" id="dateFrom" class="form-control" value="2025-07-01">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="dateTo" class="form-label">結束日期</label>
+                    <input type="date" id="dateTo" class="form-control" value="2025-07-31">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="provider" class="form-label">醫護人員</label>
+                    <select id="provider" class="form-select">
+                        <option value="">所有醫護人員</option>
+                        <option value="provider1">陳醫師</option>
+                        <option value="provider2">李醫師</option>
+                        <option value="provider3">王護士</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="category" class="form-label">診療類別</label>
+                    <select id="category" class="form-select">
+                        <option value="">所有類別</option>
+                        <option value="outpatient">門診看診</option>
+                        <option value="emergency">急診</option>
+                        <option value="inpatient">住院查房</option>
+                        <option value="surgery">手術</option>
+                        <option value="examination">檢查</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="reportType" class="form-label">報告類型</label>
+                    <select id="reportType" class="form-select">
+                        <option value="summary">摘要報告</option>
+                        <option value="detailed">詳細報告</option>
+                        <option value="statistics">統計報告</option>
+                        <option value="trends">趨勢分析</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100" onclick="generateReport()">
+                        <i class="fas fa-chart-line"></i> 產生報告
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 統計概覽 -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <div class="stats-number" id="totalEncounters">246</div>
+                <div class="stats-label">總診療次數</div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(45deg, #1cc88a, #13855c);">
+                <div class="stats-number" id="completedEncounters">198</div>
+                <div class="stats-label">已完成診療</div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(45deg, #36b9cc, #258391);">
+                <div class="stats-number" id="averageTime">42</div>
+                <div class="stats-label">平均診療時間(分鐘)</div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(45deg, #f6c23e, #dda20a);">
+                <div class="stats-number" id="patientSatisfaction">4.6</div>
+                <div class="stats-label">患者滿意度</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左側：圖表分析 -->
+        <div class="col-lg-8">
+            <!-- 診療趨勢圖 -->
+            <div class="report-card">
+                <h5 class="mb-3">診療趨勢分析</h5>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 診療類別分布 -->
+            <div class="report-card">
+                <h5 class="mb-3">診療類別分布</h5>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 醫護人員績效 -->
+            <div class="report-card">
+                <h5 class="mb-3">醫護人員績效</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>醫護人員</th>
+                                <th>診療次數</th>
+                                <th>平均時間</th>
+                                <th>完成率</th>
+                                <th>患者滿意度</th>
+                            </tr>
+                        </thead>
+                        <tbody id="providerPerformanceTable">
+                            <tr>
+                                <td>陳醫師</td>
+                                <td>128</td>
+                                <td>38分鐘</td>
+                                <td><span class="badge bg-success">95%</span></td>
+                                <td>⭐⭐⭐⭐⭐ 4.8</td>
+                            </tr>
+                            <tr>
+                                <td>李醫師</td>
+                                <td>96</td>
+                                <td>45分鐘</td>
+                                <td><span class="badge bg-success">92%</span></td>
+                                <td>⭐⭐⭐⭐ 4.5</td>
+                            </tr>
+                            <tr>
+                                <td>王護士</td>
+                                <td>64</td>
+                                <td>28分鐘</td>
+                                <td><span class="badge bg-warning">87%</span></td>
+                                <td>⭐⭐⭐⭐ 4.3</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：詳細統計 -->
+        <div class="col-lg-4">
+            <!-- 狀態分布 -->
+            <div class="report-card">
+                <h5 class="mb-3">診療狀態分布</h5>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 時段分析 -->
+            <div class="report-card">
+                <h5 class="mb-3">診療時段分析</h5>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>上午 (08:00-12:00)</span>
+                        <strong>45%</strong>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-primary" style="width: 45%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>下午 (13:00-17:00)</span>
+                        <strong>35%</strong>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" style="width: 35%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>晚上 (18:00-22:00)</span>
+                        <strong>15%</strong>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-warning" style="width: 15%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>夜間 (22:00-08:00)</span>
+                        <strong>5%</strong>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-danger" style="width: 5%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 診療效率指標 -->
+            <div class="report-card">
+                <h5 class="mb-3">效率指標</h5>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>準時率</span>
+                        <span class="badge bg-success">92%</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>等候時間</span>
+                        <span class="badge bg-info">平均 12分鐘</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>重新安排率</span>
+                        <span class="badge bg-warning">8%</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>未到率</span>
+                        <span class="badge bg-danger">5%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 初始化圖表
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
+    });
+
+    function initializeCharts() {
+        // 趨勢圖
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
+                datasets: [{
+                    label: '診療次數',
+                    data: [65, 59, 80, 81, 56, 55, 70],
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // 類別分布圖
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['門診看診', '急診', '住院查房', '手術', '檢查'],
+                datasets: [{
+                    data: [45, 20, 15, 10, 10],
+                    backgroundColor: [
+                        '#007bff',
+                        '#dc3545', 
+                        '#28a745',
+                        '#ffc107',
+                        '#17a2b8'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // 狀態分布圖
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['已完成', '進行中', '已排程', '已取消'],
+                datasets: [{
+                    data: [80, 12, 6, 2],
+                    backgroundColor: [
+                        '#1cc88a',
+                        '#4e73df',
+                        '#f6c23e',
+                        '#e74a3b'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    function generateReport() {
+        // 收集表單參數
+        const params = {
+            dateFrom: document.getElementById('dateFrom').value,
+            dateTo: document.getElementById('dateTo').value,
+            provider: document.getElementById('provider').value,
+            category: document.getElementById('category').value,
+            reportType: document.getElementById('reportType').value
+        };
+
+        console.log('產生報告參數:', params);
+        
+        // 這裡應該調用API重新載入數據
+        // 暫時顯示載入中的提示
+        showLoadingIndicator();
+        
+        setTimeout(() => {
+            hideLoadingIndicator();
+            updateReportData(params);
+        }, 1000);
+    }
+
+    function updateReportData(params) {
+        // 模擬更新報告數據
+        console.log('更新報告數據:', params);
+        
+        // 這裡實際應該從API獲取新數據並更新圖表
+    }
+
+    function exportToExcel() {
+        // 實現Excel匯出功能
+        console.log('匯出Excel');
+        alert('Excel檔案匯出功能開發中...');
+    }
+
+    function exportToPDF() {
+        // 實現PDF匯出功能
+        console.log('匯出PDF');
+        alert('PDF檔案匯出功能開發中...');
+    }
+
+    function showLoadingIndicator() {
+        // 顯示載入指示器
+        const overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: 100vh; position: fixed; top: 0; left: 0; width: 100%; background: rgba(0,0,0,0.5); z-index: 9999;">
+                <div class="text-center text-white">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                    <div class="mt-2">正在產生報告...</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    function hideLoadingIndicator() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+</script>
+
+<style>
+    @media print {
+        .export-buttons, .filter-form {
+            display: none !important;
+        }
+        
+        .report-card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        
+        .stats-card {
+            background: #4e73df !important;
+            -webkit-print-color-adjust: exact;
+        }
+    }
+</style>
+{% endblock %}

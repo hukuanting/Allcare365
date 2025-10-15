@@ -1,0 +1,709 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}患者管理 - Allcare365{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patients-header {
+        background: var(--warm-gradient);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .search-section {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--box-shadow);
+        margin-bottom: 2rem;
+    }
+
+    .patient-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--box-shadow);
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .patient-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .patient-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .patient-details h5 {
+        margin-bottom: 0.5rem;
+        color: var(--dark-color);
+    }
+
+    .patient-meta {
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+    }
+
+    .patient-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .filter-section {
+        background: #f8f9fa;
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .stats-row {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--box-shadow);
+        margin-bottom: 2rem;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .stat-label {
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+    }
+
+    .pagination-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .no-patients {
+        text-align: center;
+        padding: 3rem;
+        color: var(--secondary-color);
+    }
+
+    .badge-status {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Patients Header -->
+<div class="patients-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="h2 mb-0">
+                    <i class="fas fa-users me-2"></i>患者管理
+                </h1>
+                <p class="opacity-75 mb-0">管理和查看患者資訊</p>
+            </div>
+            <div class="col-lg-6 text-lg-end">
+                <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addPatientModal">
+                    <i class="fas fa-plus me-2"></i>新增患者
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Statistics Row -->
+    <div class="stats-row">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalPatients">0</div>
+                    <div class="stat-label">總患者數</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number" id="activePatients">0</div>
+                    <div class="stat-label">活躍患者</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number" id="newPatients">0</div>
+                    <div class="stat-label">本月新增</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number" id="criticalPatients">0</div>
+                    <div class="stat-label">需要關注</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="search-section">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="searchInput" 
+                           placeholder="搜尋患者姓名、電話或病歷號...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="genderFilter">
+                    <option value="">所有性別</option>
+                    <option value="M">男性</option>
+                    <option value="F">女性</option>
+                    <option value="O">其他</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="statusFilter">
+                    <option value="">所有狀態</option>
+                    <option value="active">活躍</option>
+                    <option value="inactive">非活躍</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patients List -->
+    <div id="patientsContainer">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="mt-2">載入患者資料中...</p>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper">
+        <nav>
+            <ul class="pagination" id="pagination">
+                <!-- Pagination will be generated by JavaScript -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Add Patient Modal -->
+<div class="modal fade" id="addPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增患者</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">            <form id="addPatientForm">
+                {% csrf_token %}
+                <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">名字 *</label>
+                            <input type="text" class="form-control" id="firstName" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">姓氏 *</label>
+                            <input type="text" class="form-control" id="lastName" name="last_name" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dateOfBirth" class="form-label">出生日期 *</label>
+                            <input type="date" class="form-control" id="dateOfBirth" name="date_of_birth" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="gender" class="form-label">性別 *</label>
+                            <select class="form-select" id="gender" name="gender" required>
+                                <option value="">請選擇性別</option>
+                                <option value="M">男性</option>
+                                <option value="F">女性</option>
+                                <option value="O">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phoneMobile" class="form-label">手機號碼</label>
+                            <input type="tel" class="form-control" id="phoneMobile" name="phone_mobile">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">電子郵件</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">地址</label>
+                        <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="savePatient()">
+                    <i class="fas fa-save me-2"></i>儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Patient Detail Modal -->
+<div class="modal fade" id="patientDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">患者詳細資訊</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="patientDetailContent">
+                <!-- Patient details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+let searchTimeout;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadPatients();
+    loadStatistics();
+    
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentPage = 1;
+            loadPatients();
+        }, 500);
+    });
+    
+    // Filter functionality
+    document.getElementById('genderFilter').addEventListener('change', function() {
+        currentPage = 1;
+        loadPatients();
+    });
+    
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        currentPage = 1;
+        loadPatients();
+    });
+});
+
+// Load patients data
+function loadPatients() {
+    const container = document.getElementById('patientsContainer');
+    const search = document.getElementById('searchInput').value;
+    const gender = document.getElementById('genderFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    
+    // Show loading spinner
+    container.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="mt-2">載入患者資料中...</p>
+        </div>
+    `;
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+        page: currentPage,
+        per_page: 10
+    });
+    
+    if (search) params.append('search', search);
+    if (gender) params.append('gender', gender);
+    if (status) params.append('status', status);
+    
+    // Fetch data from API
+    fetch(`/patients/api/list/?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            renderPatients(data.patients);
+            updatePagination(data.pagination);
+        })
+        .catch(error => {
+            console.error('Error loading patients:', error);
+            container.innerHTML = `
+                <div class="no-patients">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h5>載入失敗</h5>
+                    <p>請稍後再試或聯絡系統管理員</p>
+                </div>
+            `;
+        });
+}
+
+// Generate mock patient data
+function generateMockPatients() {
+    const mockPatients = [
+        {
+            id: 1,
+            first_name: '小明',
+            last_name: '王',
+            date_of_birth: '1985-03-15',
+            gender: 'M',
+            phone_mobile: '0912-345-678',
+            email: 'wang.xiaoming@email.com',
+            medical_record_number: 'MR001',
+            last_visit: '2025-07-10',
+            status: 'active'
+        },
+        {
+            id: 2,
+            first_name: '美麗',
+            last_name: '李',
+            date_of_birth: '1990-08-22',
+            gender: 'F',
+            phone_mobile: '0923-456-789',
+            email: 'li.meili@email.com',
+            medical_record_number: 'MR002',
+            last_visit: '2025-07-08',
+            status: 'active'
+        },
+        {
+            id: 3,
+            first_name: '志強',
+            last_name: '陳',
+            date_of_birth: '1978-12-05',
+            gender: 'M',
+            phone_mobile: '0934-567-890',
+            email: 'chen.zhiqiang@email.com',
+            medical_record_number: 'MR003',
+            last_visit: '2025-06-25',
+            status: 'active'
+        }
+    ];
+    
+    return mockPatients;
+}
+
+// Render patients list
+function renderPatients(patients) {
+    const container = document.getElementById('patientsContainer');
+    
+    if (patients.length === 0) {
+        container.innerHTML = `
+            <div class="no-patients">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5>沒有找到患者</h5>
+                <p>請嘗試調整搜尋條件或新增新患者</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    patients.forEach(patient => {
+        const age = calculateAge(patient.date_of_birth);
+        const genderText = patient.gender === 'M' ? '男' : patient.gender === 'F' ? '女' : '其他';
+        const statusBadge = patient.is_active ? 
+            '<span class="badge bg-success badge-status">活躍</span>' :
+            '<span class="badge bg-secondary badge-status">非活躍</span>';
+        
+        html += `
+            <div class="patient-card">
+                <div class="patient-info">
+                    <div class="patient-details">
+                        <h5>${patient.last_name}${patient.first_name}</h5>
+                        <div class="patient-meta">
+                            <span class="me-3"><i class="fas fa-id-card me-1"></i>${patient.medical_record_number || '未設定'}</span>
+                            <span class="me-3"><i class="fas fa-birthday-cake me-1"></i>${age}歲 (${genderText})</span>
+                            <span class="me-3"><i class="fas fa-phone me-1"></i>${patient.phone_mobile || '無'}</span>
+                            <span class="me-3"><i class="fas fa-calendar me-1"></i>註冊日期：${patient.created_at}</span>
+                        </div>
+                    </div>
+                    <div class="patient-actions">
+                        ${statusBadge}
+                        <button class="btn btn-outline-primary btn-sm" onclick="viewPatient('${patient.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="editPatient('${patient.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="scheduleAppointment('${patient.id}')">
+                            <i class="fas fa-calendar-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Load statistics
+function loadStatistics() {
+    fetch('/patients/api/statistics/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalPatients').textContent = data.total_patients;
+            document.getElementById('activePatients').textContent = data.active_patients;
+            document.getElementById('newPatients').textContent = data.new_patients;
+            document.getElementById('criticalPatients').textContent = data.critical_patients;
+        })
+        .catch(error => {
+            console.error('Error loading statistics:', error);
+            // 顯示預設值
+            document.getElementById('totalPatients').textContent = '0';
+            document.getElementById('activePatients').textContent = '0';
+            document.getElementById('newPatients').textContent = '0';
+            document.getElementById('criticalPatients').textContent = '0';
+        });
+}
+
+// Update pagination
+function updatePagination(pagination) {
+    const paginationEl = document.getElementById('pagination');
+    totalPages = pagination.total_pages;
+    currentPage = pagination.current_page;
+    
+    let html = '';
+    
+    // Previous button
+    html += `
+        <li class="page-item ${!pagination.has_previous ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">上一頁</a>
+        </li>
+    `;
+    
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        html += `
+            <li class="page-item ${currentPage === i ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+            </li>
+        `;
+    }
+    
+    // Next button
+    html += `
+        <li class="page-item ${!pagination.has_next ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">下一頁</a>
+        </li>
+    `;
+    
+    paginationEl.innerHTML = html;
+}
+
+// Calculate age from date of birth
+function calculateAge(dateOfBirth) {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age;
+}
+
+// Change page
+function changePage(page) {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+        currentPage = page;
+        loadPatients();
+    }
+}
+
+// Save new patient
+function savePatient() {
+    const form = document.getElementById('addPatientForm');
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Convert FormData to JSON
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+    
+    // Show loading state
+    const saveButton = document.querySelector('#addPatientModal .btn-primary');
+    const originalText = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>儲存中...';
+    saveButton.disabled = true;
+    
+    // Send to API
+    fetch('/patients/api/create/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Close modal and refresh list
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addPatientModal'));
+            modal.hide();
+            
+            // Show success message
+            showNotification(`患者 ${result.patient.full_name} 新增成功！病歷號：${result.patient.medical_record_number}`, 'success');
+            
+            // Refresh patients list and statistics
+            loadPatients();
+            loadStatistics();
+            
+            // Reset form
+            form.reset();
+        } else {
+            showNotification(`新增失敗：${result.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating patient:', error);
+        showNotification('新增患者時發生錯誤，請稍後再試', 'error');
+    })
+    .finally(() => {
+        // Restore button state
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+    });
+}
+
+// View patient details
+function viewPatient(patientId) {
+    const modal = new bootstrap.Modal(document.getElementById('patientDetailModal'));
+    const content = document.getElementById('patientDetailContent');
+    
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="mt-2">載入患者詳細資訊中...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Simulate API call
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">基本資訊</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>姓名：</strong>王小明</p>
+                            <p><strong>性別：</strong>男</p>
+                            <p><strong>年齡：</strong>40歲</p>
+                            <p><strong>出生日期：</strong>1985-03-15</p>
+                            <p><strong>病歷號：</strong>MR001</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">聯絡資訊</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>手機：</strong>0912-345-678</p>
+                            <p><strong>電子郵件：</strong>wang.xiaoming@email.com</p>
+                            <p><strong>地址：</strong>台北市信義區信義路五段7號</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">就診記錄</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>總就診次數：</strong>15次</p>
+                            <p><strong>最後就診：</strong>2025-07-10</p>
+                            <p><strong>下次預約：</strong>2025-07-20</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+
+// Edit patient
+function editPatient(patientId) {
+    showNotification('編輯功能開發中...', 'info');
+}
+
+// Schedule appointment
+function scheduleAppointment(patientId) {
+    showNotification('預約功能開發中...', 'info');
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    const alertClass = type === 'success' ? 'alert-success' : 
+                      type === 'error' ? 'alert-danger' : 
+                      type === 'warning' ? 'alert-warning' : 'alert-info';
+    
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}批量健檢資料匯入{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 class="page-title">批量健檢資料匯入</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">儀表板</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢儀表板</a></li>
+                    <li class="breadcrumb-item active">批量健檢資料匯入</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">匯入健檢資料</h4>
+                    <p class="text-muted mb-4">請下載範本檔案，填寫資料後上傳。支援 CSV 和 Excel 格式。</p>
+
+                    <div class="mb-4">
+                        <a href="{% url 'health_screening:download_template' %}?format=excel" class="btn btn-success me-2">
+                            <i class="fas fa-file-excel me-1"></i>下載 Excel 範本
+                        </a>
+                        <a href="{% url 'health_screening:download_template' %}?format=csv" class="btn btn-info">
+                            <i class="fas fa-file-csv me-1"></i>下載 CSV 範本
+                        </a>
+                    </div>
+
+                    <form id="bulkImportForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="fileUpload" class="form-label">選擇檔案</label>
+                            <input class="form-control" type="file" id="fileUpload" name="file" accept=".csv, .xls, .xlsx">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" id="previewButton">
+                                <i class="fas fa-eye me-1"></i>預覽並驗證
+                            </button>
+                            <button type="submit" class="btn btn-success" id="importButton" style="display: none;">
+                                <i class="fas fa-upload me-1"></i>確認匯入
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="previewArea" class="mt-4" style="display: none;">
+                        <h5 class="mb-3">預覽數據</h5>
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-bordered table-striped" id="previewTable">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="alert alert-info mt-3" id="validationMessage" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileUpload = document.getElementById('fileUpload');
+    const previewButton = document.getElementById('previewButton');
+    const importButton = document.getElementById('importButton');
+    const previewArea = document.getElementById('previewArea');
+    const previewTable = document.getElementById('previewTable');
+    const validationMessage = document.getElementById('validationMessage');
+    let parsedData = [];
+
+    previewButton.addEventListener('click', function() {
+        const file = fileUpload.files[0];
+        if (!file) {
+            alert('請選擇一個檔案');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch('{% url "health_screening:parse_file" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                parsedData = data.data;
+                renderPreviewTable(parsedData);
+                previewArea.style.display = 'block';
+                importButton.style.display = 'block';
+                validationMessage.className = 'alert alert-info mt-3';
+                validationMessage.textContent = `成功解析 ${parsedData.length} 筆數據。請檢查數據後點擊「確認匯入」。`;
+                validationMessage.style.display = 'block';
+            } else {
+                alert('檔案解析失敗: ' + data.error);
+                previewArea.style.display = 'none';
+                importButton.style.display = 'none';
+                validationMessage.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('發生錯誤，請檢查控制台');
+            previewArea.style.display = 'none';
+            importButton.style.display = 'none';
+            validationMessage.style.display = 'none';
+        });
+    });
+
+    importButton.addEventListener('click', function() {
+        if (parsedData.length === 0) {
+            alert('沒有可匯入的數據');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('data', JSON.stringify(parsedData));
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch('{% url "health_screening:health-screening-bulk-import" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                validationMessage.className = 'alert alert-success mt-3';
+                validationMessage.textContent = `成功匯入 ${data.success_count} 筆數據，失敗 ${data.error_count} 筆。`;
+                if (data.errors && data.errors.length > 0) {
+                    validationMessage.textContent += ' 錯誤詳情：' + data.errors.join('; ');
+                    validationMessage.className = 'alert alert-warning mt-3';
+                }
+                validationMessage.style.display = 'block';
+                importButton.style.display = 'none';
+                fileUpload.value = ''; // 清空檔案選擇
+                parsedData = []; // 清空已解析數據
+                renderPreviewTable([]); // 清空預覽表格
+            } else {
+                validationMessage.className = 'alert alert-danger mt-3';
+                validationMessage.textContent = '匯入失敗: ' + data.error;
+                validationMessage.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('匯入時發生錯誤，請檢查控制台');
+            validationMessage.style.display = 'none';
+        });
+    });
+
+    function renderPreviewTable(data) {
+        const thead = previewTable.querySelector('thead');
+        const tbody = previewTable.querySelector('tbody');
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        if (data.length > 0) {
+            const headers = Object.keys(data[0]);
+            let headerRow = '<tr>';
+            headers.forEach(header => {
+                headerRow += `<th>${header}</th>`;
+            });
+            headerRow += '</tr>';
+            thead.innerHTML = headerRow;
+
+            data.forEach(row => {
+                let dataRow = '<tr>';
+                headers.forEach(header => {
+                    dataRow += `<td>${row[header]}</td>`;
+                });
+                dataRow += '</tr>';
+                tbody.innerHTML += dataRow;
+            });
+        }
+    }
+});
+</script>

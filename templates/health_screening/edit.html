@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}編輯健檢記錄{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page-Title -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 class="page-title">編輯健檢記錄</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">儀表板</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢儀表板</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:list' %}">健檢記錄列表</a></li>
+                    <li class="breadcrumb-item active">編輯</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">健檢基本資訊</h4>
+                    <form method="post" action="{% url 'health_screening:edit' screening.id %}">
+                        {% csrf_token %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="patient" class="form-label">患者</label>
+                                <input type="text" class="form-control" value="{{ screening.patient.full_name }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="screening_date" class="form-label">檢查日期 <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="screening_date" name="screening_date" value="{{ screening.screening_date|date:'Y-m-d' }}" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="screening_type" class="form-label">檢查類型</label>
+                                <input type="text" class="form-control" id="screening_type" name="screening_type" value="{{ screening.screening_type }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="provider" class="form-label">檢查醫師</label>
+                                <select class="form-control" id="provider" name="provider">
+                                    <option value="">請選擇醫師</option>
+                                    {% for d in doctors %}
+                                        <option value="{{ d.id }}" {% if screening.provider and d.id == screening.provider.id %}selected{% endif %}>{{ d.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">備註</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ screening.notes }}</textarea>
+                        </div>
+
+                        <h4 class="card-title mt-4">生命體徵</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="height" class="form-label">身高 (cm)</label>
+                                <input type="number" step="0.1" class="form-control" id="height" name="height" value="{{ screening.vital_signs.height_cm|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="weight" class="form-label">體重 (kg)</label>
+                                <input type="number" step="0.1" class="form-control" id="weight" name="weight" value="{{ screening.vital_signs.weight_kg|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="temperature" class="form-label">體溫 (°C)</label>
+                                <input type="number" step="0.1" class="form-control" id="temperature" name="temperature" value="{{ screening.vital_signs.body_temperature_celsius|default_if_none:'' }}">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="systolic_pressure" class="form-label">收縮壓 (mmHg)</label>
+                                <input type="number" class="form-control" id="systolic_pressure" name="systolic_pressure" value="{{ screening.vital_signs.systolic_bp_mmhg|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="diastolic_pressure" class="form-label">舒張壓 (mmHg)</label>
+                                <input type="number" class="form-control" id="diastolic_pressure" name="diastolic_pressure" value="{{ screening.vital_signs.diastolic_bp_mmhg|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="heart_rate" class="form-label">心率 (bpm)</label>
+                                <input type="number" class="form-control" id="heart_rate" name="heart_rate" value="{{ screening.vital_signs.resting_heart_rate_bpm|default_if_none:'' }}">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="respiratory_rate" class="form-label">呼吸頻率 (次/分)</label>
+                                <input type="number" class="form-control" id="respiratory_rate" name="respiratory_rate" value="{{ screening.vital_signs.respiratory_rate_per_min|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="oxygen_saturation" class="form-label">血氧飽和度 (%)</label>
+                                <input type="number" step="0.1" class="form-control" id="oxygen_saturation" name="oxygen_saturation" value="{{ screening.vital_signs.oxygen_saturation_percent|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="waist_circumference" class="form-label">腰圍 (cm)</label>
+                                <input type="number" step="0.1" class="form-control" id="waist_circumference" name="waist_circumference" value="{{ screening.vital_signs.waist_circumference_cm|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <h4 class="card-title mt-4">檢驗結果</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="fasting_glucose" class="form-label">空腹血糖 (mg/dL)</label>
+                                <input type="number" step="0.1" class="form-control" id="fasting_glucose" name="fasting_glucose" value="{{ screening.laboratory_results.fasting_glucose_mgdl|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="hba1c" class="form-label">糖化血色素 (%)</label>
+                                <input type="number" step="0.1" class="form-control" id="hba1c" name="hba1c" value="{{ screening.laboratory_results.hba1c_percent|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="total_cholesterol" class="form-label">總膽固醇 (mg/dL)</label>
+                                <input type="number" step="0.1" class="form-control" id="total_cholesterol" name="total_cholesterol" value="{{ screening.laboratory_results.total_cholesterol_mgdl|default_if_none:'' }}">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="hdl_cholesterol" class="form-label">高密度膽固醇 (mg/dL)</label>
+                                <input type="number" step="0.1" class="form-control" id="hdl_cholesterol" name="hdl_cholesterol" value="{{ screening.laboratory_results.hdl_cholesterol_mgdl|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ldl_cholesterol" class="form-label">低密度膽固醇 (mg/dL)</label>
+                                <input type="number" step="0.1" class="form-control" id="ldl_cholesterol" name="ldl_cholesterol" value="{{ screening.laboratory_results.ldl_cholesterol_mgdl|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="triglycerides" class="form-label">三酸甘油脂 (mg/dL)</label>
+                                <input type="number" step="0.1" class="form-control" id="triglycerides" name="triglycerides" value="{{ screening.laboratory_results.triglycerides_mgdl|default_if_none:'' }}">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="alt" class="form-label">ALT/GPT (U/L)</label>
+                                <input type="number" step="0.1" class="form-control" id="alt" name="alt" value="{{ screening.laboratory_results.alt_gpt_ul|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ast" class="form-label">AST/GOT (U/L)</label>
+                                <input type="number" step="0.1" class="form-control" id="ast" name="ast" value="{{ screening.laboratory_results.ast_got_ul|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="uric_acid" class="form-label">尿酸 (mg/dL)</label>
+                                <input type="number" step="0.1" class="form-control" id="uric_acid" name="uric_acid" value="{{ screening.laboratory_results.uric_acid_mgdl|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <h4 class="card-title mt-4">病史</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_diabetes" name="has_diabetes" {% if screening.medical_history.has_diabetes %}checked{% endif %}>
+                                    <label class="form-check-label" for="has_diabetes">有糖尿病</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_hypertension" name="has_hypertension" {% if screening.medical_history.has_hypertension %}checked{% endif %}>
+                                    <label class="form-check-label" for="has_hypertension">有高血壓</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_hyperlipidemia" name="has_hyperlipidemia" {% if screening.medical_history.has_hyperlipidemia %}checked{% endif %}>
+                                    <label class="form-check-label" for="has_hyperlipidemia">有高血脂</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_heart_disease" name="has_heart_disease" {% if screening.medical_history.has_coronary_heart_disease %}checked{% endif %}>
+                                    <label class="form-check-label" for="has_heart_disease">有心臟病</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_stroke" name="has_stroke" {% if screening.medical_history.has_cerebrovascular_disease %}checked{% endif %}>
+                                    <label class="form-check-label" for="has_stroke">有中風</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_cancer" name="has_cancer" {% if screening.medical_history.has_cancer %}checked{% endif %}>
+                                    <label class="form-check-label" for="has_cancer">有癌症</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="diabetes_treated" name="diabetes_treated" {% if screening.medical_history.diabetes_treated %}checked{% endif %}>
+                                    <label class="form-check-label" for="diabetes_treated">糖尿病治療中</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="hypertension_treated" name="hypertension_treated" {% if screening.medical_history.hypertension_treated %}checked{% endif %}>
+                                    <label class="form-check-label" for="hypertension_treated">高血壓治療中</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="hyperlipidemia_treated" name="hyperlipidemia_treated" {% if screening.medical_history.hyperlipidemia_treated %}checked{% endif %}>
+                                    <label class="form-check-label" for="hyperlipidemia_treated">高血脂治療中</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="card-title mt-4">生活習慣問卷</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="smoking_status" class="form-label">吸菸狀況</label>
+                                <select class="form-control" id="smoking_status" name="smoking_status">
+                                    <option value="">請選擇</option>
+                                    <option value="never" {% if screening.lifestyle.smoking_status == 'never' %}selected{% endif %}>從不吸菸</option>
+                                    <option value="former" {% if screening.lifestyle.smoking_status == 'former' %}selected{% endif %}>曾經吸菸</option>
+                                    <option value="current" {% if screening.lifestyle.smoking_status == 'current' %}selected{% endif %}>目前吸菸</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cigarettes_per_day" class="form-label">每日菸量 (支)</label>
+                                <input type="number" class="form-control" id="cigarettes_per_day" name="cigarettes_per_day" value="{{ screening.lifestyle.cigarettes_per_day|default_if_none:'' }}">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="quit_smoking_when" class="form-label">戒菸時間</label>
+                                <input type="text" class="form-control" id="quit_smoking_when" name="quit_smoking_when" value="{{ screening.lifestyle.quit_smoking_when|default_if_none:'' }}" placeholder="例如：2023年1月">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="alcohol_consumption" class="form-label">飲酒狀況</label>
+                                <select class="form-control" id="alcohol_consumption" name="alcohol_consumption">
+                                    <option value="">請選擇</option>
+                                    <option value="never" {% if screening.lifestyle.drinking_status == 'never' %}selected{% endif %}>從不飲酒</option>
+                                    <option value="occasional" {% if screening.lifestyle.drinking_status == 'occasional' %}selected{% endif %}>偶爾飲酒</option>
+                                    <option value="moderate" {% if screening.lifestyle.drinking_status == 'moderate' %}selected{% endif %}>適度飲酒</option>
+                                    <option value="heavy" {% if screening.lifestyle.drinking_status == 'heavy' %}selected{% endif %}>重度飲酒</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="exercise_frequency" class="form-label">運動頻率</label>
+                                <input type="text" class="form-control" id="exercise_frequency" name="exercise_frequency" value="{{ screening.lifestyle.exercise|default_if_none:'' }}" placeholder="例如：每週3次">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">更新健檢資料</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

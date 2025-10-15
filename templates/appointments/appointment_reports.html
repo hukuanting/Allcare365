@@ -1,0 +1,659 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}預約報告 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .report-card {
+        background: white;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin: 1rem 0;
+    }
+    
+    .metric-card {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+        color: white;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .metric-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-label {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    
+    .metric-change {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+    }
+    
+    .positive-change {
+        color: #1cc88a;
+    }
+    
+    .negative-change {
+        color: #e74a3b;
+    }
+    
+    .table-container {
+        background: white;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        padding: 1.5rem;
+    }
+    
+    .filter-section {
+        background: #f8f9fc;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .report-export {
+        text-align: right;
+        margin-bottom: 1rem;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    
+    .status-scheduled { background-color: #f6c23e; }
+    .status-confirmed { background-color: #1cc88a; }
+    .status-completed { background-color: #5a5c69; }
+    .status-cancelled { background-color: #e74a3b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-line text-primary"></i>
+            預約統計報告
+        </h1>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary" id="btnRefreshReports">
+                <i class="fas fa-sync-alt"></i> 重新整理
+            </button>
+            <button type="button" class="btn btn-success" id="btnExportReport">
+                <i class="fas fa-download"></i> 匯出報告
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section">
+        <h5 class="mb-3">報告篩選條件</h5>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="reportPeriod">報告期間</label>
+                    <select class="form-control" id="reportPeriod">
+                        <option value="today">今日</option>
+                        <option value="week" selected>本週</option>
+                        <option value="month">本月</option>
+                        <option value="quarter">本季</option>
+                        <option value="year">本年</option>
+                        <option value="custom">自訂期間</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3" id="customDateRange" style="display: none;">
+                <div class="form-group">
+                    <label for="startDate">開始日期</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+            </div>
+            <div class="col-md-3" id="customDateRange2" style="display: none;">
+                <div class="form-group">
+                    <label for="endDate">結束日期</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="reportProvider">醫護人員</label>
+                    <select class="form-control" id="reportProvider">
+                        <option value="">所有醫護人員</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card">
+                <div class="metric-number" id="totalAppointments">0</div>
+                <div class="metric-label">總預約數</div>
+                <div class="metric-change" id="totalChange">
+                    <i class="fas fa-arrow-up"></i> +0% 與上期比較
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card" style="background: linear-gradient(45deg, #1cc88a, #17a673);">
+                <div class="metric-number" id="completedAppointments">0</div>
+                <div class="metric-label">已完成預約</div>
+                <div class="metric-change" id="completedChange">
+                    <i class="fas fa-arrow-up"></i> +0% 與上期比較
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card" style="background: linear-gradient(45deg, #e74a3b, #c74641);">
+                <div class="metric-number" id="cancelledAppointments">0</div>
+                <div class="metric-label">取消預約</div>
+                <div class="metric-change" id="cancelledChange">
+                    <i class="fas fa-arrow-down"></i> -0% 與上期比較
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="metric-card" style="background: linear-gradient(45deg, #f6c23e, #dda20a);">
+                <div class="metric-number" id="noShowAppointments">0</div>
+                <div class="metric-label">未到預約</div>
+                <div class="metric-change" id="noShowChange">
+                    <i class="fas fa-arrow-down"></i> -0% 與上期比較
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <div class="col-xl-8 col-lg-7">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line text-primary"></i>
+                    預約趨勢分析
+                </h5>
+                <div class="chart-container">
+                    <canvas id="appointmentTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-lg-5">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-pie text-primary"></i>
+                    預約狀態分布
+                </h5>
+                <div class="chart-container">
+                    <canvas id="appointmentStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Charts -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-bar text-primary"></i>
+                    醫護人員工作量
+                </h5>
+                <div class="chart-container">
+                    <canvas id="providerWorkloadChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="report-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-area text-primary"></i>
+                    預約類型分析
+                </h5>
+                <div class="chart-container">
+                    <canvas id="appointmentTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Tables -->
+    <div class="row">
+        <div class="col-12">
+            <div class="table-container">
+                <div class="report-export">
+                    <button class="btn btn-sm btn-outline-primary" id="exportTableCSV">
+                        <i class="fas fa-file-csv"></i> 匯出 CSV
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="exportTableExcel">
+                        <i class="fas fa-file-excel"></i> 匯出 Excel
+                    </button>
+                </div>
+                <h5 class="mb-3">
+                    <i class="fas fa-table text-primary"></i>
+                    詳細預約記錄
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="appointmentTable">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>日期</th>
+                                <th>時間</th>
+                                <th>病患</th>
+                                <th>醫護人員</th>
+                                <th>預約類型</th>
+                                <th>狀態</th>
+                                <th>備註</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let appointmentTrendChart, appointmentStatusChart, providerWorkloadChart, appointmentTypeChart;
+    
+    // Initialize
+    loadProviders();
+    loadReportData();
+    
+    // Event handlers
+    $('#reportPeriod').on('change', function() {
+        const value = $(this).val();
+        if (value === 'custom') {
+            $('#customDateRange, #customDateRange2').show();
+        } else {
+            $('#customDateRange, #customDateRange2').hide();
+            loadReportData();
+        }
+    });
+    
+    $('#startDate, #endDate, #reportProvider').on('change', function() {
+        loadReportData();
+    });
+    
+    $('#btnRefreshReports').on('click', function() {
+        loadReportData();
+    });
+    
+    $('#btnExportReport').on('click', function() {
+        exportFullReport();
+    });
+    
+    function loadProviders() {
+        $.get('/api/v1/administration/api/users/')
+            .done(function(data) {
+                const select = $('#reportProvider');
+                select.empty().append('<option value="">所有醫護人員</option>');
+                
+                if (data.results) {
+                    data.results.forEach(function(provider) {
+                        if (provider.role && (provider.role.includes('doctor') || provider.role.includes('nurse'))) {
+                            select.append(`<option value="${provider.id}">${provider.first_name} ${provider.last_name}</option>`);
+                        }
+                    });
+                }
+            });
+    }
+    
+    function loadReportData() {
+        const params = getReportParams();
+        
+        // Load statistics
+        $.get('/api/v1/appointments/api/appointments/statistics/', params)
+            .done(function(data) {
+                updateMetrics(data);
+            });
+        
+        // Load chart data
+        $.get('/api/v1/appointments/api/appointments/analytics/', params)
+            .done(function(data) {
+                updateCharts(data);
+            });
+        
+        // Load detailed table
+        $.get('/api/v1/appointments/api/appointments/', params)
+            .done(function(data) {
+                updateTable(data.results || data);
+            });
+    }
+    
+    function getReportParams() {
+        const params = {};
+        const period = $('#reportPeriod').val();
+        const provider = $('#reportProvider').val();
+        
+        if (provider) params.provider = provider;
+        
+        // Calculate date range based on period
+        const now = new Date();
+        let startDate, endDate;
+        
+        switch (period) {
+            case 'today':
+                startDate = endDate = now.toISOString().split('T')[0];
+                break;
+            case 'week':
+                const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+                const weekEnd = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+                startDate = weekStart.toISOString().split('T')[0];
+                endDate = weekEnd.toISOString().split('T')[0];
+                break;
+            case 'month':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                break;
+            case 'quarter':
+                const quarter = Math.floor((now.getMonth() + 3) / 3);
+                startDate = new Date(now.getFullYear(), (quarter - 1) * 3, 1).toISOString().split('T')[0];
+                endDate = new Date(now.getFullYear(), quarter * 3, 0).toISOString().split('T')[0];
+                break;
+            case 'year':
+                startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+                endDate = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+                break;
+            case 'custom':
+                startDate = $('#startDate').val();
+                endDate = $('#endDate').val();
+                break;
+        }
+        
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+        
+        return params;
+    }
+    
+    function updateMetrics(data) {
+        $('#totalAppointments').text(data.total_appointments || 0);
+        $('#completedAppointments').text(data.completed_appointments || 0);
+        $('#cancelledAppointments').text(data.cancelled_appointments || 0);
+        $('#noShowAppointments').text(data.no_show_appointments || 0);
+        
+        // Update change indicators (if previous period data available)
+        updateChangeIndicator('#totalChange', data.total_change);
+        updateChangeIndicator('#completedChange', data.completed_change);
+        updateChangeIndicator('#cancelledChange', data.cancelled_change);
+        updateChangeIndicator('#noShowChange', data.no_show_change);
+    }
+    
+    function updateChangeIndicator(selector, change) {
+        const element = $(selector);
+        if (change && change !== 0) {
+            const isPositive = change > 0;
+            const icon = isPositive ? 'fa-arrow-up' : 'fa-arrow-down';
+            const colorClass = isPositive ? 'positive-change' : 'negative-change';
+            const sign = isPositive ? '+' : '';
+            
+            element.html(`
+                <i class="fas ${icon}"></i> ${sign}${change.toFixed(1)}% 與上期比較
+            `).removeClass('positive-change negative-change').addClass(colorClass);
+        } else {
+            element.html('<i class="fas fa-minus"></i> 0% 與上期比較').removeClass('positive-change negative-change');
+        }
+    }
+    
+    function updateCharts(data) {
+        // Appointment Trend Chart
+        updateTrendChart(data.trend_data);
+        
+        // Appointment Status Chart
+        updateStatusChart(data.status_data);
+        
+        // Provider Workload Chart
+        updateProviderChart(data.provider_data);
+        
+        // Appointment Type Chart
+        updateTypeChart(data.type_data);
+    }
+    
+    function updateTrendChart(trendData) {
+        const ctx = document.getElementById('appointmentTrendChart').getContext('2d');
+        
+        if (appointmentTrendChart) {
+            appointmentTrendChart.destroy();
+        }
+        
+        appointmentTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trendData?.labels || [],
+                datasets: [{
+                    label: '預約數量',
+                    data: trendData?.values || [],
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateStatusChart(statusData) {
+        const ctx = document.getElementById('appointmentStatusChart').getContext('2d');
+        
+        if (appointmentStatusChart) {
+            appointmentStatusChart.destroy();
+        }
+        
+        appointmentStatusChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: statusData?.labels || ['已確認', '已安排', '已完成', '已取消'],
+                datasets: [{
+                    data: statusData?.values || [0, 0, 0, 0],
+                    backgroundColor: ['#1cc88a', '#f6c23e', '#5a5c69', '#e74a3b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateProviderChart(providerData) {
+        const ctx = document.getElementById('providerWorkloadChart').getContext('2d');
+        
+        if (providerWorkloadChart) {
+            providerWorkloadChart.destroy();
+        }
+        
+        providerWorkloadChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: providerData?.labels || [],
+                datasets: [{
+                    label: '預約數量',
+                    data: providerData?.values || [],
+                    backgroundColor: '#36b9cc',
+                    borderColor: '#2c9faf',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateTypeChart(typeData) {
+        const ctx = document.getElementById('appointmentTypeChart').getContext('2d');
+        
+        if (appointmentTypeChart) {
+            appointmentTypeChart.destroy();
+        }
+        
+        appointmentTypeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: typeData?.labels || [],
+                datasets: [{
+                    label: '預約數量',
+                    data: typeData?.values || [],
+                    backgroundColor: '#1cc88a',
+                    borderColor: '#17a673',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateTable(appointments) {
+        const tbody = $('#appointmentTable tbody');
+        tbody.empty();
+        
+        if (!appointments || appointments.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="7" class="text-center text-muted">
+                        目前期間內無預約記錄
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+        
+        appointments.forEach(function(appointment) {
+            const statusClass = getStatusClass(appointment.status);
+            const statusText = getStatusText(appointment.status);
+            
+            const row = $(`
+                <tr>
+                    <td>${appointment.appointment_date}</td>
+                    <td>${appointment.appointment_time}</td>
+                    <td>${appointment.patient_name || 'N/A'}</td>
+                    <td>${appointment.provider_name || 'N/A'}</td>
+                    <td>${appointment.appointment_type_name || 'N/A'}</td>
+                    <td>
+                        <span class="status-indicator ${statusClass}"></span>
+                        ${statusText}
+                    </td>
+                    <td>${appointment.notes || ''}</td>
+                </tr>
+            `);
+            
+            tbody.append(row);
+        });
+    }
+    
+    function getStatusClass(status) {
+        const classes = {
+            'scheduled': 'status-scheduled',
+            'confirmed': 'status-confirmed',
+            'completed': 'status-completed',
+            'cancelled': 'status-cancelled'
+        };
+        return classes[status] || 'status-scheduled';
+    }
+    
+    function getStatusText(status) {
+        const texts = {
+            'scheduled': '已安排',
+            'confirmed': '已確認',
+            'completed': '已完成',
+            'cancelled': '已取消',
+            'no-show': '未到'
+        };
+        return texts[status] || status;
+    }
+    
+    function exportFullReport() {
+        const params = getReportParams();
+        const queryString = new URLSearchParams(params).toString();
+        window.open(`/api/v1/appointments/api/reports/export/?${queryString}`, '_blank');
+    }
+    
+    $('#exportTableCSV').on('click', function() {
+        exportTableData('csv');
+    });
+    
+    $('#exportTableExcel').on('click', function() {
+        exportTableData('excel');
+    });
+    
+    function exportTableData(format) {
+        const params = getReportParams();
+        params.format = format;
+        const queryString = new URLSearchParams(params).toString();
+        window.open(`/api/v1/appointments/api/appointments/export/?${queryString}`, '_blank');
+    }
+});
+</script>
+{% endblock %}

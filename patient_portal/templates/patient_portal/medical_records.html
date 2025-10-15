@@ -1,0 +1,418 @@
+{% extends 'patient_portal/base.html' %}
+
+{% block title %}Medical Records - Patient Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Medical Records</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportRecords()">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshRecords()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-filter"></i> Filter Records</h5>
+            </div>
+            <div class="card-body">
+                <form id="filterForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="record_type" class="form-label">Record Type</label>
+                            <select class="form-select" id="record_type" name="record_type">
+                                <option value="">All Types</option>
+                                <option value="visit">Visits</option>
+                                <option value="diagnosis">Diagnoses</option>
+                                <option value="procedure">Procedures</option>
+                                <option value="medication">Medications</option>
+                                <option value="allergy">Allergies</option>
+                                <option value="immunization">Immunizations</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_from" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_to" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="provider" class="form-label">Provider</label>
+                            <select class="form-select" id="provider" name="provider">
+                                <option value="">All Providers</option>
+                                <!-- Will be populated via AJAX -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Medical Records Tabs -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="recordTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">
+                            <i class="fas fa-clipboard-list"></i> Summary
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="visits-tab" data-bs-toggle="tab" data-bs-target="#visits" type="button" role="tab">
+                            <i class="fas fa-stethoscope"></i> Visits
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="diagnoses-tab" data-bs-toggle="tab" data-bs-target="#diagnoses" type="button" role="tab">
+                            <i class="fas fa-diagnoses"></i> Diagnoses
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="medications-tab" data-bs-toggle="tab" data-bs-target="#medications" type="button" role="tab">
+                            <i class="fas fa-pills"></i> Medications
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="allergies-tab" data-bs-toggle="tab" data-bs-target="#allergies" type="button" role="tab">
+                            <i class="fas fa-exclamation-triangle"></i> Allergies
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="recordTabsContent">
+                    <!-- Summary Tab -->
+                    <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                        <div id="summary-content">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Visits Tab -->
+                    <div class="tab-pane fade" id="visits" role="tabpanel">
+                        <div id="visits-content">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Diagnoses Tab -->
+                    <div class="tab-pane fade" id="diagnoses" role="tabpanel">
+                        <div id="diagnoses-content">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Medications Tab -->
+                    <div class="tab-pane fade" id="medications" role="tabpanel">
+                        <div id="medications-content">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Allergies Tab -->
+                    <div class="tab-pane fade" id="allergies" role="tabpanel">
+                        <div id="allergies-content">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentFilters = {};
+
+function loadMedicalRecords(filters = {}) {
+    currentFilters = filters;
+    
+    // Load summary
+    loadSummary();
+    
+    // Load other tabs if they are active
+    const activeTab = $('.nav-link.active').attr('id');
+    if (activeTab !== 'summary-tab') {
+        loadTabContent(activeTab.replace('-tab', ''));
+    }
+}
+
+function loadSummary() {
+    $('#summary-content').html('<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    
+    // Mock data for demonstration
+    const summaryHtml = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-user-md"></i> Primary Care Provider</h6>
+                <p>Dr. John Smith, MD</p>
+                
+                <h6><i class="fas fa-calendar-alt"></i> Last Visit</h6>
+                <p>March 15, 2024</p>
+                
+                <h6><i class="fas fa-heart"></i> Vital Signs (Latest)</h6>
+                <ul>
+                    <li>Blood Pressure: 120/80 mmHg</li>
+                    <li>Heart Rate: 72 bpm</li>
+                    <li>Temperature: 98.6°F</li>
+                    <li>Weight: 170 lbs</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-exclamation-triangle"></i> Active Allergies</h6>
+                <ul>
+                    <li>Penicillin - Severe</li>
+                    <li>Shellfish - Moderate</li>
+                </ul>
+                
+                <h6><i class="fas fa-pills"></i> Current Medications</h6>
+                <ul>
+                    <li>Lisinopril 10mg - Daily</li>
+                    <li>Metformin 500mg - Twice daily</li>
+                </ul>
+                
+                <h6><i class="fas fa-diagnoses"></i> Active Conditions</h6>
+                <ul>
+                    <li>Hypertension</li>
+                    <li>Type 2 Diabetes</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    $('#summary-content').html(summaryHtml);
+}
+
+function loadTabContent(tabName) {
+    const contentDiv = `#${tabName}-content`;
+    $(contentDiv).html('<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    
+    // Mock data for demonstration
+    let content = '';
+    
+    switch (tabName) {
+        case 'visits':
+            content = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Provider</th>
+                                <th>Type</th>
+                                <th>Chief Complaint</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>March 15, 2024</td>
+                                <td>Dr. John Smith</td>
+                                <td>Follow-up</td>
+                                <td>Diabetes management</td>
+                                <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+                            </tr>
+                            <tr>
+                                <td>February 10, 2024</td>
+                                <td>Dr. Jane Doe</td>
+                                <td>Annual Physical</td>
+                                <td>Routine checkup</td>
+                                <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            break;
+        case 'diagnoses':
+            content = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Diagnosis</th>
+                                <th>ICD-10</th>
+                                <th>Status</th>
+                                <th>Provider</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>March 15, 2024</td>
+                                <td>Essential Hypertension</td>
+                                <td>I10</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                                <td>Dr. John Smith</td>
+                            </tr>
+                            <tr>
+                                <td>February 10, 2024</td>
+                                <td>Type 2 Diabetes Mellitus</td>
+                                <td>E11.9</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                                <td>Dr. Jane Doe</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            break;
+        case 'medications':
+            content = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Medication</th>
+                                <th>Dosage</th>
+                                <th>Frequency</th>
+                                <th>Start Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Lisinopril</td>
+                                <td>10mg</td>
+                                <td>Once daily</td>
+                                <td>January 15, 2024</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td>Metformin</td>
+                                <td>500mg</td>
+                                <td>Twice daily</td>
+                                <td>February 10, 2024</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            break;
+        case 'allergies':
+            content = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Allergen</th>
+                                <th>Severity</th>
+                                <th>Reaction</th>
+                                <th>Date Recorded</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Penicillin</td>
+                                <td><span class="badge bg-danger">Severe</span></td>
+                                <td>Anaphylaxis</td>
+                                <td>January 1, 2020</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td>Shellfish</td>
+                                <td><span class="badge bg-warning">Moderate</span></td>
+                                <td>Hives, swelling</td>
+                                <td>March 15, 2022</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            break;
+    }
+    
+    $(contentDiv).html(content);
+}
+
+function refreshRecords() {
+    loadMedicalRecords(currentFilters);
+}
+
+function clearFilters() {
+    $('#filterForm')[0].reset();
+    currentFilters = {};
+    loadMedicalRecords();
+}
+
+function exportRecords() {
+    alert('Export functionality would be implemented here');
+}
+
+// Tab click handlers
+$('#recordTabs button').on('click', function(e) {
+    const tabName = $(this).attr('data-bs-target').replace('#', '');
+    setTimeout(() => loadTabContent(tabName), 100);
+});
+
+// Filter form submission
+$('#filterForm').on('submit', function(e) {
+    e.preventDefault();
+    const formData = $(this).serialize();
+    const filters = {};
+    
+    $(this).serializeArray().forEach(function(item) {
+        if (item.value) {
+            filters[item.name] = item.value;
+        }
+    });
+    
+    loadMedicalRecords(filters);
+});
+
+// Load records on page load
+$(document).ready(function() {
+    loadMedicalRecords();
+});
+</script>
+{% endblock %}

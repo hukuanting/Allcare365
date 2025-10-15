@@ -1,0 +1,695 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}健檢記錄詳情 - {{ screening.patient.first_name }} {{ screening.patient.last_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid #e9ecef;
+    }
+    
+    .detail-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin: -25px -25px 20px -25px;
+        padding: 20px 25px;
+        border-radius: 15px 15px 0 0;
+    }
+    
+    .patient-summary {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+    
+    .status-normal {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+    
+    .status-abnormal {
+        background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        color: white;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        color: white;
+    }
+    
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .metric-item {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        border: 1px solid #e9ecef;
+    }
+    
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #495057;
+        margin-bottom: 5px;
+    }
+    
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .metric-unit {
+        font-size: 1rem;
+        color: #6c757d;
+    }
+    
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .info-value {
+        color: #6c757d;
+    }
+    
+    .abnormal-value {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .normal-value {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .action-bar {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .btn-group .btn {
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #667eea;
+    }
+    
+    .timeline-item::after {
+        content: '';
+        position: absolute;
+        left: 14px;
+        top: 15px;
+        width: 2px;
+        height: calc(100% - 10px);
+        background: #e9ecef;
+    }
+    
+    .timeline-item:last-child::after {
+        display: none;
+    }
+    
+    .chart-container {
+        height: 300px;
+        margin: 20px 0;
+    }
+    
+    @media print {
+        .action-bar, .btn, nav {
+            display: none !important;
+        }
+        
+        .detail-card {
+            box-shadow: none;
+            border: 1px solid #000;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 操作列 -->
+    <div class="action-bar">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢管理</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'health_screening:list' %}">記錄列表</a></li>
+                <li class="breadcrumb-item active">{{ screening.patient.first_name }} {{ screening.patient.last_name }}</li>
+            </ol>
+        </nav>
+        
+        <div class="btn-group">
+            <a href="{% url 'health_screening:edit' screening.id %}" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>編輯記錄
+            </a>
+            <button onclick="window.print()" class="btn btn-secondary">
+                <i class="fas fa-print me-2"></i>列印報告
+            </button>
+            <button onclick="exportPDF()" class="btn btn-info">
+                <i class="fas fa-file-pdf me-2"></i>匯出PDF
+            </button>
+            <button onclick="shareReport()" class="btn btn-success">
+                <i class="fas fa-share-alt me-2"></i>分享
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左側：基本資訊 -->
+        <div class="col-lg-4">
+            <!-- 患者基本資訊 -->
+            <div class="detail-card">
+                <div class="detail-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>患者資訊
+                    </h5>
+                </div>
+                
+                <div class="patient-summary">
+                    <div class="patient-avatar">
+                        {{ screening.patient.first_name|first }}{{ screening.patient.last_name|first }}
+                    </div>
+                    <div>
+                        <h5>{{ screening.patient.first_name }} {{ screening.patient.last_name }}</h5>
+                        <p class="text-muted mb-1">{{ screening.patient.patient_id }}</p>
+                        <small class="text-muted">{{ screening.patient.get_gender_display }} | {{ screening.patient.age }}歲</small>
+                    </div>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">出生日期</span>
+                    <span class="info-value">{{ screening.patient.date_of_birth|date:"Y-m-d" }}</span>
+                </div>
+                
+                {% if screening.patient.phone %}
+                <div class="info-row">
+                    <span class="info-label">聯絡電話</span>
+                    <span class="info-value">{{ screening.patient.phone }}</span>
+                </div>
+                {% endif %}
+                
+                {% if screening.patient.email %}
+                <div class="info-row">
+                    <span class="info-label">電子信箱</span>
+                    <span class="info-value">{{ screening.patient.email }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="info-row">
+                    <span class="info-label">緊急聯絡人</span>
+                    <span class="info-value">{{ screening.patient.emergency_contact_name|default:"-" }}</span>
+                </div>
+            </div>
+            
+            <!-- 檢查資訊 -->
+            <div class="detail-card">
+                <div class="detail-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>檢查資訊
+                    </h5>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">檢查日期</span>
+                    <span class="info-value">{{ screening.screening_date|date:"Y年m月d日" }}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">檢查類型</span>
+                    <span class="info-value">{{ screening.get_screening_type_display }}</span>
+                </div>
+                
+                {% if screening.provider %}
+                <div class="info-row">
+                    <span class="info-label">執行醫師</span>
+                    <span class="info-value">{{ screening.provider.get_full_name }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="info-row">
+                    <span class="info-label">檢查時年齡</span>
+                    <span class="info-value">{{ screening.age_at_screening }}歲</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">記錄建立</span>
+                    <span class="info-value">{{ screening.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                
+                <!-- 整體狀態 -->
+                <div class="mt-3">
+                    {% if screening.vital_signs %}
+                        <div class="status-indicator status-normal">
+                            <i class="fas fa-check-circle"></i>
+                            <span>檢查狀態：已完成</span>
+                        </div>
+                    {% else %}
+                        <div class="status-indicator status-pending">
+                            <i class="fas fa-clock"></i>
+                            <span>檢查狀態：進行中</span>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if screening.notes %}
+                <div class="mt-3">
+                    <div class="section-title">檢查備註</div>
+                    <p class="text-muted">{{ screening.notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 右側：詳細數據 -->
+        <div class="col-lg-8">
+            <!-- 生命體徵 -->
+            {% if screening.vital_signs %}
+            <div class="detail-card">
+                <div class="detail-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>生命體徵
+                    </h5>
+                </div>
+                
+                <div class="metric-grid">
+                    {% if screening.vital_signs.height_cm %}
+                    <div class="metric-item">
+                        <div class="metric-value">{{ screening.vital_signs.height_cm }}<span class="metric-unit">cm</span></div>
+                        <div class="metric-label">身高</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.vital_signs.weight_kg %}
+                    <div class="metric-item">
+                        <div class="metric-value">{{ screening.vital_signs.weight_kg }}<span class="metric-unit">kg</span></div>
+                        <div class="metric-label">體重</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.vital_signs.bmi %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.vital_signs.bmi < 18.5 or screening.vital_signs.bmi > 24 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.vital_signs.bmi|floatformat:1 }}
+                        </div>
+                        <div class="metric-label">BMI</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.vital_signs.systolic_bp_mmhg %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.vital_signs.systolic_bp_mmhg > 140 or screening.vital_signs.diastolic_bp_mmhg > 90 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.vital_signs.systolic_bp_mmhg }}/{{ screening.vital_signs.diastolic_bp_mmhg }}<span class="metric-unit">mmHg</span>
+                        </div>
+                        <div class="metric-label">血壓</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.vital_signs.resting_heart_rate_bpm %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.vital_signs.resting_heart_rate_bpm < 60 or screening.vital_signs.resting_heart_rate_bpm > 100 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.vital_signs.resting_heart_rate_bpm }}<span class="metric-unit">bpm</span>
+                        </div>
+                        <div class="metric-label">心率</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.vital_signs.body_temperature_celsius %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.vital_signs.body_temperature_celsius < 36 or screening.vital_signs.body_temperature_celsius > 37.5 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.vital_signs.body_temperature_celsius }}<span class="metric-unit">°C</span>
+                        </div>
+                        <div class="metric-label">體溫</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- 檢驗結果 -->
+            {% if screening.laboratory_results %}
+            <div class="detail-card">
+                <div class="detail-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-flask me-2"></i>檢驗結果
+                    </h5>
+                </div>
+                
+                <!-- 血液檢查 -->
+                <div class="section-title">血液檢查</div>
+                <div class="metric-grid">
+                    {% if screening.laboratory_results.fasting_glucose_mgdl %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.fasting_glucose_mgdl > 100 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.fasting_glucose_mgdl }}<span class="metric-unit">mg/dL</span>
+                        </div>
+                        <div class="metric-label">空腹血糖</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.laboratory_results.total_cholesterol_mgdl %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.total_cholesterol_mgdl > 200 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.total_cholesterol_mgdl }}<span class="metric-unit">mg/dL</span>
+                        </div>
+                        <div class="metric-label">總膽固醇</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.laboratory_results.hdl_cholesterol_mgdl %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.hdl_cholesterol_mgdl < 40 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.hdl_cholesterol_mgdl }}<span class="metric-unit">mg/dL</span>
+                        </div>
+                        <div class="metric-label">HDL膽固醇</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.laboratory_results.ldl_cholesterol_mgdl %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.ldl_cholesterol_mgdl > 130 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.ldl_cholesterol_mgdl }}<span class="metric-unit">mg/dL</span>
+                        </div>
+                        <div class="metric-label">LDL膽固醇</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.laboratory_results.triglycerides_mgdl %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.triglycerides_mgdl > 150 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.triglycerides_mgdl }}<span class="metric-unit">mg/dL</span>
+                        </div>
+                        <div class="metric-label">三酸甘油脂</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.laboratory_results.hba1c_percent %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.hba1c_percent > 5.7 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.hba1c_percent }}<span class="metric-unit">%</span>
+                        </div>
+                        <div class="metric-label">糖化血色素</div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- 肝腎功能 -->
+                {% if screening.laboratory_results.alt_gpt_ul or screening.laboratory_results.ast_got_ul %}
+                <div class="section-title">肝腎功能</div>
+                <div class="metric-grid">
+                    {% if screening.laboratory_results.alt_gpt_ul %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.alt_gpt_ul > 40 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.alt_gpt_ul }}<span class="metric-unit">U/L</span>
+                        </div>
+                        <div class="metric-label">ALT</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.laboratory_results.ast_got_ul %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.ast_got_ul > 40 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.ast_got_ul }}<span class="metric-unit">U/L</span>
+                        </div>
+                        <div class="metric-label">AST</div>
+                    </div>
+                    {% endif %}
+                    
+                    
+                    {% if screening.laboratory_results.urine_creatinine_mgdl %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.urine_creatinine_mgdl > 1.2 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.urine_creatinine_mgdl }}<span class="metric-unit">mg/dL</span>
+                        </div>
+                        <div class="metric-label">尿肌酸酐</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if screening.laboratory_results.uric_acid_mgdl %}
+                    <div class="metric-item">
+                        <div class="metric-value 
+                            {% if screening.laboratory_results.uric_acid_mgdl > 7 %}abnormal-value
+                            {% else %}normal-value{% endif %}">
+                            {{ screening.laboratory_results.uric_acid_mgdl }}<span class="metric-unit">mg/dL</span>
+                        </div>
+                        <div class="metric-label">尿酸</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- 病史與生活習慣 -->
+            <div class="row">
+                {% if screening.medical_history %}
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>病史
+                            </h5>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">糖尿病</span>
+                            <span class="info-value">
+                                {% if screening.medical_history.has_diabetes %}
+                                    <i class="fas fa-check text-danger"></i> 是
+                                {% else %}
+                                    <i class="fas fa-times text-success"></i> 否
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">高血壓</span>
+                            <span class="info-value">
+                                {% if screening.medical_history.has_hypertension %}
+                                    <i class="fas fa-check text-danger"></i> 是
+                                {% else %}
+                                    <i class="fas fa-times text-success"></i> 否
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">血脂異常</span>
+                            <span class="info-value">
+                                {% if screening.medical_history.has_dyslipidemia %}
+                                    <i class="fas fa-check text-danger"></i> 是
+                                {% else %}
+                                    <i class="fas fa-times text-success"></i> 否
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">冠心病</span>
+                            <span class="info-value">
+                                {% if screening.medical_history.has_coronary_heart_disease %}
+                                    <i class="fas fa-check text-danger"></i> 是
+                                {% else %}
+                                    <i class="fas fa-times text-success"></i> 否
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        {% if screening.medical_history.family_cancer_type %}
+                        <div class="mt-3">
+                            <div class="section-title">家族病史</div>
+                            <p class="text-muted">{{ screening.medical_history.family_cancer_type }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if screening.lifestyle %}
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-running me-2"></i>生活習慣
+                            </h5>
+                        </div>
+                        
+                        {% if screening.lifestyle.is_current_smoker %}
+                        <div class="info-row">
+                            <span class="info-label">吸菸狀況</span>
+                            <span class="info-value">
+                                {% if screening.lifestyle.is_current_smoker %}
+                                    <i class="fas fa-smoking text-danger"></i> 目前吸菸
+                                {% elif screening.lifestyle.is_former_smoker %}
+                                    <i class="fas fa-ban text-warning"></i> 曾經吸菸
+                                {% else %}
+                                    <i class="fas fa-check text-success"></i> 不吸菸
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if screening.lifestyle.cigarettes_per_day %}
+                        <div class="info-row">
+                            <span class="info-label">每日吸菸量</span>
+                            <span class="info-value">{{ screening.lifestyle.cigarettes_per_day }} 支</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if screening.lifestyle.drinking_status %}
+                        <div class="info-row">
+                            <span class="info-label">飲酒狀況</span>
+                            <span class="info-value">{{ screening.lifestyle.get_drinking_status_display }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if screening.lifestyle.exercise_score %}
+                        <div class="info-row">
+                            <span class="info-label">運動評分</span>
+                            <span class="info-value">{{ screening.lifestyle.get_exercise_score_display }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportPDF() {
+    // 實現PDF匯出功能
+    alert('PDF匯出功能開發中...');
+}
+
+function shareReport() {
+    // 實現分享功能
+    if (navigator.share) {
+        navigator.share({
+            title: '健檢報告 - {{ screening.patient.first_name }} {{ screening.patient.last_name }}',
+            text: '{{ screening.patient.first_name }} {{ screening.patient.last_name }} 的健檢報告',
+            url: window.location.href
+        });
+    } else {
+        // 複製連結到剪貼板
+        navigator.clipboard.writeText(window.location.href).then(function() {
+            alert('報告連結已複製到剪貼板');
+        });
+    }
+}
+
+$(document).ready(function() {
+    // 檢查是否為列印模式
+    if (window.location.search.includes('print=1')) {
+        window.print();
+    }
+});
+</script>
+{% endblock %}

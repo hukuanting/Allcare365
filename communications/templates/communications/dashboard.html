@@ -1,0 +1,395 @@
+{% extends "communications/base_communications.html" %}
+
+{% load static %}
+
+{% block title %}通訊系統 - 主控台{% endblock %}
+
+{% block content %}
+<div class="communications-container">
+    <div class="container-fluid">
+        <!-- 頁面標題 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-comments text-primary me-2"></i>
+                        通訊系統主控台
+                    </h1>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newChannelModal">
+                            <i class="fas fa-plus me-1"></i>
+                            新建頻道
+                        </button>
+                        <a href="{% url 'communications:notifications' %}" class="btn btn-outline-info position-relative">
+                            <i class="fas fa-bell me-1"></i>
+                            通知
+                            {% if unread_notifications > 0 %}
+                            <span class="notification-badge">{{ unread_notifications }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="communication-card p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="participant-avatar bg-primary">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ active_channels_count }}</h5>
+                            <small class="text-muted">活躍頻道</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="communication-card p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="participant-avatar bg-success">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ recent_messages|length }}</h5>
+                            <small class="text-muted">最近訊息</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="communication-card p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="participant-avatar bg-warning">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ unread_notifications }}</h5>
+                            <small class="text-muted">未讀通知</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="communication-card p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="participant-avatar bg-info">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">線上</h5>
+                            <small class="text-muted">狀態</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 左側：頻道列表 -->
+            <div class="col-md-4">
+                <div class="communication-card">
+                    <div class="channel-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-hashtag me-2"></i>
+                            我的頻道
+                        </h5>
+                    </div>
+                    <div class="p-3">
+                        <!-- 搜尋欄 -->
+                        <div class="mb-3">
+                            <input type="text" class="form-control" placeholder="搜尋頻道..." id="channelSearch">
+                        </div>
+
+                        <!-- 頻道列表 -->
+                        <div class="channel-list">
+                            {% for channel in channels %}
+                            <div class="channel-item mb-2 p-2 rounded" data-channel-id="{{ channel.id }}">
+                                <div class="d-flex align-items-center">
+                                    <div class="participant-avatar bg-{% cycle 'primary' 'success' 'warning' 'info' %}">
+                                        {% if channel.channel_type == 'DIRECT' %}
+                                            <i class="fas fa-user"></i>
+                                        {% elif channel.channel_type == 'GROUP' %}
+                                            <i class="fas fa-users"></i>
+                                        {% elif channel.channel_type == 'BROADCAST' %}
+                                            <i class="fas fa-bullhorn"></i>
+                                        {% else %}
+                                            <i class="fas fa-hashtag"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">
+                                            <a href="{% url 'communications:channel_detail' channel.id %}" 
+                                               class="text-decoration-none text-dark">
+                                                {{ channel.name }}
+                                            </a>
+                                        </h6>
+                                        <small class="text-muted">
+                                            {{ channel.get_channel_type_display }}
+                                            {% if channel.last_activity %}
+                                            · {{ channel.last_activity|timesince }}前
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% if channel.unread_count > 0 %}
+                                    <span class="badge bg-danger">{{ channel.unread_count }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">尚無頻道</p>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newChannelModal">
+                                    建立第一個頻道
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3 d-grid">
+                            <a href="{% url 'communications:channel_list' %}" class="btn btn-outline-primary">
+                                查看所有頻道
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：最近訊息 -->
+            <div class="col-md-8">
+                <div class="communication-card">
+                    <div class="channel-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clock me-2"></i>
+                            最近訊息
+                        </h5>
+                    </div>
+                    <div class="p-3">
+                        {% if recent_messages %}
+                        <div class="message-list">
+                            {% for message in recent_messages %}
+                            <div class="message-thread">
+                                <div class="d-flex align-items-start">
+                                    <div class="participant-avatar bg-secondary">
+                                        {{ message.sender.first_name|first|default:message.sender.username|first }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong>{{ message.sender.get_full_name|default:message.sender.username }}</strong>
+                                            <small class="text-muted">{{ message.sent_at|timesince }}前</small>
+                                        </div>
+                                        <div class="mb-1">
+                                            <a href="{% url 'communications:thread_detail' message.thread.id %}" 
+                                               class="text-decoration-none">
+                                                <small class="text-primary">
+                                                    # {{ message.thread.channel.name }} > {{ message.thread.subject }}
+                                                </small>
+                                            </a>
+                                        </div>
+                                        <p class="mb-0">{{ message.content|truncatewords:20 }}</p>
+                                        
+                                        {% if message.is_urgent %}
+                                        <span class="badge bg-danger mt-1">緊急</span>
+                                        {% endif %}
+                                        {% if message.is_important %}
+                                        <span class="badge bg-warning mt-1">重要</span>
+                                        {% endif %}
+                                        {% if message.attachments.count > 0 %}
+                                        <span class="badge bg-info mt-1">
+                                            <i class="fas fa-paperclip"></i> {{ message.attachments.count }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">尚無最近訊息</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="communication-card mt-4">
+                    <div class="p-3">
+                        <h6 class="mb-3">快速操作</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <a href="{% url 'communications:channel_list' %}" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-list me-2"></i>
+                                    瀏覽所有頻道
+                                </a>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <button class="btn btn-outline-success w-100" data-bs-toggle="modal" data-bs-target="#newMessageModal">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    發送新訊息
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建頻道模態框 -->
+<div class="modal fade" id="newChannelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">建立新頻道</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="#" id="newChannelForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="channelName" class="form-label">頻道名稱</label>
+                        <input type="text" class="form-control" id="channelName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="channelType" class="form-label">頻道類型</label>
+                        <select class="form-control" id="channelType" name="channel_type" required>
+                            <option value="GROUP">群組頻道</option>
+                            <option value="DIRECT">直接訊息</option>
+                            <option value="DEPARTMENT">部門頻道</option>
+                            <option value="BROADCAST">廣播頻道</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="channelDescription" class="form-label">頻道描述</label>
+                        <textarea class="form-control" id="channelDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="channelEncrypted" name="is_encrypted" checked>
+                        <label class="form-check-label" for="channelEncrypted">
+                            啟用加密
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">建立頻道</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 新訊息模態框 -->
+<div class="modal fade" id="newMessageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">發送新訊息</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="#" id="newMessageForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="messageChannel" class="form-label">選擇頻道</label>
+                        <select class="form-control" id="messageChannel" name="channel" required>
+                            <option value="">請選擇頻道</option>
+                            {% for channel in channels %}
+                            <option value="{{ channel.id }}">{{ channel.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="messageSubject" class="form-label">主題</label>
+                        <input type="text" class="form-control" id="messageSubject" name="subject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="messageContent" class="form-label">訊息內容</label>
+                        <textarea class="form-control" id="messageContent" name="content" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="messagePriority" class="form-label">優先級</label>
+                        <select class="form-control" id="messagePriority" name="priority">
+                            <option value="NORMAL">普通</option>
+                            <option value="HIGH">高</option>
+                            <option value="URGENT">緊急</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">發送訊息</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 頻道搜尋功能
+    const channelSearch = document.getElementById('channelSearch');
+    if (channelSearch) {
+        channelSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const channelItems = document.querySelectorAll('.channel-item');
+            
+            channelItems.forEach(item => {
+                const channelName = item.querySelector('h6').textContent.toLowerCase();
+                if (channelName.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // 新建頻道表單提交
+    const newChannelForm = document.getElementById('newChannelForm');
+    if (newChannelForm) {
+        newChannelForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            fetch('/communications/api/channels/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.id) {
+                    showNotification('成功', '頻道建立成功！', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('newChannelModal')).hide();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('錯誤', '頻道建立失敗', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('錯誤', '發生未知錯誤', 'danger');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

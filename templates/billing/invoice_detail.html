@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}發票詳情 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<style>
+    .invoice-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .invoice-card {
+        background: white;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        margin-bottom: 1.5rem;
+    }
+    
+    .invoice-section {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    
+    .invoice-section:last-child {
+        border-bottom: none;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #5a5c69;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #4e73df;
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-group {
+        margin-bottom: 1rem;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-value {
+        color: #495057;
+    }
+    
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+    
+    .status-paid {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-overdue {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .line-items-table {
+        margin-bottom: 0;
+    }
+    
+    .line-items-table th {
+        background-color: #f8f9fc;
+        font-weight: 600;
+        color: #5a5c69;
+        border-top: none;
+    }
+    
+    .amount-cell {
+        text-align: right;
+        font-weight: 600;
+    }
+    
+    .total-row {
+        background-color: #f8f9fc;
+        font-weight: bold;
+    }
+    
+    .payment-history-item {
+        border-left: 4px solid #4e73df;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f8f9fc;
+        border-radius: 0 0.25rem 0.25rem 0;
+    }
+    
+    .action-buttons {
+        position: sticky;
+        top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 發票標題 -->
+    <div class="invoice-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h2 mb-2">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    發票 #INV-2024-001
+                </h1>
+                <p class="mb-0 opacity-75">開立日期: 2024-01-15 | 到期日期: 2024-02-14</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="status-badge status-pending">待付款</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- 基本資訊 -->
+            <div class="invoice-card">
+                <div class="invoice-section">
+                    <h5 class="section-title">
+                        <i class="fas fa-info-circle text-primary"></i>
+                        基本資訊
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-group">
+                                <div class="info-label">發票編號</div>
+                                <div class="info-value">INV-2024-001</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">患者姓名</div>
+                                <div class="info-value">王小明</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">身份證號</div>
+                                <div class="info-value">A123456789</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-group">
+                                <div class="info-label">開立日期</div>
+                                <div class="info-value">2024年01月15日</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">到期日期</div>
+                                <div class="info-value">2024年02月14日</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">經辦醫師</div>
+                                <div class="info-value">李醫師</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 服務項目明細 -->
+                <div class="invoice-section">
+                    <h5 class="section-title">
+                        <i class="fas fa-list text-primary"></i>
+                        服務項目明細
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table line-items-table">
+                            <thead>
+                                <tr>
+                                    <th>項目代碼</th>
+                                    <th>項目名稱</th>
+                                    <th>數量</th>
+                                    <th>單價</th>
+                                    <th class="text-end">小計</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>99213</td>
+                                    <td>門診診察費</td>
+                                    <td>1</td>
+                                    <td class="amount-cell">$300.00</td>
+                                    <td class="amount-cell">$300.00</td>
+                                </tr>
+                                <tr>
+                                    <td>85025</td>
+                                    <td>血液常規檢查</td>
+                                    <td>1</td>
+                                    <td class="amount-cell">$150.00</td>
+                                    <td class="amount-cell">$150.00</td>
+                                </tr>
+                                <tr>
+                                    <td>80053</td>
+                                    <td>肝功能檢查</td>
+                                    <td>1</td>
+                                    <td class="amount-cell">$200.00</td>
+                                    <td class="amount-cell">$200.00</td>
+                                </tr>
+                                <tr>
+                                    <td>J7050</td>
+                                    <td>藥品費用</td>
+                                    <td>1</td>
+                                    <td class="amount-cell">$850.00</td>
+                                    <td class="amount-cell">$850.00</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td colspan="4" class="text-end">小計</td>
+                                    <td class="amount-cell">$1,500.00</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td colspan="4" class="text-end">稅金 (5%)</td>
+                                    <td class="amount-cell">$0.00</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td colspan="4" class="text-end"><strong>總計</strong></td>
+                                    <td class="amount-cell"><strong>$1,500.00</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 付款記錄 -->
+                <div class="invoice-section">
+                    <h5 class="section-title">
+                        <i class="fas fa-credit-card text-primary"></i>
+                        付款記錄
+                    </h5>
+                    <div class="payment-history-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <strong>2024-01-20</strong>
+                            </div>
+                            <div class="col-md-3">
+                                現金付款
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge bg-success">已確認</span>
+                            </div>
+                            <div class="col-md-3 text-md-end">
+                                <strong class="text-success">$500.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>餘額: $1,000.00</strong> 待付款
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- 操作按鈕 -->
+            <div class="invoice-card action-buttons">
+                <div class="invoice-section">
+                    <h5 class="section-title">
+                        <i class="fas fa-tools text-primary"></i>
+                        操作選項
+                    </h5>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="printInvoice()">
+                            <i class="fas fa-print"></i> 列印發票
+                        </button>
+                        <button class="btn btn-success" onclick="recordPayment()">
+                            <i class="fas fa-money-bill-wave"></i> 記錄付款
+                        </button>
+                        <a href="#" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> 編輯發票
+                        </a>
+                        <button class="btn btn-info" onclick="sendReminder()">
+                            <i class="fas fa-envelope"></i> 發送催款通知
+                        </button>
+                        <hr>
+                        <a href="{% url 'billing_web:invoice_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回列表
+                        </a>
+                        <button class="btn btn-outline-danger" onclick="confirmCancel()">
+                            <i class="fas fa-ban"></i> 取消發票
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 摘要資訊 -->
+            <div class="invoice-card">
+                <div class="invoice-section">
+                    <h5 class="section-title">
+                        <i class="fas fa-chart-pie text-primary"></i>
+                        摘要資訊
+                    </h5>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-primary">$1,500</h4>
+                                <small class="text-muted">總金額</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">$500</h4>
+                            <small class="text-muted">已付金額</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h3 class="text-warning">$1,000</h3>
+                        <small class="text-muted">待付餘額</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 記錄付款模態框 -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">記錄付款</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <div class="mb-3">
+                        <label for="paymentAmount" class="form-label">付款金額</label>
+                        <input type="number" class="form-control" id="paymentAmount" step="0.01" max="1000.00" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentMethod" class="form-label">付款方式</label>
+                        <select class="form-select" id="paymentMethod" required>
+                            <option value="">請選擇</option>
+                            <option value="cash">現金</option>
+                            <option value="credit_card">信用卡</option>
+                            <option value="debit_card">金融卡</option>
+                            <option value="bank_transfer">銀行轉帳</option>
+                            <option value="check">支票</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentDate" class="form-label">付款日期</label>
+                        <input type="date" class="form-control" id="paymentDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentNotes" class="form-label">備註</label>
+                        <textarea class="form-control" id="paymentNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitPayment()">確認記錄</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function printInvoice() {
+    window.print();
+}
+
+function recordPayment() {
+    // 設定當前日期
+    document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+    $('#paymentModal').modal('show');
+}
+
+function submitPayment() {
+    const form = document.getElementById('paymentForm');
+    if (form.checkValidity()) {
+        // 這裡應該發送AJAX請求到後端
+        $('#paymentModal').modal('hide');
+        showAlert('success', '付款記錄已成功新增');
+        // 重新載入頁面或更新付款資訊
+        setTimeout(() => {
+            location.reload();
+        }, 1500);
+    } else {
+        form.reportValidity();
+    }
+}
+
+function sendReminder() {
+    if (confirm('確定要發送催款通知給患者嗎？')) {
+        // 發送催款通知的邏輯
+        showAlert('success', '催款通知已發送');
+    }
+}
+
+function confirmCancel() {
+    if (confirm('確定要取消這張發票嗎？此操作無法復原。')) {
+        // 取消發票的邏輯
+        showAlert('warning', '發票已取消');
+    }
+}
+
+function showAlert(type, message) {
+    const alertClass = {
+        'success': 'alert-success',
+        'warning': 'alert-warning',
+        'danger': 'alert-danger',
+        'info': 'alert-info'
+    }[type];
+    
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+}
+</script>
+{% endblock %}

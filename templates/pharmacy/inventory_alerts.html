@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Alerts{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1>Inventory Alerts</h1>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Low Stock Items</h5>
+                </div>
+                <div class="card-body">
+                    {% if low_stock_items %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Drug</th>
+                                        <th>Facility</th>
+                                        <th>Available</th>
+                                        <th>Reorder Level</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in low_stock_items %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ item.drug.name }}</strong><br>
+                                            <small class="text-muted">{{ item.drug.generic_name }}</small>
+                                        </td>
+                                        <td>{{ item.facility.name }}</td>
+                                        <td>
+                                            <span class="badge badge-warning">
+                                                {{ item.quantity_available }}
+                                            </span>
+                                        </td>
+                                        <td>{{ item.drug.reorder_level }}</td>
+                                        <td>
+                                            <a href="#" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-shopping-cart"></i> Reorder
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> No low stock items at this time.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5><i class="fas fa-calendar-times"></i> Expiring Soon</h5>
+                </div>
+                <div class="card-body">
+                    {% if expiring_items %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Drug</th>
+                                        <th>Lot Number</th>
+                                        <th>Expiration Date</th>
+                                        <th>Quantity</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in expiring_items %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ item.drug.name }}</strong><br>
+                                            <small class="text-muted">{{ item.drug.generic_name }}</small>
+                                        </td>
+                                        <td>{{ item.lot_number }}</td>
+                                        <td>
+                                            <span class="badge badge-danger">
+                                                {{ item.expiration_date|date:"m/d/Y" }}
+                                            </span>
+                                        </td>
+                                        <td>{{ item.quantity_available }}</td>
+                                        <td>
+                                            <a href="#" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i> Mark Expired
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> No items expiring soon.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'pharmacy:dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <a href="/admin/pharmacy/druginventory/" class="btn btn-primary">
+                        <i class="fas fa-warehouse"></i> Manage Inventory
+                    </a>
+                    <a href="/admin/pharmacy/drug/add/" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Add New Drug
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

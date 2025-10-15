@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}登入 - Allcare365{% endblock %}
+
+{% block content %}
+<div class="container-fluid login-container">
+    <div class="row min-vh-100">
+        <!-- 左側：登入表單 -->
+        <div class="col-lg-6 d-flex align-items-center justify-content-center p-5">
+            <div class="login-form-container w-100" style="max-width: 450px;">
+                <!-- Logo和標題 -->
+                <div class="text-center mb-5">
+                    <div class="logo-container mb-3">
+                        <i class="fas fa-heartbeat" style="font-size: 3rem; color: var(--primary-color);"></i>
+                    </div>
+                    <h1 class="h3 fw-bold text-primary mb-2">登入 Allcare365</h1>
+                    <p class="text-muted">歡迎回來！請登入您的帳戶</p>
+                </div>
+
+                <!-- 錯誤訊息 -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- 登入表單 -->
+                <form method="post" class="login-form">
+                    {% csrf_token %}
+                    
+                    <!-- 使用者名稱 -->
+                    <div class="form-group mb-4">
+                        <label for="id_username" class="form-label fw-semibold">
+                            <i class="fas fa-user me-2"></i>使用者名稱
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               id="id_username" 
+                               name="username" 
+                               required 
+                               autocomplete="username"
+                               placeholder="請輸入您的使用者名稱">
+                    </div>
+
+                    <!-- 密碼 -->
+                    <div class="form-group mb-4">
+                        <label for="id_password" class="form-label fw-semibold">
+                            <i class="fas fa-lock me-2"></i>密碼
+                        </label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   class="form-control form-control-lg" 
+                                   id="id_password" 
+                                   name="password" 
+                                   required 
+                                   autocomplete="current-password"
+                                   placeholder="請輸入您的密碼">
+                            <button class="btn btn-outline-secondary" 
+                                    type="button" 
+                                    id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 記住我和忘記密碼 -->
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="remember_me" 
+                                       name="remember_me">
+                                <label class="form-check-label" for="remember_me">
+                                    記住我
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-6 text-end">
+                            <a href="#" class="text-primary text-decoration-none">
+                                忘記密碼？
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 登入按鈕 -->
+                    <div class="d-grid mb-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>登入
+                        </button>
+                    </div>
+
+                    <!-- 註冊連結 -->
+                    <div class="text-center">
+                        <p class="text-muted mb-0">
+                            還沒有帳戶？
+                            <a href="{% url 'authentication:register' %}" class="text-primary text-decoration-none fw-semibold">
+                                立即註冊
+                            </a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 右側：背景圖片和資訊 -->
+        <div class="col-lg-6 d-none d-lg-flex align-items-center justify-content-center position-relative" 
+             style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);">
+            
+            <!-- 背景裝飾 -->
+            <div class="position-absolute w-100 h-100" style="opacity: 0.1;">
+                <div class="position-absolute" style="top: 10%; left: 10%; width: 100px; height: 100px; background: white; border-radius: 50%;"></div>
+                <div class="position-absolute" style="top: 60%; right: 15%; width: 80px; height: 80px; background: white; border-radius: 50%;"></div>
+                <div class="position-absolute" style="bottom: 20%; left: 20%; width: 60px; height: 60px; background: white; border-radius: 50%;"></div>
+            </div>
+
+            <!-- 內容 -->
+            <div class="text-center text-white p-5">
+                <div class="mb-4">
+                    <i class="fas fa-hospital" style="font-size: 4rem; opacity: 0.9;"></i>
+                </div>
+                <h2 class="h3 fw-bold mb-4">專業醫療健康管理系統</h2>
+                <p class="lead mb-4" style="opacity: 0.9;">
+                    提供全方位的醫療服務管理解決方案
+                </p>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <i class="fas fa-users-medical fa-2x mb-2" style="opacity: 0.8;"></i>
+                        <p class="small">患者管理</p>
+                    </div>
+                    <div class="col-4">
+                        <i class="fas fa-calendar-check fa-2x mb-2" style="opacity: 0.8;"></i>
+                        <p class="small">預約系統</p>
+                    </div>
+                    <div class="col-4">
+                        <i class="fas fa-file-medical-alt fa-2x mb-2" style="opacity: 0.8;"></i>
+                        <p class="small">醫療記錄</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.login-container {
+    min-height: 100vh;
+}
+
+.login-form-container {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 密碼顯示/隱藏功能
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('id_password');
+    
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            const icon = this.querySelector('i');
+            if (type === 'password') {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        });
+    }
+
+    // 表單驗證
+    const form = document.querySelector('.login-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const username = document.getElementById('id_username').value.trim();
+            const password = document.getElementById('id_password').value;
+            
+            if (!username || !password) {
+                e.preventDefault();
+                alert('請填寫所有必填欄位');
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

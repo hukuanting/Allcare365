@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}健檢儀表板{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page-Title -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 class="page-title">健檢儀表板</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">儀表板</a></li>
+                    <li class="breadcrumb-item active">健檢儀表板</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 col-xl-3">
+            <div class="card-box tilebox-one">
+                <i class="icon-layers float-end text-muted"></i>
+                <h6 class="text-muted text-uppercase mt-0">總健檢次數</h6>
+                <h2 class="m-b-20" data-plugin="counterup">{{ total_screenings }}</h2>
+                <span class="badge badge-success"> +11% </span> <span class="text-muted">較上月</span>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card-box tilebox-one">
+                <i class="icon-paypal float-end text-muted"></i>
+                <h6 class="text-muted text-uppercase mt-0">本月新增健檢</h6>
+                <h2 class="m-b-20"><span data-plugin="counterup">{{ this_month_screenings }}</span></h2>
+                <span class="badge badge-danger"> -29% </span> <span class="text-muted">較上月</span>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card-box tilebox-one">
+                <i class="icon-tag float-end text-muted"></i>
+                <h6 class="text-muted text-uppercase mt-0">待處理結果</h6>
+                <h2 class="m-b-20"><span data-plugin="counterup">{{ pending_results }}</span></h2>
+                <span class="badge badge-warning"> 0% </span> <span class="text-muted">待處理</span>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card-box tilebox-one">
+                <i class="icon-chart float-end text-muted"></i>
+                <h6 class="text-muted text-uppercase mt-0">異常結果</h6>
+                <h2 class="m-b-20"><span data-plugin="counterup">{{ abnormal_results }}</span></h2>
+                <span class="badge badge-purple"> +89% </span> <span class="text-muted">較上月</span>
+            </div>
+        </div>
+    </div>
+    <!-- end row -->
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">最近健檢記錄</h4>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>患者姓名</th>
+                                    <th>檢查日期</th>
+                                    <th>檢查類型</th>
+                                    <th>身高 (cm)</th>
+                                    <th>體重 (kg)</th>
+                                    <th>BMI</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for screening in recent_screenings %}
+                                <tr>
+                                    <td>{{ screening.patient.full_name }}</td>
+                                    <td>{{ screening.screening_date|date:"Y-m-d" }}</td>
+                                    <td>{{ screening.screening_type }}</td>
+                                    <td>{{ screening.vital_signs.height_cm|default:"N/A" }}</td>
+                                    <td>{{ screening.vital_signs.weight_kg|default:"N/A" }}</td>
+                                    <td>{{ screening.vital_signs.bmi|default:"N/A" }}</td>
+                                    <td>
+                                        <a href="{% url 'health_screening:detail' screening.id %}" class="btn btn-sm btn-primary">查看</a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">沒有最近的健檢記錄</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end row -->
+
+</div> <!-- end container-fluid -->
+{% endblock %}

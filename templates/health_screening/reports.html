@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}健檢報告{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page-Title -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 class="page-title">健檢報告</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">儀表板</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢儀表板</a></li>
+                    <li class="breadcrumb-item active">健檢報告</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">健檢數據統計</h4>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card-box">
+                                <h6 class="text-muted text-uppercase mt-0">總健檢次數</h6>
+                                <h2 class="m-b-20" data-plugin="counterup">{{ stats.total_screenings }}</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-box">
+                                <h6 class="text-muted text-uppercase mt-0">本月健檢次數</h6>
+                                <h2 class="m-b-20" data-plugin="counterup">{{ stats.this_month }}</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-box">
+                                <h6 class="text-muted text-uppercase mt-0">上月健檢次數</h6>
+                                <h2 class="m-b-20" data-plugin="counterup">{{ stats.last_month }}</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="card-title mt-4">報告生成</h4>
+                    <p class="text-muted mb-4">您可以根據需要生成不同類型的健檢報告。</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card-box">
+                                <h5 class="card-title">患者健檢摘要報告</h5>
+                                <p class="card-text">生成單一患者的詳細健檢摘要報告。</p>
+                                <form action="#" method="get">
+                                    <div class="input-group mb-3">
+                                        <select class="form-control" name="patient_id">
+                                            <option value="">選擇患者</option>
+                                            {% comment %}
+                                            {% for patient in all_patients %}
+                                                <option value="{{ patient.id }}">{{ patient.full_name }}</option>
+                                            {% endfor %}
+                                            {% endcomment %}
+                                        </select>
+                                        <button class="btn btn-primary" type="submit">生成報告</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card-box">
+                                <h5 class="card-title">批量健檢趨勢報告</h5>
+                                <p class="card-text">分析多個患者或特定時間段內的健檢數據趨勢。</p>
+                                <form action="#" method="get">
+                                    <div class="input-group mb-3">
+                                        <input type="date" class="form-control" name="start_date">
+                                        <input type="date" class="form-control" name="end_date">
+                                        <button class="btn btn-primary" type="submit">生成報告</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="card-title mt-4">其他報告類型 (待開發)</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item">疾病風險評估報告</li>
+                        <li class="list-group-item">異常結果統計報告</li>
+                        <li class="list-group-item">健康建議報告</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

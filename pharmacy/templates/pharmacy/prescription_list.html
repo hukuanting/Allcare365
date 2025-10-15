@@ -1,0 +1,475 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}處方籤列表 - 藥房管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-prescription text-primary"></i> 處方籤列表</h1>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newPrescriptionModal">
+                        <i class="fas fa-plus"></i> 新增處方籤
+                    </button>
+                    <a href="{% url 'pharmacy_web:pharmacy_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> 返回儀表板
+                    </a>
+                </div>
+            </div>
+
+            <!-- 處方籤統計 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <h4>{{ pending_count }}</h4>
+                            <p class="mb-0">待處理處方籤</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <h4>{{ dispensed_count }}</h4>
+                            <p class="mb-0">已調劑處方籤</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-redo fa-2x mb-2"></i>
+                            <h4>{{ refill_count }}</h4>
+                            <p class="mb-0">可退藥處方籤</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <h4>{{ expired_count }}</h4>
+                            <p class="mb-0">過期處方籤</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜尋和篩選區域 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label">搜尋</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="患者姓名、藥物名稱" value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="status" class="form-label">狀態</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">所有狀態</option>
+                                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>待處理</option>
+                                <option value="dispensed" {% if request.GET.status == 'dispensed' %}selected{% endif %}>已調劑</option>
+                                <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>已取消</option>
+                                <option value="expired" {% if request.GET.status == 'expired' %}selected{% endif %}>已過期</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_from" class="form-label">開始日期</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" value="{{ request.GET.date_from }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_to" class="form-label">結束日期</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" value="{{ request.GET.date_to }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="provider" class="form-label">開立醫師</label>
+                            <select class="form-select" id="provider" name="provider">
+                                <option value="">所有醫師</option>
+                                {% for provider in providers %}
+                                <option value="{{ provider.id }}" {% if request.GET.provider == provider.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ provider.get_full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 處方籤列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> 處方籤清單
+                        <span class="badge bg-secondary ms-2">{{ prescriptions|length }} 張處方籤</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>處方籤編號</th>
+                                    <th>患者</th>
+                                    <th>藥物</th>
+                                    <th>劑量說明</th>
+                                    <th>數量</th>
+                                    <th>開立醫師</th>
+                                    <th>開立日期</th>
+                                    <th>狀態</th>
+                                    <th>退藥</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prescription in prescriptions %}
+                                <tr>
+                                    <td>
+                                        <strong>RX-{{ prescription.id|stringformat:"05d" }}</strong>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ prescription.patient.get_full_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ prescription.patient.date_of_birth|date:"Y/m/d" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ prescription.drug.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ prescription.drug.generic_name }}</small>
+                                            {% if prescription.drug.controlled_substance %}
+                                            <span class="badge bg-warning text-dark">{{ prescription.drug.controlled_substance }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>{{ prescription.dosage }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ prescription.quantity }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ prescription.days_supply }} 天份</small>
+                                    </td>
+                                    <td>
+                                        {{ prescription.provider.get_full_name }}
+                                        <br>
+                                        <small class="text-muted">{{ prescription.provider.specialty }}</small>
+                                    </td>
+                                    <td>{{ prescription.date_prescribed|date:"Y/m/d H:i" }}</td>
+                                    <td>
+                                        {% if prescription.status == 'pending' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-clock"></i> 待處理
+                                            </span>
+                                        {% elif prescription.status == 'dispensed' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> 已調劑
+                                            </span>
+                                            {% if prescription.date_dispensed %}
+                                            <br><small class="text-muted">{{ prescription.date_dispensed|date:"m/d H:i" }}</small>
+                                            {% endif %}
+                                        {% elif prescription.status == 'cancelled' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-times"></i> 已取消
+                                            </span>
+                                        {% elif prescription.status == 'expired' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> 已過期
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if prescription.refills_allowed > 0 %}
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-redo"></i> {{ prescription.refills_allowed }} 次
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">無退藥</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" 
+                                                    data-bs-toggle="modal" data-bs-target="#viewPrescriptionModal"
+                                                    onclick="viewPrescription({{ prescription.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if prescription.status == 'pending' %}
+                                            <button type="button" class="btn btn-outline-success"
+                                                    onclick="dispensePrescription({{ prescription.id }})">
+                                                <i class="fas fa-pills"></i>
+                                            </button>
+                                            {% endif %}
+                                            {% if prescription.status == 'dispensed' and prescription.refills_allowed > 0 %}
+                                            <button type="button" class="btn btn-outline-info"
+                                                    data-bs-toggle="modal" data-bs-target="#refillModal"
+                                                    onclick="prepareRefill({{ prescription.id }})">
+                                                <i class="fas fa-redo"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-outline-danger"
+                                                    onclick="cancelPrescription({{ prescription.id }})">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-prescription fa-3x mb-3"></i>
+                                            <p>沒有找到符合條件的處方籤</p>
+                                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newPrescriptionModal">
+                                                <i class="fas fa-plus"></i> 新增第一張處方籤
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分頁 -->
+            {% if prescriptions.has_other_pages %}
+            <nav aria-label="處方籤列表分頁" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if prescriptions.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ prescriptions.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in prescriptions.paginator.page_range %}
+                    {% if prescriptions.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if prescriptions.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ prescriptions.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 新增處方籤 Modal -->
+<div class="modal fade" id="newPrescriptionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus text-success"></i> 新增處方籤
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newPrescriptionForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="patient" class="form-label">患者 *</label>
+                                <select class="form-select" id="patient" required>
+                                    <option value="">選擇患者</option>
+                                    {% for patient in patients %}
+                                    <option value="{{ patient.id }}">{{ patient.get_full_name }} ({{ patient.date_of_birth|date:"Y/m/d" }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="prescriptionProvider" class="form-label">開立醫師 *</label>
+                                <select class="form-select" id="prescriptionProvider" required>
+                                    <option value="">選擇醫師</option>
+                                    {% for provider in providers %}
+                                    <option value="{{ provider.id }}">{{ provider.get_full_name }} ({{ provider.specialty }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="prescriptionDrug" class="form-label">藥物 *</label>
+                                <select class="form-select" id="prescriptionDrug" required>
+                                    <option value="">選擇藥物</option>
+                                    {% for drug in available_drugs %}
+                                    <option value="{{ drug.id }}">{{ drug.name }} ({{ drug.strength }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="dosage" class="form-label">劑量說明 *</label>
+                                <input type="text" class="form-control" id="dosage" required 
+                                       placeholder="例如: 每日兩次，每次一粒">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">總數量 *</label>
+                                <input type="number" class="form-control" id="quantity" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="daysSupply" class="form-label">天數 *</label>
+                                <input type="number" class="form-control" id="daysSupply" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="refillsAllowed" class="form-label">允許退藥次數</label>
+                                <input type="number" class="form-control" id="refillsAllowed" min="0" max="5" value="0">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="instructions" class="form-label">用藥指示</label>
+                                <textarea class="form-control" id="instructions" rows="3" 
+                                          placeholder="特殊用藥指示或注意事項"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="savePrescription()">
+                    <i class="fas fa-save"></i> 開立處方籤
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 退藥 Modal -->
+<div class="modal fade" id="refillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-redo text-info"></i> 處方籤退藥
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="refillPrescriptionInfo"></div>
+                <form id="refillForm">
+                    <div class="mb-3">
+                        <label for="refillQuantity" class="form-label">退藥數量</label>
+                        <input type="number" class="form-control" id="refillQuantity" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="refillNotes" class="form-label">備註</label>
+                        <textarea class="form-control" id="refillNotes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info" onclick="processRefill()">
+                    <i class="fas fa-check"></i> 確認退藥
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentRefillPrescription = null;
+
+function viewPrescription(prescriptionId) {
+    console.log('View prescription:', prescriptionId);
+}
+
+function dispensePrescription(prescriptionId) {
+    if (confirm('確認調劑此處方籤？')) {
+        // 實作調劑邏輯
+        console.log('Dispense prescription:', prescriptionId);
+        location.reload();
+    }
+}
+
+function prepareRefill(prescriptionId) {
+    currentRefillPrescription = prescriptionId;
+    // 載入處方籤資訊到退藥 modal
+    console.log('Prepare refill for prescription:', prescriptionId);
+}
+
+function processRefill() {
+    if (!currentRefillPrescription) return;
+    
+    const quantity = document.getElementById('refillQuantity').value;
+    const notes = document.getElementById('refillNotes').value;
+    
+    if (!quantity) {
+        alert('請輸入退藥數量');
+        return;
+    }
+    
+    // 實作退藥邏輯
+    console.log('Process refill:', currentRefillPrescription, quantity, notes);
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('refillModal'));
+    modal.hide();
+    location.reload();
+}
+
+function cancelPrescription(prescriptionId) {
+    if (confirm('確認取消此處方籤？此操作無法復原。')) {
+        // 實作取消處方籤邏輯
+        console.log('Cancel prescription:', prescriptionId);
+        location.reload();
+    }
+}
+
+function savePrescription() {
+    const form = document.getElementById('newPrescriptionForm');
+    const formData = new FormData(form);
+    
+    // 實作儲存處方籤邏輯
+    console.log('Save prescription');
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('newPrescriptionModal'));
+    modal.hide();
+    location.reload();
+}
+</script>
+{% endblock %}

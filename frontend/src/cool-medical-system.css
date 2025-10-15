@@ -1,0 +1,103 @@
+/* ========================================
+   React SPA 冷色調醫療系統 - 統一設計
+   ======================================== */
+:root {
+  --primary: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-900: #1e3a8a;
+  --accent: #14b8a6;
+  --accent-700: #0d9488;
+  --indigo: #6366f1;
+
+  --bg: #f1f5f9;
+  --bg-soft: #eef2f7;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --muted: #64748b;
+  --text: #0f172a;
+  --text-soft: #334155;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #06b6d4;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--indigo) 100%);
+  --gradient-hero: linear-gradient(135deg, #e6eef5 0%, #d9e3f2 100%);
+}
+
+body { background: var(--bg); color: var(--text); }
+
+/* Navigation */
+.main-navigation { background: var(--gradient-primary) !important; box-shadow: var(--shadow-sm); }
+.main-navigation .nav-link { color: rgba(255,255,255,0.9); }
+.main-navigation .nav-link:hover, .main-navigation .nav-link.active { background: rgba(255,255,255,0.15); color: #fff; }
+.auth-link.register { background: var(--primary); color: #fff; }
+.auth-link.register:hover { background: var(--primary-700); }
+
+/* Home */
+.home-page { background: var(--gradient-hero) !important; color: var(--text); }
+.hero-section { background: rgba(255,255,255,0.6) !important; backdrop-filter: blur(8px); }
+.features-section { background: #fff; }
+.feature-card { border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+
+/* Dashboard */
+.dashboard { background: var(--bg-soft) !important; }
+.dashboard-header h1 { background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-card { border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.action-card:hover .action-arrow { color: var(--primary); }
+
+/* Forms and buttons */
+.search-input, .form-group input, .form-group select { border: 2px solid var(--border); border-radius: var(--radius-sm); }
+.search-input:focus, .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); outline: none; }
+.btn-primary { background: var(--primary) !important; border: none; }
+.btn-primary:hover { background: var(--primary-700) !important; }
+.btn-secondary { background: var(--muted) !important; border: none; }
+
+/* 表單文字對齊與佈局 */
+.form-label, label, .form-group label { text-align: left !important; display: block !important; margin-bottom: 6px !important; color: var(--text-soft); }
+.search-input, .form-group input, .form-group select, input, select, textarea { text-align: left; vertical-align: middle; }
+.form-text, .form-help, small.text-muted { display: block; margin-top: 6px; color: var(--muted) !important; }
+.form-check { display: flex; align-items: center; gap: 8px; }
+.form-check-input { margin-top: 0; }
+.form-horizontal .form-group, .form-row .form-group { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 12px; align-items: center; }
+@media (max-width: 640px) { .form-horizontal .form-group, .form-row .form-group { grid-template-columns: 1fr; } }
+
+/* Tables */
+.patients-table thead { background: linear-gradient(135deg, var(--primary-900), var(--primary-700)) !important; }
+.patients-table tbody tr:hover { background: #f8fafc; }
+
+/* Typography scale & spacing */
+:root { --fs-xxs: 0.75rem; --fs-xs: 0.8125rem; --fs-sm: 0.875rem; --fs-base: 1rem; --fs-md: 1.125rem; --fs-lg: 1.25rem; --fs-xl: 1.5rem; --fs-2xl: 1.75rem; --fs-3xl: 2rem; --lh-tight: 1.25; --lh-normal: 1.6; --lh-relaxed: 1.75; }
+html, body { font-size: var(--fs-base); line-height: var(--lh-normal); letter-spacing: 0.01em; }
+h1, h2, h3, h4, h5, h6 { margin: 0 0 0.75rem 0; color: var(--text-soft); line-height: var(--lh-tight); }
+h1 { font-size: var(--fs-3xl); } h2 { font-size: var(--fs-2xl); } h3 { font-size: var(--fs-xl); } h4 { font-size: var(--fs-lg); } h5 { font-size: var(--fs-md); } h6 { font-size: var(--fs-base); }
+p { margin: 0 0 0.75rem 0; font-size: var(--fs-base); color: var(--text); }
+small, .small { font-size: var(--fs-xs); }
+
+/* Navigation sizing */
+.brand-link { font-size: var(--fs-lg) !important; }
+.nav-link .nav-text, .auth-link { font-size: var(--fs-sm) !important; }
+
+/* Buttons */
+.btn, .auth-link, .search-btn { font-size: var(--fs-sm) !important; letter-spacing: 0.01em; }
+.btn-sm { font-size: var(--fs-xs) !important; }
+
+/* Forms */
+.form-control, .form-select, input, select, textarea { font-size: var(--fs-sm) !important; }
+.form-label, .form-group label { font-size: var(--fs-sm) !important; }
+.form-text, .form-help, small.text-muted { font-size: var(--fs-xs) !important; }
+
+/* Tables */
+.patients-table th { font-size: var(--fs-sm) !important; }
+.patients-table td { font-size: var(--fs-sm) !important; }
+
+/* Misc */
+.text-muted { color: var(--muted) !important; }

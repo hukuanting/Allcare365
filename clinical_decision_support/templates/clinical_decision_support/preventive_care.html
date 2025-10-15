@@ -1,0 +1,204 @@
+{% extends 'clinical_decision_support/base.html' %}
+{% load static %}
+
+{% block title %}Preventive Care - Clinical Decision Support{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <h1>Preventive Care</h1>
+                <p class="lead">Preventive care reminders and screening recommendations</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Patient Search</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get">
+                        <div class="form-group">
+                            <label for="patient_search">Search Patient</label>
+                            <input type="text" class="form-control" id="patient_search" name="patient_search" 
+                                   value="{{ request.GET.patient_search }}" placeholder="Enter patient name or ID">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Preventive Care Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ total_reminders }}</h2>
+                                    <p class="mb-0">Total Reminders</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ overdue_reminders }}</h2>
+                                    <p class="mb-0">Overdue</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ upcoming_reminders }}</h2>
+                                    <p class="mb-0">Upcoming</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ completed_reminders }}</h2>
+                                    <p class="mb-0">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Preventive Care Reminders</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Reminder Type</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reminder in reminders %}
+                                <tr class="{% if reminder.is_overdue %}table-warning{% endif %}">
+                                    <td>
+                                        <strong>{{ reminder.patient.get_full_name }}</strong><br>
+                                        <small class="text-muted">{{ reminder.patient.patient_id }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ reminder.get_reminder_type_display }}</strong><br>
+                                        <small class="text-muted">{{ reminder.description|truncatewords:8 }}</small>
+                                    </td>
+                                    <td>
+                                        {{ reminder.due_date|date:"M d, Y" }}
+                                        {% if reminder.is_overdue %}
+                                            <span class="badge badge-danger">Overdue</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{% if reminder.status == 'completed' %}success{% elif reminder.status == 'overdue' %}danger{% elif reminder.status == 'pending' %}warning{% else %}info{% endif %}">
+                                            {{ reminder.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{% if reminder.priority == 'high' %}danger{% elif reminder.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                            {{ reminder.get_priority_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="markCompleted({{ reminder.id }})">
+                                                Mark Complete
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                                    onclick="snoozeReminder({{ reminder.id }})">
+                                                Snooze
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No preventive care reminders found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function markCompleted(reminderId) {
+    if (confirm('Mark this reminder as completed?')) {
+        fetch(`/clinical-decision-support/api/preventive-care-reminders/${reminderId}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                status: 'completed',
+                completion_date: new Date().toISOString()
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            location.reload();
+        })
+        .catch(error => {
+            alert('Error updating reminder status');
+        });
+    }
+}
+
+function snoozeReminder(reminderId) {
+    const days = prompt('Snooze for how many days?', '7');
+    if (days) {
+        const newDate = new Date();
+        newDate.setDate(newDate.getDate() + parseInt(days));
+        
+        fetch(`/clinical-decision-support/api/preventive-care-reminders/${reminderId}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                due_date: newDate.toISOString().split('T')[0]
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            location.reload();
+        })
+        .catch(error => {
+            alert('Error snoozing reminder');
+        });
+    }
+}
+</script>
+{% endblock %}

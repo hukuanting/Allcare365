@@ -1,0 +1,796 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}預約管理 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<style>
+    .appointment-card {
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        transition: all 0.3s;
+    }
+    .appointment-card:hover {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        transform: translateY(-2px);
+    }
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 10rem;
+    }
+    .status-scheduled { background-color: #1cc88a; color: white; }
+    .status-confirmed { background-color: #36b9cc; color: white; }
+    .status-completed { background-color: #5a5c69; color: white; }
+    .status-cancelled { background-color: #e74a3b; color: white; }
+    .status-no-show { background-color: #f6c23e; color: white; }
+    
+    .calendar-container {
+        background: white;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        padding: 1.5rem;
+    }
+    
+    .stats-card {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+        color: white;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-section {
+        background: white;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .time-slot {
+        padding: 0.5rem;
+        margin: 0.25rem 0;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .time-slot:hover {
+        background-color: #f8f9fc;
+        border-color: #4e73df;
+    }
+    
+    .time-slot.available {
+        background-color: #d1edff;
+        border-color: #36b9cc;
+    }
+    
+    .time-slot.booked {
+        background-color: #f8d7da;
+        border-color: #e74a3b;
+        cursor: not-allowed;
+    }
+    
+    .appointment-form {
+        background: white;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        padding: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-calendar-alt"></i> 預約管理
+        </h1>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newAppointmentModal">
+                <i class="fas fa-plus"></i> 新增預約
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refreshCalendar()">
+                <i class="fas fa-sync-alt"></i> 重新載入
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="exportAppointments()">
+                <i class="fas fa-download"></i> 匯出
+            </button>
+        </div>
+    </div>
+
+    <!-- 統計卡片 -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">今日預約</div>
+                        <div class="h5 mb-0" id="todayAppointments">載入中...</div>
+                    </div>
+                    <div class="ml-2">
+                        <i class="fas fa-calendar-day fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(45deg, #1cc88a, #13855c);">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">本週預約</div>
+                        <div class="h5 mb-0" id="weekAppointments">載入中...</div>
+                    </div>
+                    <div class="ml-2">
+                        <i class="fas fa-calendar-week fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(45deg, #36b9cc, #258391);">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">候補名單</div>
+                        <div class="h5 mb-0" id="waitingList">載入中...</div>
+                    </div>
+                    <div class="ml-2">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stats-card" style="background: linear-gradient(45deg, #f6c23e, #dda20a);">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">未確認預約</div>
+                        <div class="h5 mb-0" id="unconfirmedAppointments">載入中...</div>
+                    </div>
+                    <div class="ml-2">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 篩選器 -->
+    <div class="filter-section">
+        <form id="filterForm" class="row g-3">
+            <div class="col-md-3">
+                <label for="filterProvider" class="form-label">醫生</label>
+                <select class="form-select" id="filterProvider" name="provider">
+                    <option value="">所有醫生</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterType" class="form-label">預約類型</label>
+                <select class="form-select" id="filterType" name="appointment_type">
+                    <option value="">所有類型</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="filterStatus" class="form-label">狀態</label>
+                <select class="form-select" id="filterStatus" name="status">
+                    <option value="">所有狀態</option>
+                    <option value="scheduled">已安排</option>
+                    <option value="confirmed">已確認</option>
+                    <option value="completed">已完成</option>
+                    <option value="cancelled">已取消</option>
+                    <option value="no_show">未到診</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="filterDate" class="form-label">日期</label>
+                <input type="date" class="form-control" id="filterDate" name="date">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary d-block w-100">
+                    <i class="fas fa-search"></i> 篩選
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 主要內容區域 -->
+    <div class="row">
+        <!-- 行事曆視圖 -->
+        <div class="col-lg-8">
+            <div class="calendar-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">預約行事曆</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="changeCalendarView('dayGridMonth')">月</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="changeCalendarView('timeGridWeek')">週</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="changeCalendarView('timeGridDay')">日</button>
+                        <button type="button" class="btn btn-outline-primary" onclick="changeCalendarView('listWeek')">清單</button>
+                    </div>
+                </div>
+                <div id="appointmentCalendar"></div>
+            </div>
+        </div>
+
+        <!-- 側邊欄 -->
+        <div class="col-lg-4">
+            <!-- 今日預約 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">今日預約</h6>
+                </div>
+                <div class="card-body">
+                    <div id="todayAppointmentsList">載入中...</div>
+                </div>
+            </div>
+
+            <!-- 候補名單 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">候補名單</h6>
+                </div>
+                <div class="card-body">
+                    <div id="waitingListItems">載入中...</div>
+                </div>
+            </div>
+
+            <!-- 快速動作 -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">快速動作</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="checkConflicts()">
+                        <i class="fas fa-exclamation-triangle"></i> 檢查衝突
+                    </button>
+                    <button class="btn btn-outline-info btn-sm w-100 mb-2" onclick="sendReminders()">
+                        <i class="fas fa-bell"></i> 發送提醒
+                    </button>
+                    <button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="processWaitlist()">
+                        <i class="fas fa-clock"></i> 處理候補
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm w-100" onclick="generateReport()">
+                        <i class="fas fa-chart-bar"></i> 生成報告
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增預約模態框 -->
+<div class="modal fade" id="newAppointmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增預約</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="appointmentForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="patientSearch" class="form-label">病患 *</label>
+                                <input type="text" class="form-control" id="patientSearch" placeholder="搜尋病患...">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="appointmentProvider" class="form-label">醫生 *</label>
+                                <select class="form-select" id="appointmentProvider" required>
+                                    <option value="">選擇醫生</option>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="appointmentType" class="form-label">預約類型 *</label>
+                                <select class="form-select" id="appointmentType" required>
+                                    <option value="">選擇類型</option>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="appointmentPriority" class="form-label">優先級</label>
+                                <select class="form-select" id="appointmentPriority">
+                                    <option value="normal">一般</option>
+                                    <option value="urgent">緊急</option>
+                                    <option value="emergency">急診</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="appointmentDate" class="form-label">日期 *</label>
+                                <input type="date" class="form-control" id="appointmentDate" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="appointmentTime" class="form-label">時間 *</label>
+                                <input type="time" class="form-control" id="appointmentTime" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="appointmentDuration" class="form-label">持續時間（分鐘）</label>
+                        <input type="number" class="form-control" id="appointmentDuration" value="30" min="15" max="240" step="15">
+                    </div>
+                    <div class="mb-3">
+                        <label for="appointmentNotes" class="form-label">備註</label>
+                        <textarea class="form-control" id="appointmentNotes" rows="3"></textarea>
+                    </div>
+                    
+                    <!-- 可用時段建議 -->
+                    <div id="availableSlots" class="mb-3" style="display: none;">
+                        <label class="form-label">建議的可用時段：</label>
+                        <div id="slotsContainer"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="checkAvailability()">檢查可用性</button>
+                <button type="button" class="btn btn-success" onclick="saveAppointment()">儲存預約</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 預約詳情模態框 -->
+<div class="modal fade" id="appointmentDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">預約詳情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="appointmentDetailContent">
+                <!-- 動態載入內容 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                <button type="button" class="btn btn-warning" onclick="editAppointment()">編輯</button>
+                <button type="button" class="btn btn-success" onclick="confirmAppointment()">確認</button>
+                <button type="button" class="btn btn-danger" onclick="cancelAppointment()">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+let calendar;
+let currentAppointment = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCalendar();
+    loadStatistics();
+    loadTodayAppointments();
+    loadWaitingList();
+    loadProviders();
+    loadAppointmentTypes();
+    
+    // 設定篩選器事件
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        filterAppointments();
+    });
+    
+    // 設定病患搜尋
+    setupPatientSearch();
+});
+
+function initializeCalendar() {
+    const calendarEl = document.getElementById('appointmentCalendar');
+    
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+        locale: 'zh-tw',
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        slotDuration: '00:30:00',
+        businessHours: {
+            daysOfWeek: [1, 2, 3, 4, 5, 6],
+            startTime: '08:00',
+            endTime: '17:30'
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+            loadCalendarEvents(fetchInfo.startStr, fetchInfo.endStr, successCallback, failureCallback);
+        },
+        eventClick: function(info) {
+            showAppointmentDetail(info.event.id);
+        },
+        selectable: true,
+        select: function(info) {
+            showNewAppointmentModal(info.startStr, info.endStr);
+        },
+        eventDrop: function(info) {
+            updateAppointmentTime(info.event.id, info.event.start, info.event.end);
+        },
+        eventResize: function(info) {
+            updateAppointmentTime(info.event.id, info.event.start, info.event.end);
+        }
+    });
+    
+    calendar.render();
+}
+
+function loadCalendarEvents(start, end, successCallback, failureCallback) {
+    const filters = new URLSearchParams({
+        start_date: start.split('T')[0],
+        end_date: end.split('T')[0]
+    });
+    
+    fetch(`/api/appointments/appointments/?${filters}`, {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const events = data.results.map(appointment => ({
+            id: appointment.id,
+            title: `${appointment.patient_name} - ${appointment.appointment_type_name}`,
+            start: appointment.appointment_datetime,
+            end: appointment.end_datetime,
+            backgroundColor: getStatusColor(appointment.status),
+            borderColor: getStatusColor(appointment.status),
+            extendedProps: appointment
+        }));
+        successCallback(events);
+    })
+    .catch(error => {
+        console.error('載入預約失敗:', error);
+        failureCallback(error);
+    });
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'scheduled': '#1cc88a',
+        'confirmed': '#36b9cc',
+        'completed': '#5a5c69',
+        'cancelled': '#e74a3b',
+        'no_show': '#f6c23e'
+    };
+    return colors[status] || '#858796';
+}
+
+function loadStatistics() {
+    fetch('/api/appointments/appointments/statistics/', {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('todayAppointments').textContent = data.today_appointments || 0;
+        document.getElementById('weekAppointments').textContent = data.week_appointments || 0;
+        document.getElementById('waitingList').textContent = data.waiting_list_count || 0;
+        document.getElementById('unconfirmedAppointments').textContent = data.unconfirmed_appointments || 0;
+    })
+    .catch(error => {
+        console.error('載入統計資料失敗:', error);
+    });
+}
+
+function loadTodayAppointments() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    fetch(`/api/appointments/appointments/?date=${today}`, {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('todayAppointmentsList');
+        
+        if (data.results.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">今日無預約</p>';
+            return;
+        }
+        
+        container.innerHTML = data.results.map(appointment => `
+            <div class="appointment-card p-2 mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${appointment.patient_name}</strong><br>
+                        <small class="text-muted">${new Date(appointment.appointment_datetime).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'})}</small>
+                    </div>
+                    <span class="status-badge status-${appointment.status}">${getStatusText(appointment.status)}</span>
+                </div>
+            </div>
+        `).join('');
+    })
+    .catch(error => {
+        console.error('載入今日預約失敗:', error);
+        document.getElementById('todayAppointmentsList').innerHTML = '<p class="text-danger">載入失敗</p>';
+    });
+}
+
+function loadWaitingList() {
+    fetch('/api/appointments/waiting-list/', {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('waitingListItems');
+        
+        if (data.results.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">候補名單為空</p>';
+            return;
+        }
+        
+        container.innerHTML = data.results.map(item => `
+            <div class="appointment-card p-2 mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${item.patient_name}</strong><br>
+                        <small class="text-muted">${item.appointment_type_name}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="scheduleFromWaitlist(${item.id})">
+                        安排
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    })
+    .catch(error => {
+        console.error('載入候補名單失敗:', error);
+        document.getElementById('waitingListItems').innerHTML = '<p class="text-danger">載入失敗</p>';
+    });
+}
+
+function loadProviders() {
+    // 這裡應該載入醫生列表
+    // 暫時使用假資料
+    const providerSelects = document.querySelectorAll('#filterProvider, #appointmentProvider');
+    providerSelects.forEach(select => {
+        select.innerHTML = '<option value="">選擇醫生</option>';
+        // 應該從 API 載入實際的醫生資料
+    });
+}
+
+function loadAppointmentTypes() {
+    fetch('/api/appointments/appointment-types/active/', {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const typeSelects = document.querySelectorAll('#filterType, #appointmentType');
+        typeSelects.forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">選擇類型</option>';
+            data.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.id;
+                option.textContent = type.name;
+                select.appendChild(option);
+            });
+            select.value = currentValue;
+        });
+    })
+    .catch(error => {
+        console.error('載入預約類型失敗:', error);
+    });
+}
+
+function setupPatientSearch() {
+    const searchInput = document.getElementById('patientSearch');
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchPatients(this.value);
+        }, 300);
+    });
+}
+
+function searchPatients(query) {
+    if (query.length < 2) return;
+    
+    fetch(`/api/patients/patients/?search=${encodeURIComponent(query)}`, {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // 顯示搜尋結果的下拉選單
+        showPatientSearchResults(data.results);
+    })
+    .catch(error => {
+        console.error('搜尋病患失敗:', error);
+    });
+}
+
+function showPatientSearchResults(patients) {
+    // 實作病患搜尋結果顯示
+    // 這裡可以使用 autocomplete 或下拉選單
+}
+
+function changeCalendarView(view) {
+    calendar.changeView(view);
+}
+
+function refreshCalendar() {
+    calendar.refetchEvents();
+    loadStatistics();
+    loadTodayAppointments();
+    loadWaitingList();
+}
+
+function checkConflicts() {
+    fetch('/api/appointments/appointments/check_conflicts/', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.conflicts && data.conflicts.length > 0) {
+            alert(`發現 ${data.conflicts.length} 個衝突預約`);
+        } else {
+            alert('未發現預約衝突');
+        }
+    })
+    .catch(error => {
+        console.error('檢查衝突失敗:', error);
+        alert('檢查衝突失敗');
+    });
+}
+
+function sendReminders() {
+    fetch('/api/appointments/appointments/send_reminders/', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(`已發送 ${data.sent_count || 0} 則提醒`);
+    })
+    .catch(error => {
+        console.error('發送提醒失敗:', error);
+        alert('發送提醒失敗');
+    });
+}
+
+function processWaitlist() {
+    fetch('/api/appointments/waiting-list/process/', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(`已處理 ${data.processed_count || 0} 個候補項目`);
+        loadWaitingList();
+        refreshCalendar();
+    })
+    .catch(error => {
+        console.error('處理候補失敗:', error);
+        alert('處理候補失敗');
+    });
+}
+
+function generateReport() {
+    // 實作報告生成
+    alert('報告生成功能開發中...');
+}
+
+function getStatusText(status) {
+    const texts = {
+        'scheduled': '已安排',
+        'confirmed': '已確認',
+        'completed': '已完成',
+        'cancelled': '已取消',
+        'no_show': '未到診'
+    };
+    return texts[status] || status;
+}
+
+function exportAppointments() {
+    // 實作預約匯出功能
+    alert('匯出功能開發中...');
+}
+
+function showNewAppointmentModal(start, end) {
+    // 設定預設日期和時間
+    if (start) {
+        const startDate = new Date(start);
+        document.getElementById('appointmentDate').value = startDate.toISOString().split('T')[0];
+        document.getElementById('appointmentTime').value = startDate.toTimeString().slice(0, 5);
+    }
+    
+    // 顯示模態框
+    const modal = new bootstrap.Modal(document.getElementById('newAppointmentModal'));
+    modal.show();
+}
+
+function checkAvailability() {
+    // 實作檢查可用性
+    alert('檢查可用性功能開發中...');
+}
+
+function saveAppointment() {
+    // 實作儲存預約
+    alert('儲存預約功能開發中...');
+}
+
+function showAppointmentDetail(appointmentId) {
+    // 實作顯示預約詳情
+    alert('顯示預約詳情功能開發中...');
+}
+
+function editAppointment() {
+    // 實作編輯預約
+    alert('編輯預約功能開發中...');
+}
+
+function confirmAppointment() {
+    // 實作確認預約
+    alert('確認預約功能開發中...');
+}
+
+function cancelAppointment() {
+    // 實作取消預約
+    alert('取消預約功能開發中...');
+}
+
+function updateAppointmentTime(appointmentId, start, end) {
+    // 實作更新預約時間
+    alert('更新預約時間功能開發中...');
+}
+
+function scheduleFromWaitlist(waitlistId) {
+    // 實作從候補名單安排預約
+    alert('從候補名單安排預約功能開發中...');
+}
+
+function filterAppointments() {
+    // 實作篩選預約
+    const formData = new FormData(document.getElementById('filterForm'));
+    const params = new URLSearchParams(formData);
+    
+    // 重新載入行事曆事件
+    calendar.refetchEvents();
+}
+</script>
+{% endblock %}

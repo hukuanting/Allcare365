@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - MedicalCare System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .dashboard-card {
+            border-left: 4px solid #007bff;
+            transition: transform 0.2s;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .recent-orders {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <!-- 頁面標題 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h1 class="h3 mb-0"><i class="fas fa-flask me-2"></i>{{ title }}</h1>
+                        <p class="text-muted mb-0">實驗室檢驗管理與結果追蹤</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'laboratory_web:lab_order_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>新增檢驗申請單
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                        <h4 class="mb-1">{{ total_orders }}</h4>
+                        <p class="mb-0">總檢驗申請單</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card dashboard-card" style="border-left-color: #28a745;">
+                    <div class="card-body text-center">
+                        <i class="fas fa-hourglass-half fa-2x mb-2 text-warning"></i>
+                        <h4 class="mb-1 text-warning">{{ pending_results }}</h4>
+                        <p class="mb-0 text-muted">待出結果</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card dashboard-card" style="border-left-color: #17a2b8;">
+                    <div class="card-body text-center">
+                        <i class="fas fa-vials fa-2x mb-2 text-info"></i>
+                        <h4 class="mb-1 text-info">{{ total_tests }}</h4>
+                        <p class="mb-0 text-muted">檢驗項目</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card dashboard-card" style="border-left-color: #ffc107;">
+                    <div class="card-body text-center">
+                        <i class="fas fa-hospital fa-2x mb-2 text-warning"></i>
+                        <h4 class="mb-1 text-warning">{{ active_providers }}</h4>
+                        <p class="mb-0 text-muted">合作實驗室</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能區塊 -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card dashboard-card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-file-medical me-2"></i>檢驗申請管理</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">管理檢驗申請單、追蹤檢驗狀態</p>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'laboratory_web:lab_order_list' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-list me-1"></i>檢驗申請單列表
+                            </a>
+                            <a href="{% url 'laboratory_web:lab_order_create' %}" class="btn btn-outline-success">
+                                <i class="fas fa-plus me-1"></i>新增申請單
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>檢驗結果管理</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">查看和管理檢驗結果、異常值追蹤</p>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'laboratory_web:lab_result_list' %}" class="btn btn-outline-success">
+                                <i class="fas fa-chart-bar me-1"></i>檢驗結果列表
+                            </a>
+                            <a href="{% url 'laboratory_web:lab_reports' %}" class="btn btn-outline-info">
+                                <i class="fas fa-file-chart me-1"></i>檢驗報告
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>系統管理</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">管理檢驗項目和實驗室提供商</p>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'laboratory_web:lab_test_management' %}" class="btn btn-outline-info">
+                                <i class="fas fa-vials me-1"></i>檢驗項目管理
+                            </a>
+                            <a href="{% url 'laboratory_web:lab_provider_management' %}" class="btn btn-outline-warning">
+                                <i class="fas fa-hospital me-1"></i>實驗室管理
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 近期檢驗申請單 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card dashboard-card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>近期檢驗申請單</h5>
+                    </div>
+                    <div class="card-body recent-orders">
+                        {% if recent_orders %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>申請單號</th>
+                                            <th>患者姓名</th>
+                                            <th>申請日期</th>
+                                            <th>狀態</th>
+                                            <th>優先級</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in recent_orders %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'laboratory_web:lab_order_detail' order.id %}" class="text-decoration-none">
+                                                    {{ order.order_number }}
+                                                </a>
+                                            </td>
+                                            <td>{{ order.patient.first_name }} {{ order.patient.last_name }}</td>
+                                            <td>{{ order.order_date|date:"Y-m-d" }}</td>
+                                            <td>
+                                                {% if order.status == 'ordered' %}
+                                                    <span class="badge bg-warning">已申請</span>
+                                                {% elif order.status == 'collected' %}
+                                                    <span class="badge bg-info">已採集</span>
+                                                {% elif order.status == 'processing' %}
+                                                    <span class="badge bg-primary">處理中</span>
+                                                {% elif order.status == 'completed' %}
+                                                    <span class="badge bg-success">已完成</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ order.get_status_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if order.priority == 'urgent' %}
+                                                    <span class="badge bg-danger">緊急</span>
+                                                {% elif order.priority == 'asap' %}
+                                                    <span class="badge bg-warning">優先</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">常規</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'laboratory_web:lab_order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-file-medical fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">尚無檢驗申請單</p>
+                                <a href="{% url 'laboratory_web:lab_order_create' %}" class="btn btn-primary">
+                                    建立第一個檢驗申請單
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

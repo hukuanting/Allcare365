@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}診療記錄日曆 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet">
+<style>
+    .calendar-card {
+        background: white;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .fc-event {
+        border: none !important;
+        border-radius: 0.25rem !important;
+        padding: 2px 4px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .fc-toolbar-title {
+        color: #5a5c69 !important;
+        font-weight: 600 !important;
+    }
+    
+    .fc-button-primary {
+        background-color: #4e73df !important;
+        border-color: #4e73df !important;
+    }
+    
+    .fc-button-primary:hover {
+        background-color: #2e59d9 !important;
+        border-color: #2e59d9 !important;
+    }
+    
+    .filter-bar {
+        background: #f8f9fc;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">診療記錄日曆</h1>
+        <a href="{% url 'encounters_web:encounter_create' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> 新增診療記錄
+        </a>
+    </div>
+
+    <!-- 過濾器和圖例 -->
+    <div class="filter-bar">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-3">
+                        <select id="providerFilter" class="form-select form-select-sm">
+                            <option value="">所有醫護人員</option>
+                            <option value="provider1">陳醫師</option>
+                            <option value="provider2">李醫師</option>
+                            <option value="provider3">王護士</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <select id="categoryFilter" class="form-select form-select-sm">
+                            <option value="">所有類別</option>
+                            <option value="outpatient">門診看診</option>
+                            <option value="emergency">急診</option>
+                            <option value="inpatient">住院查房</option>
+                            <option value="surgery">手術</option>
+                            <option value="examination">檢查</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <select id="statusFilter" class="form-select form-select-sm">
+                            <option value="">所有狀態</option>
+                            <option value="scheduled">已排程</option>
+                            <option value="checked_in">已報到</option>
+                            <option value="in_progress">進行中</option>
+                            <option value="completed">已完成</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <button class="btn btn-primary btn-sm" id="refreshCalendar">
+                            <i class="fas fa-sync-alt"></i> 重新整理
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="legend">
+                    <small class="text-muted">診療類別：</small>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #007bff;"></div>
+                        <small>門診</small>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #dc3545;"></div>
+                        <small>急診</small>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #28a745;"></div>
+                        <small>住院</small>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ffc107;"></div>
+                        <small>手術</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日曆 -->
+    <div class="calendar-card">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- 診療記錄詳情Modal -->
+<div class="modal fade" id="encounterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">診療記錄詳情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="encounterModalBody">
+                <!-- 動態載入內容 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                <button type="button" class="btn btn-primary" id="editEncounterBtn">編輯</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'zh-tw',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                today: '今天',
+                month: '月',
+                week: '週',
+                day: '日'
+            },
+            height: 'auto',
+            
+            // 事件數據（這裡使用模擬數據，實際應該從API獲取）
+            events: function(info, successCallback, failureCallback) {
+                // 模擬API調用
+                const mockEvents = [
+                    {
+                        id: '1',
+                        title: '王小明 - 門診看診',
+                        start: '2025-07-11T09:00:00',
+                        end: '2025-07-11T09:30:00',
+                        backgroundColor: '#007bff',
+                        borderColor: '#007bff',
+                        extendedProps: {
+                            patientName: '王小明',
+                            providerName: '陳醫師',
+                            category: '門診看診',
+                            status: 'scheduled',
+                            chiefComplaint: '頭痛、發燒'
+                        }
+                    },
+                    {
+                        id: '2',
+                        title: '李美麗 - 急診',
+                        start: '2025-07-11T14:30:00',
+                        end: '2025-07-11T15:30:00',
+                        backgroundColor: '#dc3545',
+                        borderColor: '#dc3545',
+                        extendedProps: {
+                            patientName: '李美麗',
+                            providerName: '李醫師',
+                            category: '急診',
+                            status: 'in_progress',
+                            chiefComplaint: '胸痛、呼吸困難'
+                        }
+                    },
+                    {
+                        id: '3',
+                        title: '張大華 - 健康檢查',
+                        start: '2025-07-12T10:00:00',
+                        end: '2025-07-12T11:00:00',
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        extendedProps: {
+                            patientName: '張大華',
+                            providerName: '陳醫師',
+                            category: '檢查',
+                            status: 'scheduled',
+                            chiefComplaint: '定期健康檢查'
+                        }
+                    }
+                ];
+                
+                successCallback(mockEvents);
+            },
+            
+            // 事件點擊處理
+            eventClick: function(info) {
+                showEncounterModal(info.event);
+            },
+            
+            // 日期點擊處理（新增診療記錄）
+            dateClick: function(info) {
+                const createUrl = "{% url 'encounters_web:encounter_create' %}" + "?date=" + info.dateStr;
+                window.location.href = createUrl;
+            },
+            
+            // 事件拖拽重新安排
+            editable: true,
+            eventDrop: function(info) {
+                if (confirm('確定要重新安排這個診療記錄的時間嗎？')) {
+                    // 這裡應該調用API更新診療記錄時間
+                    console.log('更新診療記錄時間:', info.event.id, info.event.start);
+                } else {
+                    info.revert();
+                }
+            }
+        });
+        
+        calendar.render();
+        
+        // 過濾器變更處理
+        document.getElementById('providerFilter').addEventListener('change', function() {
+            calendar.refetchEvents();
+        });
+        
+        document.getElementById('categoryFilter').addEventListener('change', function() {
+            calendar.refetchEvents();
+        });
+        
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            calendar.refetchEvents();
+        });
+        
+        document.getElementById('refreshCalendar').addEventListener('click', function() {
+            calendar.refetchEvents();
+        });
+        
+        // 顯示診療記錄詳情Modal
+        function showEncounterModal(event) {
+            const props = event.extendedProps;
+            const modalBody = document.getElementById('encounterModalBody');
+            
+            modalBody.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>基本資訊</h6>
+                        <p><strong>患者:</strong> ${props.patientName}</p>
+                        <p><strong>醫護人員:</strong> ${props.providerName}</p>
+                        <p><strong>診療類別:</strong> ${props.category}</p>
+                        <p><strong>時間:</strong> ${event.start.toLocaleString()}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>診療資訊</h6>
+                        <p><strong>狀態:</strong> 
+                            <span class="badge bg-${getStatusColor(props.status)}">${getStatusText(props.status)}</span>
+                        </p>
+                        <p><strong>主訴:</strong> ${props.chiefComplaint}</p>
+                    </div>
+                </div>
+            `;
+            
+            // 設置編輯按鈕
+            document.getElementById('editEncounterBtn').onclick = function() {
+                window.location.href = '/encounters/' + event.id + '/edit/';
+            };
+            
+            // 顯示Modal
+            const modal = new bootstrap.Modal(document.getElementById('encounterModal'));
+            modal.show();
+        }
+        
+        function getStatusColor(status) {
+            switch(status) {
+                case 'scheduled': return 'warning';
+                case 'checked_in': return 'info';
+                case 'in_progress': return 'primary';
+                case 'completed': return 'success';
+                case 'cancelled': return 'danger';
+                default: return 'secondary';
+            }
+        }
+        
+        function getStatusText(status) {
+            switch(status) {
+                case 'scheduled': return '已排程';
+                case 'checked_in': return '已報到';
+                case 'in_progress': return '進行中';
+                case 'completed': return '已完成';
+                case 'cancelled': return '已取消';
+                case 'no_show': return '未到';
+                default: return status;
+            }
+        }
+    });
+</script>
+{% endblock %}

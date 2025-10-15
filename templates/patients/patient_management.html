@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Management - MedicalCare System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            background: linear-gradient(180deg, #007bff 0%, #0056b3 100%);
+            min-height: 100vh;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            margin: 2px 0;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .content-wrapper {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        .patient-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .search-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .status-active { color: #28a745; }
+        .status-inactive { color: #dc3545; }
+        .age-badge {
+            background: #e9ecef;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-3">
+                <div class="text-center mb-4">
+                    <h5 class="text-white">
+                        <i class="fas fa-hospital-alt"></i>
+                        MedicalCare
+                    </h5>
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="/">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                    <a class="nav-link active" href="/patients/">
+                        <i class="fas fa-users"></i> Patients
+                    </a>
+                    <a class="nav-link" href="/appointments/">
+                        <i class="fas fa-calendar-alt"></i> Appointments
+                    </a>
+                    <a class="nav-link" href="/medical-records/">
+                        <i class="fas fa-file-medical"></i> Medical Records
+                    </a>
+                    <a class="nav-link" href="/documents/">
+                        <i class="fas fa-folder"></i> Documents
+                    </a>
+                    <a class="nav-link" href="/billing/">
+                        <i class="fas fa-dollar-sign"></i> Billing
+                    </a>
+                    <a class="nav-link" href="/reports/">
+                        <i class="fas fa-chart-bar"></i> Reports
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 content-wrapper p-4">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-users text-primary"></i> Patient Management</h2>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPatientModal">
+                            <i class="fas fa-plus"></i> Add New Patient
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="exportPatients()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search and Filter Section -->
+                <div class="search-section p-4 mb-4">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Search Patients</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="searchInput" 
+                                       placeholder="Name, ID, Phone, Email...">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Age Range</label>
+                            <select class="form-select" id="ageFilter">
+                                <option value="">All Ages</option>
+                                <option value="0-18">0-18 years</option>
+                                <option value="19-35">19-35 years</option>
+                                <option value="36-55">36-55 years</option>
+                                <option value="56+">56+ years</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" id="genderFilter">
+                                <option value="">All Genders</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="O">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button class="btn btn-outline-primary" onclick="searchPatients()">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h4 class="text-primary" id="totalPatients">-</h4>
+                                <p class="mb-0">Total Patients</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h4 class="text-success" id="activePatients">-</h4>
+                                <p class="mb-0">Active Patients</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h4 class="text-warning" id="newPatientsThisMonth">-</h4>
+                                <p class="mb-0">New This Month</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h4 class="text-info" id="duplicatesFound">-</h4>
+                                <p class="mb-0">Potential Duplicates</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patients Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list"></i> Patient List</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="patientsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Age</th>
+                                        <th>Gender</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Last Visit</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patientsTableBody">
+                                    <!-- Dynamic content will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Patient Modal -->
+    <div class="modal fade" id="addPatientModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Patient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addPatientForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" name="first_name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" name="last_name" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Date of Birth *</label>
+                                    <input type="date" class="form-control" name="date_of_birth" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Gender *</label>
+                                    <select class="form-select" name="gender" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="M">Male</option>
+                                        <option value="F">Female</option>
+                                        <option value="O">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Social Security Number</label>
+                                    <input type="text" class="form-control" name="ssn" 
+                                           placeholder="XXX-XX-XXXX">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" name="phone">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" name="address" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">City</label>
+                                    <input type="text" class="form-control" name="city">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">State</label>
+                                    <input type="text" class="form-control" name="state">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">ZIP Code</label>
+                                    <input type="text" class="form-control" name="zip_code">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Emergency Contact Name</label>
+                                    <input type="text" class="form-control" name="emergency_contact_name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Emergency Contact Phone</label>
+                                    <input type="tel" class="form-control" name="emergency_contact_phone">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addPatient()">Add Patient</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Details Modal -->
+    <div class="modal fade" id="patientDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Patient Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="patientDetailsContent">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // API endpoints
+        const API_BASE = '/api/patients/';
+        
+        // Global variables
+        let dataTable;
+        let patients = [];
+
+        // Initialize page
+        $(document).ready(function() {
+            initializeDataTable();
+            loadPatients();
+            loadStats();
+        });
+
+        // Initialize DataTable
+        function initializeDataTable() {
+            dataTable = $('#patientsTable').DataTable({
+                responsive: true,
+                pageLength: 25,
+                order: [[1, 'asc']],
+                columnDefs: [
+                    { orderable: false, targets: [8] }
+                ]
+            });
+        }
+
+        // Load patients from API
+        async function loadPatients() {
+            try {
+                showLoading();
+                const response = await fetch(API_BASE);
+                const data = await response.json();
+                patients = data.results || data;
+                renderPatientsTable();
+                hideLoading();
+            } catch (error) {
+                console.error('Error loading patients:', error);
+                showAlert('Error loading patients', 'danger');
+                hideLoading();
+            }
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(API_BASE + 'stats/');
+                const stats = await response.json();
+                
+                $('#totalPatients').text(stats.total_patients || '0');
+                $('#activePatients').text(stats.active_patients || '0');
+                $('#newPatientsThisMonth').text(stats.new_this_month || '0');
+                $('#duplicatesFound').text(stats.potential_duplicates || '0');
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Render patients table
+        function renderPatientsTable() {
+            dataTable.clear();
+            
+            patients.forEach(patient => {
+                const age = calculateAge(patient.date_of_birth);
+                const statusBadge = patient.is_active ? 
+                    '<span class="badge bg-success">Active</span>' : 
+                    '<span class="badge bg-secondary">Inactive</span>';
+                
+                const actions = `
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewPatient('${patient.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="editPatient('${patient.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewMedicalRecords('${patient.id}')">
+                            <i class="fas fa-file-medical"></i>
+                        </button>
+                    </div>
+                `;
+
+                dataTable.row.add([
+                    patient.patient_id || patient.id,
+                    `${patient.first_name} ${patient.last_name}`,
+                    `<span class="age-badge">${age} years</span>`,
+                    patient.gender,
+                    patient.phone || '-',
+                    patient.email || '-',
+                    patient.last_visit ? new Date(patient.last_visit).toLocaleDateString() : 'Never',
+                    statusBadge,
+                    actions
+                ]);
+            });
+            
+            dataTable.draw();
+        }
+
+        // Search patients
+        function searchPatients() {
+            const searchTerm = $('#searchInput').val();
+            const ageRange = $('#ageFilter').val();
+            const gender = $('#genderFilter').val();
+            const status = $('#statusFilter').val();
+
+            let filteredPatients = patients;
+
+            if (searchTerm) {
+                filteredPatients = filteredPatients.filter(patient => 
+                    patient.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    patient.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    patient.phone?.includes(searchTerm) ||
+                    patient.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+
+            if (gender) {
+                filteredPatients = filteredPatients.filter(patient => patient.gender === gender);
+            }
+
+            if (status) {
+                const isActive = status === 'active';
+                filteredPatients = filteredPatients.filter(patient => patient.is_active === isActive);
+            }
+
+            if (ageRange) {
+                filteredPatients = filteredPatients.filter(patient => {
+                    const age = calculateAge(patient.date_of_birth);
+                    switch(ageRange) {
+                        case '0-18': return age <= 18;
+                        case '19-35': return age >= 19 && age <= 35;
+                        case '36-55': return age >= 36 && age <= 55;
+                        case '56+': return age >= 56;
+                        default: return true;
+                    }
+                });
+            }
+
+            // Update the global patients array temporarily for rendering
+            const originalPatients = patients;
+            patients = filteredPatients;
+            renderPatientsTable();
+            patients = originalPatients;
+        }
+
+        // Add new patient
+        async function addPatient() {
+            const form = document.getElementById('addPatientForm');
+            const formData = new FormData(form);
+            const patientData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(patientData)
+                });
+
+                if (response.ok) {
+                    const newPatient = await response.json();
+                    showAlert('Patient added successfully!', 'success');
+                    $('#addPatientModal').modal('hide');
+                    form.reset();
+                    loadPatients();
+                    loadStats();
+                } else {
+                    const errorData = await response.json();
+                    showAlert('Error adding patient: ' + JSON.stringify(errorData), 'danger');
+                }
+            } catch (error) {
+                console.error('Error adding patient:', error);
+                showAlert('Error adding patient', 'danger');
+            }
+        }
+
+        // View patient details
+        async function viewPatient(patientId) {
+            try {
+                const response = await fetch(`${API_BASE}${patientId}/`);
+                const patient = await response.json();
+                
+                const detailsHtml = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Personal Information</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Name:</strong></td><td>${patient.first_name} ${patient.last_name}</td></tr>
+                                <tr><td><strong>DOB:</strong></td><td>${patient.date_of_birth}</td></tr>
+                                <tr><td><strong>Age:</strong></td><td>${calculateAge(patient.date_of_birth)} years</td></tr>
+                                <tr><td><strong>Gender:</strong></td><td>${patient.gender}</td></tr>
+                                <tr><td><strong>SSN:</strong></td><td>${patient.ssn || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Contact Information</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Phone:</strong></td><td>${patient.phone || 'N/A'}</td></tr>
+                                <tr><td><strong>Email:</strong></td><td>${patient.email || 'N/A'}</td></tr>
+                                <tr><td><strong>Address:</strong></td><td>${patient.address || 'N/A'}</td></tr>
+                                <tr><td><strong>City:</strong></td><td>${patient.city || 'N/A'}</td></tr>
+                                <tr><td><strong>State:</strong></td><td>${patient.state || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                $('#patientDetailsContent').html(detailsHtml);
+                $('#patientDetailsModal').modal('show');
+            } catch (error) {
+                console.error('Error loading patient details:', error);
+                showAlert('Error loading patient details', 'danger');
+            }
+        }
+
+        // Edit patient
+        function editPatient(patientId) {
+            // This would open an edit modal similar to add modal
+            showAlert('Edit functionality to be implemented', 'info');
+        }
+
+        // View medical records
+        function viewMedicalRecords(patientId) {
+            window.location.href = `/medical-records/?patient=${patientId}`;
+        }
+
+        // Export patients
+        function exportPatients() {
+            showAlert('Export functionality to be implemented', 'info');
+        }
+
+        // Utility functions
+        function calculateAge(birthDate) {
+            const today = new Date();
+            const birth = new Date(birthDate);
+            let age = today.getFullYear() - birth.getFullYear();
+            const monthDiff = today.getMonth() - birth.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                age--;
+            }
+            
+            return age;
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            $('body').prepend(alertHtml);
+            
+            setTimeout(() => {
+                $('.alert').fadeOut();
+            }, 5000);
+        }
+
+        function showLoading() {
+            // Show loading indicator
+        }
+
+        function hideLoading() {
+            // Hide loading indicator
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

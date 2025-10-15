@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}編輯診療記錄 - {{ encounter.encounter_number }} - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<link href="{% url 'encounters_web:encounter_create' %}" rel="stylesheet">
+<style>
+    /* 繼承創建頁面的樣式 */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">編輯診療記錄 - {{ encounter.encounter_number }}</h1>
+        <div>
+            <a href="{% url 'encounters_web:encounter_detail' encounter.id %}" class="btn btn-sm btn-info shadow-sm">
+                <i class="fas fa-eye fa-sm text-white-50"></i> 查看詳情
+            </a>
+            <a href="{% url 'encounters_web:encounter_list' %}" class="btn btn-sm btn-secondary shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <form id="encounterEditForm" action="#" method="post">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- 左側：基本資訊 -->
+            <div class="col-md-6">
+                <!-- 患者資訊（只讀） -->
+                <div class="form-card">
+                    <h5 class="section-title">患者資訊</h5>
+                    
+                    <div class="patient-info">
+                        <h6>{{ encounter.patient.first_name }} {{ encounter.patient.last_name }}</h6>
+                        <p class="mb-1">患者編號: {{ encounter.patient.patient_number }}</p>
+                        <p class="mb-1">性別: {% if encounter.patient.gender == 'M' %}男性{% elif encounter.patient.gender == 'F' %}女性{% else %}其他{% endif %}</p>
+                        <p class="mb-0">出生日期: {{ encounter.patient.date_of_birth|date:"Y-m-d" }}</p>
+                    </div>
+                    
+                    <input type="hidden" name="patient" value="{{ encounter.patient.id }}">
+                </div>
+
+                <!-- 診療基本資訊 -->
+                <div class="form-card">
+                    <h5 class="section-title">診療基本資訊</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">診療類別 <span class="required">*</span></label>
+                            <select name="category" id="category" class="form-select" required>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" 
+                                        {% if category.id == encounter.category.id %}selected{% endif %}
+                                        data-color="{{ category.color_code }}">
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="primary_provider" class="form-label">主治醫護人員 <span class="required">*</span></label>
+                            <select name="primary_provider" id="primary_provider" class="form-select" required>
+                                {% for provider in providers %}
+                                <option value="{{ provider.id }}" 
+                                        {% if provider.id == encounter.primary_provider.id %}selected{% endif %}>
+                                    {{ provider.user.first_name }} {{ provider.user.last_name }} ({{ provider.provider_type }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="encounter_date" class="form-label">診療日期 <span class="required">*</span></label>
+                            <input type="date" name="encounter_date" id="encounter_date" class="form-control" 
+                                   required value="{{ encounter.encounter_date|date:'Y-m-d' }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="encounter_status" class="form-label">診療狀態</label>
+                            <select name="encounter_status" id="encounter_status" class="form-select">
+                                <option value="scheduled" {% if encounter.encounter_status == 'scheduled' %}selected{% endif %}>已排程</option>
+                                <option value="checked_in" {% if encounter.encounter_status == 'checked_in' %}selected{% endif %}>已報到</option>
+                                <option value="in_progress" {% if encounter.encounter_status == 'in_progress' %}selected{% endif %}>進行中</option>
+                                <option value="completed" {% if encounter.encounter_status == 'completed' %}selected{% endif %}>已完成</option>
+                                <option value="cancelled" {% if encounter.encounter_status == 'cancelled' %}selected{% endif %}>已取消</option>
+                                <option value="no_show" {% if encounter.encounter_status == 'no_show' %}selected{% endif %}>未到</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 主訴與症狀 -->
+                <div class="form-card">
+                    <h5 class="section-title">主訴與症狀</h5>
+                    
+                    <div class="mb-3">
+                        <label for="chief_complaint" class="form-label">主訴 (Chief Complaint) <span class="required">*</span></label>
+                        <textarea name="chief_complaint" id="chief_complaint" class="form-control" rows="3" required>{{ encounter.chief_complaint }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="history_present_illness" class="form-label">現病史 (History of Present Illness)</label>
+                        <textarea name="history_present_illness" id="history_present_illness" class="form-control" rows="4">{{ encounter.history_present_illness }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：生命徵象與檢查 -->
+            <div class="col-md-6">
+                <!-- 生命徵象 -->
+                <div class="form-card">
+                    <h5 class="section-title">生命徵象</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="temperature_celsius" class="form-label">體溫 (°C)</label>
+                            <input type="number" name="temperature_celsius" id="temperature_celsius" class="form-control" 
+                                   step="0.1" min="30" max="45" value="{{ encounter.temperature_celsius|default:'' }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="heart_rate_bpm" class="form-label">心率 (bpm)</label>
+                            <input type="number" name="heart_rate_bpm" id="heart_rate_bpm" class="form-control" 
+                                   min="30" max="200" value="{{ encounter.heart_rate_bpm|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="blood_pressure_systolic" class="form-label">收縮壓 (mmHg)</label>
+                            <input type="number" name="blood_pressure_systolic" id="blood_pressure_systolic" class="form-control" 
+                                   min="50" max="250" value="{{ encounter.blood_pressure_systolic|default:'' }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="blood_pressure_diastolic" class="form-label">舒張壓 (mmHg)</label>
+                            <input type="number" name="blood_pressure_diastolic" id="blood_pressure_diastolic" class="form-control" 
+                                   min="30" max="150" value="{{ encounter.blood_pressure_diastolic|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="respiratory_rate_rpm" class="form-label">呼吸率 (rpm)</label>
+                            <input type="number" name="respiratory_rate_rpm" id="respiratory_rate_rpm" class="form-control" 
+                                   min="8" max="40" value="{{ encounter.respiratory_rate_rpm|default:'' }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="oxygen_saturation" class="form-label">血氧飽和度 (%)</label>
+                            <input type="number" name="oxygen_saturation" id="oxygen_saturation" class="form-control" 
+                                   min="70" max="100" value="{{ encounter.oxygen_saturation|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="weight_kg" class="form-label">體重 (kg)</label>
+                            <input type="number" name="weight_kg" id="weight_kg" class="form-control" 
+                                   step="0.1" min="1" max="300" value="{{ encounter.weight_kg|default:'' }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="height_cm" class="form-label">身高 (cm)</label>
+                            <input type="number" name="height_cm" id="height_cm" class="form-control" 
+                                   step="0.1" min="30" max="250" value="{{ encounter.height_cm|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 理學檢查 -->
+                <div class="form-card">
+                    <h5 class="section-title">理學檢查</h5>
+                    
+                    <div class="mb-3">
+                        <label for="physical_examination" class="form-label">理學檢查結果</label>
+                        <textarea name="physical_examination" id="physical_examination" class="form-control" rows="4">{{ encounter.physical_examination }}</textarea>
+                    </div>
+                </div>
+
+                <!-- 評估與計劃 -->
+                <div class="form-card">
+                    <h5 class="section-title">評估與計劃</h5>
+                    
+                    <div class="mb-3">
+                        <label for="assessment" class="form-label">評估 (Assessment)</label>
+                        <textarea name="assessment" id="assessment" class="form-control" rows="3">{{ encounter.assessment }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="plan" class="form-label">計劃 (Plan)</label>
+                        <textarea name="plan" id="plan" class="form-control" rows="3">{{ encounter.plan }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">備註</label>
+                        <textarea name="notes" id="notes" class="form-control" rows="2">{{ encounter.notes }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提交按鈕 -->
+        <div class="form-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <a href="{% url 'encounters_web:encounter_detail' encounter.id %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> 取消
+                    </a>
+                </div>
+                
+                <div>
+                    <button type="button" class="btn btn-info" id="saveDraftBtn">
+                        <i class="fas fa-save"></i> 儲存草稿
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> 更新診療記錄
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 表單提交處理
+    document.getElementById('encounterEditForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 收集表單數據
+        const formData = new FormData(this);
+        
+        // 這裡可以加入API調用來更新診療記錄
+        console.log('更新診療記錄:', Object.fromEntries(formData));
+        
+        // 暫時顯示成功訊息
+        if (confirm('確定要更新這個診療記錄嗎？')) {
+            alert('診療記錄更新成功！');
+            window.location.href = "{% url 'encounters_web:encounter_detail' encounter.id %}";
+        }
+    });
+
+    // 儲存草稿
+    document.getElementById('saveDraftBtn').addEventListener('click', function() {
+        const formData = new FormData(document.getElementById('encounterEditForm'));
+        
+        // 這裡可以加入API調用來儲存草稿
+        console.log('儲存草稿:', Object.fromEntries(formData));
+        
+        alert('草稿已儲存！');
+    });
+
+    // 自動計算BMI
+    function calculateBMI() {
+        const weight = parseFloat(document.getElementById('weight_kg').value);
+        const height = parseFloat(document.getElementById('height_cm').value);
+        
+        if (weight && height) {
+            const heightM = height / 100;
+            const bmi = (weight / (heightM * heightM)).toFixed(1);
+            
+            // 可以在這裡顯示BMI
+            console.log('BMI:', bmi);
+        }
+    }
+
+    document.getElementById('weight_kg').addEventListener('input', calculateBMI);
+    document.getElementById('height_cm').addEventListener('input', calculateBMI);
+
+    // 狀態變更提醒
+    document.getElementById('encounter_status').addEventListener('change', function() {
+        const status = this.value;
+        if (status === 'completed') {
+            if (!confirm('將狀態設為"已完成"後，某些欄位將無法再修改。確定要繼續嗎？')) {
+                // 恢復原始狀態
+                this.value = '{{ encounter.encounter_status }}';
+            }
+        }
+    });
+</script>
+{% endblock %}

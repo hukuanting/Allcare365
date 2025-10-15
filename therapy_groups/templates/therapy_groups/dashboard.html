@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Therapy Groups Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Therapy Groups Dashboard</h2>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.total_groups }}</h4>
+                            <p>Total Groups</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.active_groups }}</h4>
+                            <p>Active Groups</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-play-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.total_participants }}</h4>
+                            <p>Total Participants</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-friends fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.sessions_today }}</h4>
+                            <p>Sessions Today</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-day fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Recent Groups</h4>
+                </div>
+                <div class="card-body">
+                    {% if recent_groups %}
+                        <div class="list-group">
+                            {% for group in recent_groups %}
+                            <a href="{% url 'therapy_groups:group_detail' group.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ group.name }}</h6>
+                                    <small>{{ group.start_date|date:"M d, Y" }}</small>
+                                </div>
+                                <p class="mb-1">{{ group.get_therapy_type_display }}</p>
+                                <small>{{ group.current_participants_count }}/{{ group.max_participants }} participants</small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>No recent groups found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Upcoming Sessions</h4>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_sessions %}
+                        <div class="list-group">
+                            {% for session in upcoming_sessions %}
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ session.group.name }}</h6>
+                                    <small>{{ session.session_date|date:"M d, Y" }}</small>
+                                </div>
+                                <p class="mb-1">{{ session.session_date|time:"H:i" }}</p>
+                                <small>{{ session.group.location }}</small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>No upcoming sessions found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h4>Quick Actions</h4>
+                </div>
+                <div class="card-body">
+                    <a href="#" class="btn btn-primary mr-2">
+                        <i class="fas fa-plus"></i> New Group
+                    </a>
+                    <a href="{% url 'therapy_groups:group_list' %}" class="btn btn-secondary mr-2">
+                        <i class="fas fa-list"></i> View All Groups
+                    </a>
+                    <a href="#" class="btn btn-info mr-2">
+                        <i class="fas fa-calendar-plus"></i> Schedule Session
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

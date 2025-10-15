@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}庫存管理 - 藥房管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-boxes text-primary"></i> 庫存管理</h1>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                        <i class="fas fa-plus"></i> 新增庫存
+                    </button>
+                    <button class="btn btn-warning" onclick="generateInventoryReport()">
+                        <i class="fas fa-file-excel"></i> 匯出報告
+                    </button>
+                    <a href="{% url 'pharmacy_web:pharmacy_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> 返回儀表板
+                    </a>
+                </div>
+            </div>
+
+            <!-- 庫存統計卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-pills fa-2x mb-2"></i>
+                            <h4>{{ total_items }}</h4>
+                            <p class="mb-0">總庫存品項</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <h4>{{ adequate_stock }}</h4>
+                            <p class="mb-0">庫存充足</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <h4>{{ low_stock }}</h4>
+                            <p class="mb-0">庫存不足</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                            <h4>{{ expiring_soon }}</h4>
+                            <p class="mb-0">即將過期</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜尋和篩選區域 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label">搜尋</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="藥物名稱、批號" value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="status" class="form-label">庫存狀態</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">所有狀態</option>
+                                <option value="adequate" {% if request.GET.status == 'adequate' %}selected{% endif %}>庫存充足</option>
+                                <option value="low" {% if request.GET.status == 'low' %}selected{% endif %}>庫存不足</option>
+                                <option value="out" {% if request.GET.status == 'out' %}selected{% endif %}>缺貨</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="expiry" class="form-label">到期狀態</label>
+                            <select class="form-select" id="expiry" name="expiry">
+                                <option value="">所有狀態</option>
+                                <option value="expired" {% if request.GET.expiry == 'expired' %}selected{% endif %}>已過期</option>
+                                <option value="expiring" {% if request.GET.expiry == 'expiring' %}selected{% endif %}>即將過期</option>
+                                <option value="fresh" {% if request.GET.expiry == 'fresh' %}selected{% endif %}>有效期長</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="warehouse" class="form-label">倉庫</label>
+                            <select class="form-select" id="warehouse" name="warehouse">
+                                <option value="">所有倉庫</option>
+                                <option value="Main" {% if request.GET.warehouse == 'Main' %}selected{% endif %}>主倉庫</option>
+                                <option value="Pharmacy" {% if request.GET.warehouse == 'Pharmacy' %}selected{% endif %}>藥房倉</option>
+                                <option value="Emergency" {% if request.GET.warehouse == 'Emergency' %}selected{% endif %}>急診倉</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="category" class="form-label">藥物分類</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="">所有分類</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 庫存列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> 庫存清單
+                        <span class="badge bg-secondary ms-2">{{ inventories|length }} 項庫存</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>藥物名稱</th>
+                                    <th>批號</th>
+                                    <th>倉庫</th>
+                                    <th>現有庫存</th>
+                                    <th>已分配</th>
+                                    <th>可用庫存</th>
+                                    <th>單位成本</th>
+                                    <th>總價值</th>
+                                    <th>到期日</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inventory in inventories %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ inventory.drug.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ inventory.drug.generic_name }}</small>
+                                        </div>
+                                    </td>
+                                    <td><code>{{ inventory.lot_number }}</code></td>
+                                    <td>
+                                        <span class="badge bg-info">{{ inventory.warehouse }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ inventory.quantity_on_hand }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="text-warning">{{ inventory.quantity_allocated }}</span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">{{ inventory.quantity_available }}</strong>
+                                    </td>
+                                    <td>${{ inventory.unit_cost|floatformat:2 }}</td>
+                                    <td>${{ inventory.total_cost|floatformat:2 }}</td>
+                                    <td>
+                                        {{ inventory.expiration_date|date:"Y/m/d" }}
+                                        {% if inventory.expiration_date < today %}
+                                            <br><span class="badge bg-danger">已過期</span>
+                                        {% elif inventory.expiration_date|timeuntil < "30 days" %}
+                                            <br><span class="badge bg-warning">即將過期</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if inventory.quantity_available <= 0 %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times"></i> 缺貨
+                                            </span>
+                                        {% elif inventory.quantity_available <= 20 %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-exclamation-triangle"></i> 庫存不足
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> 庫存充足
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" 
+                                                    data-bs-toggle="modal" data-bs-target="#viewInventoryModal"
+                                                    onclick="viewInventory({{ inventory.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success"
+                                                    data-bs-toggle="modal" data-bs-target="#adjustInventoryModal"
+                                                    onclick="prepareAdjustment({{ inventory.id }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info"
+                                                    data-bs-toggle="modal" data-bs-target="#transferModal"
+                                                    onclick="prepareTransfer({{ inventory.id }})">
+                                                <i class="fas fa-exchange-alt"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary"
+                                                    onclick="viewTransactionHistory({{ inventory.id }})">
+                                                <i class="fas fa-history"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="11" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-boxes fa-3x mb-3"></i>
+                                            <p>沒有找到符合條件的庫存記錄</p>
+                                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                                                <i class="fas fa-plus"></i> 新增第一筆庫存
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分頁 -->
+            {% if inventories.has_other_pages %}
+            <nav aria-label="庫存列表分頁" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if inventories.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ inventories.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in inventories.paginator.page_range %}
+                    {% if inventories.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if inventories.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ inventories.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 新增庫存 Modal -->
+<div class="modal fade" id="addInventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus text-success"></i> 新增庫存
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addInventoryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="inventoryDrug" class="form-label">藥物 *</label>
+                                <select class="form-select" id="inventoryDrug" required>
+                                    <option value="">選擇藥物</option>
+                                    {% for drug in all_drugs %}
+                                    <option value="{{ drug.id }}">{{ drug.name }} ({{ drug.strength }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="inventoryWarehouse" class="form-label">倉庫 *</label>
+                                <select class="form-select" id="inventoryWarehouse" required>
+                                    <option value="">選擇倉庫</option>
+                                    <option value="Main">主倉庫</option>
+                                    <option value="Pharmacy">藥房倉</option>
+                                    <option value="Emergency">急診倉</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="lotNumber" class="form-label">批號 *</label>
+                                <input type="text" class="form-control" id="lotNumber" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="expirationDate" class="form-label">到期日 *</label>
+                                <input type="date" class="form-control" id="expirationDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="quantityOnHand" class="form-label">庫存數量 *</label>
+                                <input type="number" class="form-control" id="quantityOnHand" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="unitCost" class="form-label">單位成本 *</label>
+                                <input type="number" class="form-control" id="unitCost" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="quantityAllocated" class="form-label">已分配數量</label>
+                                <input type="number" class="form-control" id="quantityAllocated" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="saveInventory()">
+                    <i class="fas fa-save"></i> 儲存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 庫存調整 Modal -->
+<div class="modal fade" id="adjustInventoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit text-success"></i> 庫存調整
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="adjustmentInventoryInfo"></div>
+                <form id="adjustmentForm">
+                    <div class="mb-3">
+                        <label for="adjustmentType" class="form-label">調整類型</label>
+                        <select class="form-select" id="adjustmentType" required>
+                            <option value="adjustment">庫存調整</option>
+                            <option value="loss">庫存損失</option>
+                            <option value="destruction">銷毀處理</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adjustmentQuantity" class="form-label">調整數量</label>
+                        <input type="number" class="form-control" id="adjustmentQuantity" required 
+                               placeholder="正數為增加，負數為減少">
+                    </div>
+                    <div class="mb-3">
+                        <label for="adjustmentReason" class="form-label">調整原因</label>
+                        <textarea class="form-control" id="adjustmentReason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="processAdjustment()">
+                    <i class="fas fa-check"></i> 確認調整
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentInventoryId = null;
+
+function viewInventory(inventoryId) {
+    console.log('View inventory:', inventoryId);
+    // 實作庫存詳細檢視
+}
+
+function prepareAdjustment(inventoryId) {
+    currentInventoryId = inventoryId;
+    console.log('Prepare adjustment for inventory:', inventoryId);
+    // 載入庫存資訊到調整 modal
+}
+
+function prepareTransfer(inventoryId) {
+    console.log('Prepare transfer for inventory:', inventoryId);
+    // 實作庫存調撥功能
+}
+
+function viewTransactionHistory(inventoryId) {
+    console.log('View transaction history for inventory:', inventoryId);
+    // 實作異動歷史查看
+}
+
+function saveInventory() {
+    const form = document.getElementById('addInventoryForm');
+    const formData = new FormData(form);
+    
+    // 實作儲存庫存邏輯
+    console.log('Save inventory');
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addInventoryModal'));
+    modal.hide();
+    location.reload();
+}
+
+function processAdjustment() {
+    if (!currentInventoryId) return;
+    
+    const type = document.getElementById('adjustmentType').value;
+    const quantity = document.getElementById('adjustmentQuantity').value;
+    const reason = document.getElementById('adjustmentReason').value;
+    
+    if (!type || !quantity || !reason) {
+        alert('請填寫所有必填欄位');
+        return;
+    }
+    
+    // 實作庫存調整邏輯
+    console.log('Process adjustment:', currentInventoryId, type, quantity, reason);
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('adjustInventoryModal'));
+    modal.hide();
+    location.reload();
+}
+
+function generateInventoryReport() {
+    // 實作庫存報告匯出
+    console.log('Generate inventory report');
+    alert('庫存報告功能開發中...');
+}
+</script>
+{% endblock %}

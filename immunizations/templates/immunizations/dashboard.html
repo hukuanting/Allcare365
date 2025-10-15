@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Immunization Dashboard{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+<style>
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.alert-card {
+    border-left: 4px solid #dc3545;
+    background-color: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 0 5px 5px 0;
+}
+
+.chart-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Immunization Dashboard</h1>
+        <a href="{% url 'immunizations:list' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-list fa-sm text-white-50"></i> View All Records
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-number" id="total-immunizations">-</div>
+                <div class="stat-label">Total Immunizations</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-number" id="immunizations-today">-</div>
+                <div class="stat-label">Immunizations Today</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-number" id="pending-alerts">-</div>
+                <div class="stat-label">Pending Alerts</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-number" id="expired-lots">-</div>
+                <div class="stat-label">Expired Lots</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Immunizations -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Immunizations</h6>
+                    <a href="{% url 'immunizations:list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="recent-immunizations-table" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Vaccine</th>
+                                    <th>Date</th>
+                                    <th>Provider</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-immunizations-body">
+                                <tr>
+                                    <td colspan="5" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts and Notifications -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Upcoming Due Immunizations</h6>
+                </div>
+                <div class="card-body">
+                    <div id="upcoming-alerts">
+                        <div class="text-center">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vaccine Usage Chart -->
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="chart-container">
+                <h5>Vaccine Usage Statistics</h5>
+                <canvas id="vaccine-usage-chart" width="400" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load dashboard data
+    loadDashboardData();
+    
+    function loadDashboardData() {
+        fetch('/api/v1/immunizations/api/v1/immunizations/dashboard/')
+            .then(response => response.json())
+            .then(data => {
+                updateStatistics(data);
+                updateRecentImmunizations(data.recent_immunizations);
+                updateUpcomingAlerts(data.upcoming_due);
+                updateVaccineUsageChart(data.vaccine_usage_stats);
+            })
+            .catch(error => {
+                console.error('Error loading dashboard data:', error);
+            });
+    }
+    
+    function updateStatistics(data) {
+        document.getElementById('total-immunizations').textContent = data.total_immunizations || 0;
+        document.getElementById('immunizations-today').textContent = data.immunizations_today || 0;
+        document.getElementById('pending-alerts').textContent = data.pending_alerts || 0;
+        document.getElementById('expired-lots').textContent = data.expired_lots || 0;
+    }
+    
+    function updateRecentImmunizations(immunizations) {
+        const tbody = document.getElementById('recent-immunizations-body');
+        tbody.innerHTML = '';
+        
+        if (immunizations && immunizations.length > 0) {
+            immunizations.forEach(immunization => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${immunization.patient_name}</td>
+                    <td>${immunization.vaccine_name}</td>
+                    <td>${new Date(immunization.administered_date).toLocaleDateString()}</td>
+                    <td>${immunization.administered_by_name}</td>
+                    <td><span class="badge badge-success">${immunization.completion_status}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No recent immunizations</td></tr>';
+        }
+    }
+    
+    function updateUpcomingAlerts(alerts) {
+        const container = document.getElementById('upcoming-alerts');
+        container.innerHTML = '';
+        
+        if (alerts && alerts.length > 0) {
+            alerts.forEach(alert => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert-card';
+                alertDiv.innerHTML = `
+                    <h6>${alert.patient_name}</h6>
+                    <p class="mb-1">${alert.vaccine_name}</p>
+                    <small class="text-muted">Due: ${alert.due_date ? new Date(alert.due_date).toLocaleDateString() : 'Not specified'}</small>
+                `;
+                container.appendChild(alertDiv);
+            });
+        } else {
+            container.innerHTML = '<div class="text-center text-muted">No upcoming immunizations</div>';
+        }
+    }
+    
+    function updateVaccineUsageChart(usageStats) {
+        const ctx = document.getElementById('vaccine-usage-chart').getContext('2d');
+        
+        if (usageStats && usageStats.length > 0) {
+            const labels = usageStats.map(stat => stat.vaccine__name);
+            const data = usageStats.map(stat => stat.count);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Administrations',
+                        data: data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        } else {
+            ctx.fillStyle = '#999';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        }
+    }
+});
+</script>
+{% endblock %}

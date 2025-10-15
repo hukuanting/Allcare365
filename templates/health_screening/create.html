@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}單筆健檢資料輸入{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 class="page-title">單筆健檢資料輸入</h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">儀表板</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢儀表板</a></li>
+                    <li class="breadcrumb-item active">單筆健檢資料輸入</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">健檢基本資訊</h4>
+                    <form method="post" action="{% url 'health_screening:create' %}">
+                        {% csrf_token %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="patient" class="form-label">患者 <span class="text-danger">*</span></label>
+                                <select class="form-control" id="patient" name="patient" required>
+                                    <option value="">請選擇患者</option>
+                                    {% for p in patients %}
+                                        <option value="{{ p.id }}" {% if patient and p.id == patient.id %}selected{% endif %}>{{ p.full_name }} ({{ p.medical_record_number }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="screening_date" class="form-label">檢查日期 <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="screening_date" name="screening_date" value="{{ 'now'|date:'Y-m-d' }}" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="screening_type" class="form-label">檢查類型</label>
+                                <input type="text" class="form-control" id="screening_type" name="screening_type" value="annual_physical">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="provider" class="form-label">檢查醫師</label>
+                                <select class="form-control" id="provider" name="provider">
+                                    <option value="">請選擇醫師</option>
+                                    {% for d in doctors %}
+                                        <option value="{{ d.id }}">{{ d.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">備註</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+
+                        <h4 class="card-title mt-4">生命體徵</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="height" class="form-label">身高 (cm)</label>
+                                <input type="number" step="0.1" min="50" max="250" class="form-control" id="height" name="height">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="weight" class="form-label">體重 (kg)</label>
+                                <input type="number" step="0.1" min="10" max="300" class="form-control" id="weight" name="weight">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="bmi" class="form-label">BMI</label>
+                                <input type="text" class="form-control" id="bmi" name="bmi" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="temperature" class="form-label">體溫 (°C)</label>
+                                <input type="number" step="0.1" min="30" max="45" class="form-control" id="temperature" name="temperature">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="systolic_pressure" class="form-label">收縮壓 (mmHg)</label>
+                                <input type="number" min="50" max="300" class="form-control" id="systolic_pressure" name="systolic_pressure">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="diastolic_pressure" class="form-label">舒張壓 (mmHg)</label>
+                                <input type="number" min="30" max="200" class="form-control" id="diastolic_pressure" name="diastolic_pressure">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="pulse_pressure" class="form-label">脈壓 (mmHg)</label>
+                                <input type="text" class="form-control" id="pulse_pressure" name="pulse_pressure" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="heart_rate" class="form-label">心率 (bpm)</label>
+                                <input type="number" min="30" max="200" class="form-control" id="heart_rate" name="heart_rate">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="respiratory_rate" class="form-label">呼吸頻率 (次/分)</label>
+                                <input type="number" min="5" max="60" class="form-control" id="respiratory_rate" name="respiratory_rate">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="oxygen_saturation" class="form-label">血氧飽和度 (%)</label>
+                                <input type="number" step="0.1" min="70" max="100" class="form-control" id="oxygen_saturation" name="oxygen_saturation">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="waist_circumference" class="form-label">腰圍 (cm)</label>
+                                <input type="number" step="0.1" min="30" max="200" class="form-control" id="waist_circumference" name="waist_circumference">
+                            </div>
+                        </div>
+
+                        <h4 class="card-title mt-4">檢驗結果</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="fasting_glucose" class="form-label">空腹血糖 (mg/dL)</label>
+                                <input type="number" step="0.1" min="50" max="500" class="form-control" id="fasting_glucose" name="fasting_glucose">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="hba1c" class="form-label">糖化血色素 (%)</label>
+                                <input type="number" step="0.1" min="3" max="20" class="form-control" id="hba1c" name="hba1c">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="total_cholesterol" class="form-label">總膽固醇 (mg/dL)</label>
+                                <input type="number" step="0.1" min="50" max="500" class="form-control" id="total_cholesterol" name="total_cholesterol">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="hdl_cholesterol" class="form-label">高密度膽固醇 (mg/dL)</label>
+                                <input type="number" step="0.1" min="10" max="200" class="form-control" id="hdl_cholesterol" name="hdl_cholesterol">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ldl_cholesterol" class="form-label">低密度膽固醇 (mg/dL)</label>
+                                <input type="number" step="0.1" min="10" max="400" class="form-control" id="ldl_cholesterol" name="ldl_cholesterol">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="triglycerides" class="form-label">三酸甘油脂 (mg/dL)</label>
+                                <input type="number" step="0.1" min="20" max="1000" class="form-control" id="triglycerides" name="triglycerides">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="alt" class="form-label">ALT/GPT (U/L)</label>
+                                <input type="number" step="0.1" min="0" max="1000" class="form-control" id="alt" name="alt">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ast" class="form-label">AST/GOT (U/L)</label>
+                                <input type="number" step="0.1" min="0" max="1000" class="form-control" id="ast" name="ast">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="uric_acid" class="form-label">尿酸 (mg/dL)</label>
+                                <input type="number" step="0.1" min="1" max="20" class="form-control" id="uric_acid" name="uric_acid">
+                            </div>
+                        </div>
+
+                        <h4 class="card-title mt-4">病史</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_diabetes" name="has_diabetes">
+                                    <label class="form-check-label" for="has_diabetes">有糖尿病</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_hypertension" name="has_hypertension">
+                                    <label class="form-check-label" for="has_hypertension">有高血壓</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_hyperlipidemia" name="has_hyperlipidemia">
+                                    <label class="form-check-label" for="has_hyperlipidemia">有高血脂</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_heart_disease" name="has_heart_disease">
+                                    <label class="form-check-label" for="has_heart_disease">有心臟病</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_stroke" name="has_stroke">
+                                    <label class="form-check-label" for="has_stroke">有中風</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="has_cancer" name="has_cancer">
+                                    <label class="form-check-label" for="has_cancer">有癌症</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="diabetes_treated" name="diabetes_treated">
+                                    <label class="form-check-label" for="diabetes_treated">糖尿病治療中</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="hypertension_treated" name="hypertension_treated">
+                                    <label class="form-check-label" for="hypertension_treated">高血壓治療中</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="hyperlipidemia_treated" name="hyperlipidemia_treated">
+                                    <label class="form-check-label" for="hyperlipidemia_treated">高血脂治療中</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="card-title mt-4">生活習慣問卷</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="smoking_status" class="form-label">吸菸狀況</label>
+                                <select class="form-control" id="smoking_status" name="smoking_status">
+                                    <option value="">請選擇</option>
+                                    <option value="never">從不吸菸</option>
+                                    <option value="former">曾經吸菸</option>
+                                    <option value="current">目前吸菸</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="cigarettes_per_day_group" style="display: none;">
+                                <label for="cigarettes_per_day" class="form-label">每日菸量 (支)</label>
+                                <input type="number" min="0" class="form-control" id="cigarettes_per_day" name="cigarettes_per_day">
+                            </div>
+                        </div>
+                        <div class="row mb-3" id="quit_smoking_when_group" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="quit_smoking_when" class="form-label">戒菸時間</label>
+                                <input type="text" class="form-control" id="quit_smoking_when" name="quit_smoking_when" placeholder="例如：2023年1月">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="alcohol_consumption" class="form-label">飲酒狀況</label>
+                                <select class="form-control" id="alcohol_consumption" name="alcohol_consumption">
+                                    <option value="">請選擇</option>
+                                    <option value="never">從不飲酒</option>
+                                    <option value="occasional">偶爾飲酒</option>
+                                    <option value="moderate">適度飲酒</option>
+                                    <option value="heavy">重度飲酒</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="exercise_frequency" class="form-label">運動頻率</label>
+                                <input type="text" class="form-control" id="exercise_frequency" name="exercise_frequency" placeholder="例如：每週3次">
+                            </div>
+                        </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // BMI Calculation
+    const heightInput = document.getElementById('height');
+    const weightInput = document.getElementById('weight');
+    const bmiInput = document.getElementById('bmi');
+
+    function calculateBMI() {
+        const height = parseFloat(heightInput.value);
+        const weight = parseFloat(weightInput.value);
+
+        if (height > 0 && weight > 0) {
+            const bmi = (weight / ((height / 100) ** 2)).toFixed(2);
+            bmiInput.value = bmi;
+        } else {
+            bmiInput.value = '';
+        }
+    }
+
+    heightInput.addEventListener('input', calculateBMI);
+    weightInput.addEventListener('input', calculateBMI);
+
+    // Pulse Pressure Calculation
+    const systolicPressureInput = document.getElementById('systolic_pressure');
+    const diastolicPressureInput = document.getElementById('diastolic_pressure');
+    const pulsePressureInput = document.getElementById('pulse_pressure');
+
+    function calculatePulsePressure() {
+        const systolic = parseFloat(systolicPressureInput.value);
+        const diastolic = parseFloat(diastolicPressureInput.value);
+
+        if (systolic > 0 && diastolic > 0) {
+            const pulsePressure = systolic - diastolic;
+            pulsePressureInput.value = pulsePressure.toFixed(0);
+        } else {
+            pulsePressureInput.value = '';
+        }
+    }
+
+    systolicPressureInput.addEventListener('input', calculatePulsePressure);
+    diastolicPressureInput.addEventListener('input', calculatePulsePressure);
+
+    // Smoking Status Dynamic Display
+    const smokingStatusSelect = document.getElementById('smoking_status');
+    const cigarettesPerDayGroup = document.getElementById('cigarettes_per_day_group');
+    const quitSmokingWhenGroup = document.getElementById('quit_smoking_when_group');
+    const cigarettesPerDayInput = document.getElementById('cigarettes_per_day');
+    const quitSmokingWhenInput = document.getElementById('quit_smoking_when');
+
+    function toggleSmokingFields() {
+        const status = smokingStatusSelect.value;
+        if (status === 'current') {
+            cigarettesPerDayGroup.style.display = 'block';
+            quitSmokingWhenGroup.style.display = 'none';
+            quitSmokingWhenInput.value = ''; // Clear value when hidden
+        } else if (status === 'former') {
+            cigarettesPerDayGroup.style.display = 'none';
+            quitSmokingWhenGroup.style.display = 'block';
+            cigarettesPerDayInput.value = ''; // Clear value when hidden
+        } else {
+            cigarettesPerDayGroup.style.display = 'none';
+            quitSmokingWhenGroup.style.display = 'none';
+            cigarettesPerDayInput.value = ''; // Clear value when hidden
+            quitSmokingWhenInput.value = ''; // Clear value when hidden
+        }
+    }
+
+    smokingStatusSelect.addEventListener('change', toggleSmokingFields);
+
+    // Initial call to set correct visibility on page load
+    toggleSmokingFields();
+});
+</script>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">提交健檢資料</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

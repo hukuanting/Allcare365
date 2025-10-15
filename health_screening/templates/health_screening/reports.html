@@ -1,0 +1,596 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}健檢統計報告{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .stat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin: -25px -25px 20px -25px;
+        padding: 15px 25px;
+        border-radius: 15px 15px 0 0;
+    }
+    
+    .metric-big {
+        text-align: center;
+        padding: 30px 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .metric-number {
+        font-size: 3rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .metric-label {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    
+    .chart-container {
+        height: 400px;
+        position: relative;
+        margin: 20px 0;
+    }
+    
+    .progress-item {
+        margin-bottom: 20px;
+    }
+    
+    .progress-label {
+        display: flex;
+        justify-content: between;
+        margin-bottom: 8px;
+    }
+    
+    .progress-bar-custom {
+        height: 12px;
+        border-radius: 6px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.8s ease;
+    }
+    
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .trend-up {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .trend-down {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .trend-stable {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .filter-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .export-actions {
+        text-align: right;
+        margin-bottom: 20px;
+    }
+    
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .alert-summary {
+        border-left: 4px solid #667eea;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary fw-bold">
+                        <i class="fas fa-chart-bar me-2"></i>健檢統計報告
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'health_screening:dashboard' %}">健檢管理</a></li>
+                            <li class="breadcrumb-item active">統計報告</li>
+                        </ol>
+                    </nav>
+                </div>
+                
+                <div class="export-actions">
+                    <button onclick="exportReport('pdf')" class="btn btn-danger me-2">
+                        <i class="fas fa-file-pdf me-2"></i>匯出PDF
+                    </button>
+                    <button onclick="exportReport('excel')" class="btn btn-success">
+                        <i class="fas fa-file-excel me-2"></i>匯出Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 篩選條件 -->
+    <div class="filter-section">
+        <form class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">統計期間</label>
+                <select class="form-select" name="period">
+                    <option value="month">本月</option>
+                    <option value="quarter">本季</option>
+                    <option value="year">本年</option>
+                    <option value="custom">自訂期間</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">檢查類型</label>
+                <select class="form-select" name="screening_type">
+                    <option value="">全部類型</option>
+                    <option value="annual_physical">年度體檢</option>
+                    <option value="preventive_care">預防保健</option>
+                    <option value="employment">就業體檢</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">年齡範圍</label>
+                <select class="form-select" name="age_group">
+                    <option value="">全部年齡</option>
+                    <option value="18-30">18-30歲</option>
+                    <option value="31-50">31-50歲</option>
+                    <option value="51-65">51-65歲</option>
+                    <option value="65+">65歲以上</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">性別</label>
+                <select class="form-select" name="gender">
+                    <option value="">全部</option>
+                    <option value="M">男性</option>
+                    <option value="F">女性</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-2"></i>篩選
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 核心指標 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-big">
+                <div class="metric-number">{{ stats.total_screenings }}</div>
+                <div class="metric-label">總檢查數</div>
+                <div class="trend-indicator trend-up">
+                    <i class="fas fa-arrow-up"></i> +12%
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-big">
+                <div class="metric-number">{{ stats.this_month }}</div>
+                <div class="metric-label">本月檢查</div>
+                <div class="trend-indicator trend-up">
+                    <i class="fas fa-arrow-up"></i> +8%
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-big">
+                <div class="metric-number">85%</div>
+                <div class="metric-label">正常比例</div>
+                <div class="trend-indicator trend-stable">
+                    <i class="fas fa-minus"></i> 持平
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-big">
+                <div class="metric-number">3%</div>
+                <div class="metric-label">異常比例</div>
+                <div class="trend-indicator trend-down">
+                    <i class="fas fa-arrow-down"></i> -2%
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左側圖表 -->
+        <div class="col-lg-8">
+            <!-- 檢查趨勢圖 -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>檢查數量趨勢
+                    </h5>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 異常指標分布 -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>常見異常指標分布
+                    </h5>
+                </div>
+                <div class="chart-container">
+                    <canvas id="abnormalChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 年齡分布 -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>年齡分布統計
+                    </h5>
+                </div>
+                <div class="chart-container">
+                    <canvas id="ageChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右側統計 -->
+        <div class="col-lg-4">
+            <!-- 檢查類型分布 -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-pie-chart me-2"></i>檢查類型分布
+                    </h5>
+                </div>
+                
+                <div class="progress-item">
+                    <div class="progress-label d-flex justify-content-between">
+                        <span>年度體檢</span>
+                        <span>45%</span>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: 45%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);"></div>
+                    </div>
+                </div>
+                
+                <div class="progress-item">
+                    <div class="progress-label d-flex justify-content-between">
+                        <span>預防保健</span>
+                        <span>30%</span>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: 30%; background: linear-gradient(135deg, #007bff 0%, #6f42c1 100%);"></div>
+                    </div>
+                </div>
+                
+                <div class="progress-item">
+                    <div class="progress-label d-flex justify-content-between">
+                        <span>就業體檢</span>
+                        <span>15%</span>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: 15%; background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);"></div>
+                    </div>
+                </div>
+                
+                <div class="progress-item">
+                    <div class="progress-label d-flex justify-content-between">
+                        <span>其他</span>
+                        <span>10%</span>
+                    </div>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: 10%; background: linear-gradient(135deg, #6c757d 0%, #495057 100%);"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 健康風險統計 -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>健康風險統計
+                    </h5>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="border-end">
+                            <h4 class="text-danger">12%</h4>
+                            <small class="text-muted">高血壓風險</small>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <h4 class="text-warning">8%</h4>
+                        <small class="text-muted">糖尿病風險</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-info">15%</h4>
+                            <small class="text-muted">高血脂風險</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">25%</h4>
+                        <small class="text-muted">超重風險</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 重要提醒 -->
+            <div class="alert alert-summary">
+                <h6><i class="fas fa-lightbulb me-2"></i>重要發現</h6>
+                <ul class="mb-0">
+                    <li>本月異常檢出率較上月下降2%</li>
+                    <li>高血壓檢出率在40歲以上人群中偏高</li>
+                    <li>建議加強預防保健宣導</li>
+                    <li>血脂異常多集中在IT從業人員</li>
+                </ul>
+            </div>
+            
+            <!-- 快速統計 -->
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>快速統計
+                    </h5>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-12 mb-2">
+                        <strong>平均BMI：</strong> 23.5
+                    </div>
+                    <div class="col-12 mb-2">
+                        <strong>平均血壓：</strong> 125/80 mmHg
+                    </div>
+                    <div class="col-12 mb-2">
+                        <strong>平均血糖：</strong> 98 mg/dL
+                    </div>
+                    <div class="col-12">
+                        <strong>完檢率：</strong> 
+                        <span class="text-success">98.5%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 詳細統計表 -->
+    <div class="stat-card">
+        <div class="stat-header">
+            <h5 class="mb-0">
+                <i class="fas fa-table me-2"></i>詳細統計表
+            </h5>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>檢查項目</th>
+                        <th>正常範圍</th>
+                        <th>平均值</th>
+                        <th>正常人數</th>
+                        <th>異常人數</th>
+                        <th>異常率</th>
+                        <th>趨勢</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>BMI</strong></td>
+                        <td>18.5-24</td>
+                        <td>23.5</td>
+                        <td>245</td>
+                        <td>68</td>
+                        <td>21.7%</td>
+                        <td><span class="trend-indicator trend-down"><i class="fas fa-arrow-down"></i> -3%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>收縮壓</strong></td>
+                        <td>&lt;140 mmHg</td>
+                        <td>125</td>
+                        <td>289</td>
+                        <td>24</td>
+                        <td>7.7%</td>
+                        <td><span class="trend-indicator trend-stable"><i class="fas fa-minus"></i> 0%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>空腹血糖</strong></td>
+                        <td>&lt;100 mg/dL</td>
+                        <td>98</td>
+                        <td>301</td>
+                        <td>12</td>
+                        <td>3.8%</td>
+                        <td><span class="trend-indicator trend-down"><i class="fas fa-arrow-down"></i> -1%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>總膽固醇</strong></td>
+                        <td>&lt;200 mg/dL</td>
+                        <td>185</td>
+                        <td>278</td>
+                        <td>35</td>
+                        <td>11.2%</td>
+                        <td><span class="trend-indicator trend-up"><i class="fas fa-arrow-up"></i> +2%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>HDL膽固醇</strong></td>
+                        <td>&gt;40 mg/dL</td>
+                        <td>52</td>
+                        <td>295</td>
+                        <td>18</td>
+                        <td>5.7%</td>
+                        <td><span class="trend-indicator trend-stable"><i class="fas fa-minus"></i> 0%</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    // 檢查趨勢圖
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+            datasets: [{
+                label: '健檢人數',
+                data: [65, 78, 90, 81, 95, 108],
+                borderColor: 'rgb(102, 126, 234)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // 異常指標分布圖
+    const abnormalCtx = document.getElementById('abnormalChart').getContext('2d');
+    new Chart(abnormalCtx, {
+        type: 'bar',
+        data: {
+            labels: ['高血壓', '高血糖', '高血脂', '超重', '肝功能異常'],
+            datasets: [{
+                label: '異常人數',
+                data: [24, 12, 35, 68, 8],
+                backgroundColor: [
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(13, 202, 240, 0.8)',
+                    'rgba(255, 102, 51, 0.8)',
+                    'rgba(108, 117, 125, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // 年齡分布圖
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    new Chart(ageCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['18-30歲', '31-50歲', '51-65歲', '65歲以上'],
+            datasets: [{
+                data: [85, 142, 68, 18],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+    
+    // 動畫效果
+    $('.progress-fill').each(function() {
+        const width = $(this).css('width');
+        $(this).css('width', '0');
+        $(this).animate({width: width}, 1000);
+    });
+});
+
+function exportReport(format) {
+    if (format === 'pdf') {
+        alert('PDF匯出功能開發中...');
+    } else if (format === 'excel') {
+        alert('Excel匯出功能開發中...');
+    }
+}
+</script>
+{% endblock %}

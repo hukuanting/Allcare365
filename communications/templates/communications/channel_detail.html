@@ -1,0 +1,171 @@
+{% extends 'communications/base_communications.html' %}
+
+{% block title %}頻道詳細 - {{ channel.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-comments"></i> {{ channel.name }}
+                        {% if channel.channel_type == 'DIRECT' %}
+                            <span class="badge badge-info">私人訊息</span>
+                        {% elif channel.channel_type == 'GROUP' %}
+                            <span class="badge badge-success">群組</span>
+                        {% elif channel.channel_type == 'ANNOUNCEMENT' %}
+                            <span class="badge badge-warning">公告</span>
+                        {% endif %}
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#joinChannelModal">
+                            <i class="fas fa-user-plus"></i> 加入頻道
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="text-muted">{{ channel.description }}</p>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>最近的訊息串</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if channel.threads.all %}
+                                        {% for thread in channel.threads.all|slice:":10" %}
+                                            <div class="media mb-3">
+                                                <div class="media-body">
+                                                    <h6 class="mt-0">
+                                                        <a href="{% url 'communications:thread_detail' thread.pk %}">
+                                                            {{ thread.subject }}
+                                                        </a>
+                                                        {% if thread.priority == 'HIGH' %}
+                                                            <span class="badge badge-danger">高優先級</span>
+                                                        {% elif thread.priority == 'URGENT' %}
+                                                            <span class="badge badge-warning">緊急</span>
+                                                        {% endif %}
+                                                    </h6>
+                                                    <small class="text-muted">
+                                                        由 {{ thread.started_by.get_full_name|default:thread.started_by.username }} 
+                                                        於 {{ thread.started_at|date:"Y-m-d H:i" }} 開始
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p class="text-muted">尚無訊息串</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>頻道資訊</h5>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">建立者</dt>
+                                        <dd class="col-sm-8">{{ channel.created_by.get_full_name|default:channel.created_by.username }}</dd>
+                                        
+                                        <dt class="col-sm-4">建立時間</dt>
+                                        <dd class="col-sm-8">{{ channel.created_at|date:"Y-m-d H:i" }}</dd>
+                                        
+                                        <dt class="col-sm-4">成員數</dt>
+                                        <dd class="col-sm-8">{{ channel.participants.count }}</dd>
+                                        
+                                        <dt class="col-sm-4">狀態</dt>
+                                        <dd class="col-sm-8">
+                                            {% if channel.is_active %}
+                                                <span class="badge badge-success">活躍</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">非活躍</span>
+                                            {% endif %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h5>成員列表</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% for participant in channel.participants.all|slice:":10" %}
+                                        <div class="media mb-2">
+                                            <div class="media-body">
+                                                <h6 class="mt-0">
+                                                    {{ participant.user.get_full_name|default:participant.user.username }}
+                                                    {% if participant.role == 'ADMIN' %}
+                                                        <span class="badge badge-primary">管理員</span>
+                                                    {% elif participant.role == 'MODERATOR' %}
+                                                        <span class="badge badge-info">版主</span>
+                                                    {% endif %}
+                                                </h6>
+                                                <small class="text-muted">
+                                                    加入於 {{ participant.joined_at|date:"Y-m-d" }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 加入頻道模態框 -->
+<div class="modal fade" id="joinChannelModal" tabindex="-1" aria-labelledby="joinChannelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="joinChannelModalLabel">加入頻道</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>您確定要加入這個頻道嗎？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="joinChannel('{{ channel.id }}')">加入</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function joinChannel(channelId) {
+    fetch(`/communications/api/channels/${channelId}/join/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'joined') {
+            alert('成功加入頻道！');
+            $('#joinChannelModal').modal('hide');
+            location.reload();
+        } else {
+            alert('加入失敗');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('加入失敗');
+    });
+}
+</script>
+{% endblock %}

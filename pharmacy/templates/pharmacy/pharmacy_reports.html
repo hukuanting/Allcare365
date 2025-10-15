@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-bar"></i> {{ title }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- 統計摘要 -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info">
+                                    <i class="fas fa-pills"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">總藥物數</span>
+                                    <span class="info-box-number">{{ total_drugs }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success">
+                                    <i class="fas fa-prescription-bottle"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">總處方籤</span>
+                                    <span class="info-box-number">{{ total_prescriptions }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">待處理處方</span>
+                                    <span class="info-box-number">{{ pending_prescriptions }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">低庫存項目</span>
+                                    <span class="info-box-number">{{ low_stock_count }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 最常開立的藥物 -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">最常開立的藥物</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>藥物名稱</th>
+                                                    <th>處方次數</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in top_prescribed %}
+                                                <tr>
+                                                    <td>{{ item.drug__name }}</td>
+                                                    <td>{{ item.count }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="2" class="text-center text-muted">
+                                                        暫無數據
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">庫存價值統計</h4>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>總庫存價值:</strong> 
+                                        {% if inventory_value.total_value %}
+                                            ${{ inventory_value.total_value|floatformat:2 }}
+                                        {% else %}
+                                            $0.00
+                                        {% endif %}
+                                    </p>
+                                    <div class="progress mb-3">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 100%">
+                                            庫存總覽
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        數據更新時間: {% now "Y-m-d H:i" %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

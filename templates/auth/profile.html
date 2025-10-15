@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}個人資料 - Allcare365{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row">
+        <!-- 左側導航 -->
+        <div class="col-md-3">
+            <div class="sidebar">
+                <h5 class="mb-3">帳戶設定</h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{% url 'profile' %}">
+                        <i class="fas fa-user"></i>個人資料
+                    </a>
+                    <a class="nav-link" href="#">
+                        <i class="fas fa-lock"></i>密碼設定
+                    </a>
+                    <a class="nav-link" href="#">
+                        <i class="fas fa-bell"></i>通知設定
+                    </a>
+                    <a class="nav-link" href="#">
+                        <i class="fas fa-shield-alt"></i>隱私設定
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 主要內容 -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>個人資料
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- 頭像區域 -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
+                                             style="width: 80px; height: 80px;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1">{{ user.get_full_name|default:user.username }}</h5>
+                                        <p class="text-muted mb-0">{{ user.email }}</p>
+                                        <small class="text-muted">註冊時間：{{ user.date_joined|date:"Y年m月d日" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 基本資料 -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="first_name" class="form-label">姓氏</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="first_name" 
+                                       name="first_name" 
+                                       value="{{ user.first_name }}"
+                                       required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="last_name" class="form-label">名字</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="last_name" 
+                                       name="last_name" 
+                                       value="{{ user.last_name }}"
+                                       required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">使用者名稱</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="username" 
+                                       name="username" 
+                                       value="{{ user.username }}"
+                                       readonly>
+                                <small class="form-text text-muted">使用者名稱無法修改</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">電子郵件</label>
+                                <input type="email" 
+                                       class="form-control" 
+                                       id="email" 
+                                       name="email" 
+                                       value="{{ user.email }}"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- 聯絡資訊 -->
+                        <hr class="my-4">
+                        <h6 class="mb-3">聯絡資訊</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">電話號碼</label>
+                                <input type="tel" 
+                                       class="form-control" 
+                                       id="phone" 
+                                       name="phone" 
+                                       value="{{ user.auth_profile.phone|default:'' }}"
+                                       placeholder="請輸入電話號碼">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="date_of_birth" class="form-label">出生日期</label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="date_of_birth" 
+                                       name="date_of_birth" 
+                                       value="{{ user.auth_profile.date_of_birth|date:'Y-m-d'|default:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">地址</label>
+                            <textarea class="form-control" 
+                                      id="address" 
+                                      name="address" 
+                                      rows="3" 
+                                      placeholder="請輸入地址">{{ user.auth_profile.address|default:'' }}</textarea>
+                        </div>
+
+                        <!-- 緊急聯絡人 -->
+                        <hr class="my-4">
+                        <h6 class="mb-3">緊急聯絡人</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="emergency_contact" class="form-label">緊急聯絡人姓名</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="emergency_contact" 
+                                       name="emergency_contact" 
+                                       value="{{ user.auth_profile.emergency_contact|default:'' }}"
+                                       placeholder="請輸入緊急聯絡人姓名">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="emergency_phone" class="form-label">緊急聯絡人電話</label>
+                                <input type="tel" 
+                                       class="form-control" 
+                                       id="emergency_phone" 
+                                       name="emergency_phone" 
+                                       value="{{ user.auth_profile.emergency_phone|default:'' }}"
+                                       placeholder="請輸入緊急聯絡人電話">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">備註</label>
+                            <textarea class="form-control" 
+                                      id="notes" 
+                                      name="notes" 
+                                      rows="3" 
+                                      placeholder="其他備註資訊">{{ user.auth_profile.notes|default:'' }}</textarea>
+                        </div>
+
+                        <!-- 提交按鈕 -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>儲存變更
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="window.location.reload()">
+                                <i class="fas fa-undo me-2"></i>重置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 帳戶統計 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>帳戶統計
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <i class="fas fa-calendar-check fa-2x text-primary"></i>
+                            </div>
+                            <h6>總預約次數</h6>
+                            <h4 class="text-primary">0</h4>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <i class="fas fa-file-medical fa-2x text-success"></i>
+                            </div>
+                            <h6>醫療記錄</h6>
+                            <h4 class="text-success">0</h4>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <i class="fas fa-pills fa-2x text-warning"></i>
+                            </div>
+                            <h6>處方籤</h6>
+                            <h4 class="text-warning">0</h4>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <i class="fas fa-clock fa-2x text-info"></i>
+                            </div>
+                            <h6>最後登入</h6>
+                            <h6 class="text-info">{{ user.last_login|date:"m/d H:i"|default:"從未登入" }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 表單驗證
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+});
+</script>
+{% endblock %}

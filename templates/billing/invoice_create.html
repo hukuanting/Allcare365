@@ -1,0 +1,478 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}新增發票 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: white;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #5a5c69;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #4e73df;
+        padding-bottom: 0.5rem;
+    }
+    
+    .line-item {
+        background-color: #f8f9fc;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    
+    .line-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .remove-item {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+    
+    .add-item-btn {
+        border: 2px dashed #4e73df;
+        background: transparent;
+        color: #4e73df;
+        padding: 1rem;
+        width: 100%;
+        border-radius: 0.25rem;
+        transition: all 0.3s;
+    }
+    
+    .add-item-btn:hover {
+        background-color: #4e73df;
+        color: white;
+    }
+    
+    .total-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        position: sticky;
+        top: 1rem;
+    }
+    
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .total-final {
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+        padding-top: 0.5rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .required-field {
+        color: #dc3545;
+    }
+    
+    .form-help {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-plus-circle text-primary"></i>
+            新增發票
+        </h1>
+        <div class="d-sm-flex">
+            <a href="{% url 'billing_web:invoice_list' %}" class="btn btn-secondary btn-sm shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <form id="invoiceForm" method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- 基本資訊 -->
+                <div class="form-card">
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-info-circle text-primary"></i>
+                            基本資訊
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="patient" class="form-label">
+                                        患者 <span class="required-field">*</span>
+                                    </label>
+                                    <select class="form-select" id="patient" name="patient" required>
+                                        <option value="">請選擇患者</option>
+                                        <!-- 動態載入患者選項 -->
+                                    </select>
+                                    <div class="form-help">選擇要開立發票的患者</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="provider" class="form-label">
+                                        經辦醫師 <span class="required-field">*</span>
+                                    </label>
+                                    <select class="form-select" id="provider" name="provider" required>
+                                        <option value="">請選擇醫師</option>
+                                        <!-- 動態載入醫師選項 -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="invoice_date" class="form-label">
+                                        開立日期 <span class="required-field">*</span>
+                                    </label>
+                                    <input type="date" class="form-control" id="invoice_date" name="invoice_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">
+                                        到期日期 <span class="required-field">*</span>
+                                    </label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date" required>
+                                    <div class="form-help">通常為開立日期後30天</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="encounter" class="form-label">關聯診療記錄</label>
+                            <select class="form-select" id="encounter" name="encounter">
+                                <option value="">無關聯診療記錄</option>
+                                <!-- 動態載入診療記錄選項 -->
+                            </select>
+                            <div class="form-help">可選擇關聯的診療記錄以自動填入服務項目</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">備註</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="發票相關備註..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 服務項目 -->
+                <div class="form-card">
+                    <div class="form-section">
+                        <h5 class="section-title">
+                            <i class="fas fa-list text-primary"></i>
+                            服務項目明細
+                        </h5>
+                        <div id="lineItems">
+                            <!-- 第一個項目 -->
+                            <div class="line-item" data-item="0">
+                                <i class="fas fa-times remove-item" onclick="removeLineItem(0)" title="移除項目"></i>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <label class="form-label">項目代碼</label>
+                                        <input type="text" class="form-control billing-code" name="line_items[0][billing_code]" placeholder="例: 99213">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">項目名稱 <span class="required-field">*</span></label>
+                                        <input type="text" class="form-control" name="line_items[0][description]" placeholder="服務項目描述" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">數量</label>
+                                        <input type="number" class="form-control quantity" name="line_items[0][quantity]" value="1" min="1" step="1" onchange="calculateLineTotal(0)">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">單價</label>
+                                        <input type="number" class="form-control unit-price" name="line_items[0][unit_price]" step="0.01" min="0" placeholder="0.00" onchange="calculateLineTotal(0)">
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-9">
+                                        <label class="form-label">備註</label>
+                                        <input type="text" class="form-control" name="line_items[0][notes]" placeholder="項目備註（選填）">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">小計</label>
+                                        <input type="text" class="form-control line-total" readonly value="$0.00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="add-item-btn" onclick="addLineItem()">
+                            <i class="fas fa-plus"></i> 新增服務項目
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <!-- 總計摘要 -->
+                <div class="total-summary">
+                    <h5 class="mb-3">
+                        <i class="fas fa-calculator"></i>
+                        費用摘要
+                    </h5>
+                    <div class="total-row">
+                        <span>小計:</span>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>稅金 (5%):</span>
+                        <span id="tax">$0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>折扣:</span>
+                        <span id="discount">$0.00</span>
+                    </div>
+                    <hr style="border-color: rgba(255, 255, 255, 0.3);">
+                    <div class="total-row total-final">
+                        <span>總計:</span>
+                        <span id="total">$0.00</span>
+                    </div>
+
+                    <!-- 稅金和折扣設定 -->
+                    <div class="mt-4">
+                        <h6>調整項目</h6>
+                        <div class="mb-2">
+                            <label for="tax_rate" class="form-label">稅率 (%)</label>
+                            <input type="number" class="form-control form-control-sm" id="tax_rate" name="tax_rate" value="5" step="0.1" min="0" max="100" onchange="calculateTotal()">
+                        </div>
+                        <div class="mb-3">
+                            <label for="discount_amount" class="form-label">折扣金額</label>
+                            <input type="number" class="form-control form-control-sm" id="discount_amount" name="discount_amount" value="0" step="0.01" min="0" onchange="calculateTotal()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按鈕 -->
+                <div class="mt-3">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> 建立發票
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
+                            <i class="fas fa-file-alt"></i> 儲存草稿
+                        </button>
+                        <a href="{% url 'billing_web:invoice_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> 取消
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let lineItemCounter = 1;
+
+$(document).ready(function() {
+    // 設定預設日期
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('invoice_date').value = today;
+    
+    // 計算到期日期（30天後）
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+    document.getElementById('due_date').value = dueDate.toISOString().split('T')[0];
+    
+    // 載入資料
+    loadPatients();
+    loadProviders();
+    loadBillingCodes();
+});
+
+function addLineItem() {
+    const lineItemsContainer = document.getElementById('lineItems');
+    const newItem = document.createElement('div');
+    newItem.className = 'line-item';
+    newItem.setAttribute('data-item', lineItemCounter);
+    
+    newItem.innerHTML = `
+        <i class="fas fa-times remove-item" onclick="removeLineItem(${lineItemCounter})" title="移除項目"></i>
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">項目代碼</label>
+                <input type="text" class="form-control billing-code" name="line_items[${lineItemCounter}][billing_code]" placeholder="例: 99213">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">項目名稱 <span class="required-field">*</span></label>
+                <input type="text" class="form-control" name="line_items[${lineItemCounter}][description]" placeholder="服務項目描述" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">數量</label>
+                <input type="number" class="form-control quantity" name="line_items[${lineItemCounter}][quantity]" value="1" min="1" step="1" onchange="calculateLineTotal(${lineItemCounter})">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">單價</label>
+                <input type="number" class="form-control unit-price" name="line_items[${lineItemCounter}][unit_price]" step="0.01" min="0" placeholder="0.00" onchange="calculateLineTotal(${lineItemCounter})">
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-md-9">
+                <label class="form-label">備註</label>
+                <input type="text" class="form-control" name="line_items[${lineItemCounter}][notes]" placeholder="項目備註（選填）">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">小計</label>
+                <input type="text" class="form-control line-total" readonly value="$0.00">
+            </div>
+        </div>
+    `;
+    
+    lineItemsContainer.appendChild(newItem);
+    lineItemCounter++;
+}
+
+function removeLineItem(itemIndex) {
+    const item = document.querySelector(`[data-item="${itemIndex}"]`);
+    if (item) {
+        item.remove();
+        calculateTotal();
+    }
+}
+
+function calculateLineTotal(itemIndex) {
+    const item = document.querySelector(`[data-item="${itemIndex}"]`);
+    const quantity = parseFloat(item.querySelector('.quantity').value) || 0;
+    const unitPrice = parseFloat(item.querySelector('.unit-price').value) || 0;
+    const total = quantity * unitPrice;
+    
+    item.querySelector('.line-total').value = `$${total.toFixed(2)}`;
+    calculateTotal();
+}
+
+function calculateTotal() {
+    let subtotal = 0;
+    
+    // 計算所有項目小計
+    document.querySelectorAll('.line-total').forEach(input => {
+        const value = parseFloat(input.value.replace('$', '')) || 0;
+        subtotal += value;
+    });
+    
+    // 計算稅金和折扣
+    const taxRate = parseFloat(document.getElementById('tax_rate').value) || 0;
+    const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+    
+    const tax = subtotal * (taxRate / 100);
+    const total = subtotal + tax - discountAmount;
+    
+    // 更新顯示
+    document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
+    document.getElementById('discount').textContent = `$${discountAmount.toFixed(2)}`;
+    document.getElementById('total').textContent = `$${Math.max(0, total).toFixed(2)}`;
+}
+
+function loadPatients() {
+    // 模擬患者資料載入
+    const patientSelect = document.getElementById('patient');
+    const patients = [
+        {id: 1, name: '王小明'},
+        {id: 2, name: '李美麗'},
+        {id: 3, name: '陳先生'}
+    ];
+    
+    patients.forEach(patient => {
+        const option = document.createElement('option');
+        option.value = patient.id;
+        option.textContent = patient.name;
+        patientSelect.appendChild(option);
+    });
+}
+
+function loadProviders() {
+    // 模擬醫師資料載入
+    const providerSelect = document.getElementById('provider');
+    const providers = [
+        {id: 1, name: '李醫師'},
+        {id: 2, name: '王醫師'},
+        {id: 3, name: '陳醫師'}
+    ];
+    
+    providers.forEach(provider => {
+        const option = document.createElement('option');
+        option.value = provider.id;
+        option.textContent = provider.name;
+        providerSelect.appendChild(option);
+    });
+}
+
+function loadBillingCodes() {
+    // 為帳務代碼輸入框添加自動完成功能
+    // 這裡可以實作自動完成功能
+}
+
+function saveDraft() {
+    // 儲存草稿邏輯
+    showAlert('info', '草稿已儲存');
+}
+
+document.getElementById('invoiceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // 表單驗證
+    if (this.checkValidity()) {
+        // 提交表單
+        showAlert('success', '發票已成功建立');
+        setTimeout(() => {
+            window.location.href = "{% url 'billing_web:invoice_list' %}";
+        }, 1500);
+    } else {
+        showAlert('danger', '請填寫所有必填欄位');
+        this.reportValidity();
+    }
+});
+
+function showAlert(type, message) {
+    const alertClass = {
+        'success': 'alert-success',
+        'warning': 'alert-warning',
+        'danger': 'alert-danger',
+        'info': 'alert-info'
+    }[type];
+    
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+}
+</script>
+{% endblock %}

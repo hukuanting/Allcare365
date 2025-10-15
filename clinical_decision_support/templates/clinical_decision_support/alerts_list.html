@@ -1,0 +1,217 @@
+{% extends 'clinical_decision_support/base.html' %}
+
+{% block cds_content %}
+<!-- Search and Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="severity" class="form-label">Severity</label>
+                <select class="form-select" id="severity" name="severity">
+                    <option value="">All Severities</option>
+                    {% for value, label in severities %}
+                    <option value="{{ value }}" {% if severity_filter == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="acknowledged" class="form-label">Status</label>
+                <select class="form-select" id="acknowledged" name="acknowledged">
+                    <option value="">All Alerts</option>
+                    <option value="no" {% if ack_filter == 'no' %}selected{% endif %}>Unacknowledged</option>
+                    <option value="yes" {% if ack_filter == 'yes' %}selected{% endif %}>Acknowledged</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Alerts List -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Clinical Alerts</h5>
+        <span class="badge bg-secondary">{{ page_obj.paginator.count }} alerts</span>
+    </div>
+    <div class="card-body">
+        {% if page_obj %}
+            {% for alert in page_obj %}
+            <div class="alert-card alert-{{ alert.severity }} mb-3">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                {% if alert.severity == 'critical' %}
+                                    <i class="fas fa-exclamation-circle text-danger fa-2x"></i>
+                                {% elif alert.severity == 'warning' %}
+                                    <i class="fas fa-exclamation-triangle text-warning fa-2x"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle text-info fa-2x"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-1">{{ alert.title }}</h6>
+                                <p class="mb-2">{{ alert.message }}</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="fas fa-user"></i> 
+                                            <strong>Patient:</strong> {{ alert.patient.first_name }} {{ alert.patient.last_name }}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        {% if alert.rule %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-cog"></i> 
+                                            <strong>Rule:</strong> {{ alert.rule.name }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> {{ alert.created_at|timesince }} ago
+                            </small>
+                        </div>
+                        {% if alert.acknowledged_at %}
+                            <div class="mb-2">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> Acknowledged
+                                </span>
+                                <br>
+                                <small class="text-muted">
+                                    by {{ alert.acknowledged_by.get_full_name|default:alert.acknowledged_by.username }}
+                                    <br>{{ alert.acknowledged_at|timesince }} ago
+                                </small>
+                            </div>
+                        {% else %}
+                            <form method="post" action="{% url 'clinical_decision_support:acknowledge_alert' alert.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-check"></i> Acknowledge
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Alerts pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if severity_filter %}&severity={{ severity_filter }}{% endif %}{% if ack_filter %}&acknowledged={{ ack_filter }}{% endif %}">
+                                Previous
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if severity_filter %}&severity={{ severity_filter }}{% endif %}{% if ack_filter %}&acknowledged={{ ack_filter }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if severity_filter %}&severity={{ severity_filter }}{% endif %}{% if ack_filter %}&acknowledged={{ ack_filter }}{% endif %}">
+                                Next
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-bell fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No alerts found</h5>
+                <p class="text-muted">Try adjusting your filter criteria.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+{% if page_obj %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0">Bulk Actions</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <button type="button" class="btn btn-outline-success" onclick="acknowledgeAllVisible()">
+                    <i class="fas fa-check-double"></i> Acknowledge All Visible
+                </button>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} alerts
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    function acknowledgeAllVisible() {
+        if (confirm('Are you sure you want to acknowledge all visible alerts?')) {
+            // Get all unacknowledged alerts on the current page
+            const forms = document.querySelectorAll('form[action*="acknowledge"]');
+            let acknowledgedCount = 0;
+            
+            forms.forEach(form => {
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        acknowledgedCount++;
+                        if (acknowledgedCount === forms.length) {
+                            location.reload();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+            
+            if (forms.length === 0) {
+                alert('No unacknowledged alerts to acknowledge.');
+            }
+        }
+    }
+</script>
+{% endblock %}

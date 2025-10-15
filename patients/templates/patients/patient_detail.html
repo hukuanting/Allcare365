@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ patient.name }} - 患者詳細資料 - Allcare365{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- 返回按鈕 -->
+            <div class="mb-3">
+                <a href="/patients/" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>返回患者列表
+                </a>
+            </div>
+
+            <!-- 患者基本資訊 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>患者基本資訊
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 text-center">
+                            <div class="patient-avatar-large mb-3">
+                                {{ patient.name|first }}
+                            </div>
+                            <span class="badge bg-{{ patient.gender == 'M'|yesno:'primary,info' }} fs-6">
+                                {{ patient.gender|yesno:'男性,女性' }}
+                            </span>
+                        </div>
+                        <div class="col-md-10">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">姓名</label>
+                                    <p class="fw-semibold">{{ patient.name }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">身分證號</label>
+                                    <p class="fw-semibold">{{ patient.id_number|default:"未提供" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">出生日期</label>
+                                    <p class="fw-semibold">{{ patient.date_of_birth|date:"Y年n月j日" }} ({{ patient.age }}歲)</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">電話</label>
+                                    <p class="fw-semibold">{{ patient.phone|default:"未提供" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">電子郵件</label>
+                                    <p class="fw-semibold">{{ patient.email|default:"未提供" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">狀態</label>
+                                    <span class="badge bg-{{ patient.is_active|yesno:'success,secondary' }}">
+                                        {{ patient.is_active|yesno:'活躍,非活躍' }}
+                                    </span>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-muted">地址</label>
+                                    <p class="fw-semibold">{{ patient.address|default:"未提供" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能選項卡 -->
+            <ul class="nav nav-tabs" id="patientTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments" type="button" role="tab">
+                        <i class="fas fa-calendar-check me-2"></i>預約記錄
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="medical-records-tab" data-bs-toggle="tab" data-bs-target="#medical-records" type="button" role="tab">
+                        <i class="fas fa-file-medical me-2"></i>醫療記錄
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="prescriptions-tab" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button" role="tab">
+                        <i class="fas fa-pills me-2"></i>處方記錄
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab">
+                        <i class="fas fa-folder me-2"></i>文件資料
+                    </button>
+                </li>
+            </ul>
+
+            <!-- 選項卡內容 -->
+            <div class="tab-content" id="patientTabContent">
+                <!-- 預約記錄 -->
+                <div class="tab-pane fade show active" id="appointments" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">預約記錄</h6>
+                            <button class="btn btn-sm btn-primary" onclick="addAppointment()">
+                                <i class="fas fa-plus me-1"></i>新增預約
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="appointmentsList">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-calendar-times text-muted fa-3x mb-3"></i>
+                                    <p class="text-muted">目前沒有預約記錄</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 醫療記錄 -->
+                <div class="tab-pane fade" id="medical-records" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">醫療記錄</h6>
+                            <button class="btn btn-sm btn-primary" onclick="addMedicalRecord()">
+                                <i class="fas fa-plus me-1"></i>新增記錄
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="medicalRecordsList">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-file-medical text-muted fa-3x mb-3"></i>
+                                    <p class="text-muted">目前沒有醫療記錄</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 處方記錄 -->
+                <div class="tab-pane fade" id="prescriptions" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">處方記錄</h6>
+                            <button class="btn btn-sm btn-primary" onclick="addPrescription()">
+                                <i class="fas fa-plus me-1"></i>新增處方
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="prescriptionsList">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-pills text-muted fa-3x mb-3"></i>
+                                    <p class="text-muted">目前沒有處方記錄</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 文件資料 -->
+                <div class="tab-pane fade" id="documents" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">文件資料</h6>
+                            <button class="btn btn-sm btn-primary" onclick="uploadDocument()">
+                                <i class="fas fa-upload me-1"></i>上傳文件
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="documentsList">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-folder-open text-muted fa-3x mb-3"></i>
+                                    <p class="text-muted">目前沒有上傳的文件</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.patient-avatar-large {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 2.5rem;
+    color: white;
+    margin: 0 auto;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    background: none;
+    color: var(--secondary-color);
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    border-radius: 0;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background: white;
+    border-color: transparent transparent var(--primary-color) transparent;
+}
+
+.tab-content {
+    background: white;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.tab-pane {
+    padding: 0;
+}
+
+.tab-pane .card {
+    border: none;
+    box-shadow: none;
+}
+</style>
+
+<script>
+function getAvatarColor(name) {
+    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
+    const charCode = name.charCodeAt(0);
+    return colors[charCode % colors.length];
+}
+
+function addAppointment() {
+    alert('新增預約功能開發中...');
+}
+
+function addMedicalRecord() {
+    alert('新增醫療記錄功能開發中...');
+}
+
+function addPrescription() {
+    alert('新增處方功能開發中...');
+}
+
+function uploadDocument() {
+    alert('上傳文件功能開發中...');
+}
+
+// 頁面載入時設置頭像顏色
+document.addEventListener('DOMContentLoaded', function() {
+    const avatar = document.querySelector('.patient-avatar-large');
+    if (avatar) {
+        avatar.style.background = getAvatarColor('{{ patient.name }}');
+    }
+});
+</script>
+{% endblock %}

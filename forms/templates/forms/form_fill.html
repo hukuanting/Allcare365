@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}Fill Form: {{ template.name }} - MedicalCare{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'forms:dashboard' %}">Forms</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'forms:template_list' %}">Templates</a></li>
+                        <li class="breadcrumb-item active">Fill Form</li>
+                    </ol>
+                </nav>
+                <h1>{{ template.name }}</h1>
+                <p class="text-muted">{{ template.description }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Form Fields</h5>
+                </div>
+                <div class="card-body">
+                    <form id="formSubmissionForm" method="post" action="{% url 'forms:form_submit' template.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="patient_id" value="{{ patient.id }}">
+                        
+                        {% for field in template.fields.all %}
+                            <div class="form-group mb-4" data-field-id="{{ field.id }}">
+                                <label for="field_{{ field.id }}" class="form-label">
+                                    {{ field.label }}
+                                    {% if field.is_required %}
+                                        <span class="text-danger">*</span>
+                                    {% endif %}
+                                </label>
+                                
+                                {% if field.help_text %}
+                                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                
+                                {% if field.field_type == 'text' %}
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="field_{{ field.id }}" 
+                                           name="field_{{ field.id }}"
+                                           {% if field.is_required %}required{% endif %}
+                                           {% if field.validation_rules %}data-validation="{{ field.validation_rules }}"{% endif %}
+                                           maxlength="{{ field.max_length|default:255 }}">
+                                           
+                                {% elif field.field_type == 'textarea' %}
+                                    <textarea class="form-control" 
+                                             id="field_{{ field.id }}" 
+                                             name="field_{{ field.id }}"
+                                             rows="4"
+                                             {% if field.is_required %}required{% endif %}
+                                             {% if field.validation_rules %}data-validation="{{ field.validation_rules }}"{% endif %}
+                                             maxlength="{{ field.max_length|default:1000 }}"></textarea>
+                                             
+                                {% elif field.field_type == 'number' %}
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="field_{{ field.id }}" 
+                                           name="field_{{ field.id }}"
+                                           {% if field.is_required %}required{% endif %}
+                                           {% if field.validation_rules %}data-validation="{{ field.validation_rules }}"{% endif %}
+                                           step="any">
+                                           
+                                {% elif field.field_type == 'date' %}
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="field_{{ field.id }}" 
+                                           name="field_{{ field.id }}"
+                                           {% if field.is_required %}required{% endif %}
+                                           {% if field.validation_rules %}data-validation="{{ field.validation_rules }}"{% endif %}>
+                                           
+                                {% elif field.field_type == 'datetime' %}
+                                    <input type="datetime-local" 
+                                           class="form-control" 
+                                           id="field_{{ field.id }}" 
+                                           name="field_{{ field.id }}"
+                                           {% if field.is_required %}required{% endif %}
+                                           {% if field.validation_rules %}data-validation="{{ field.validation_rules }}"{% endif %}>
+                                           
+                                {% elif field.field_type == 'checkbox' %}
+                                    <div class="form-check">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               id="field_{{ field.id }}" 
+                                               name="field_{{ field.id }}"
+                                               value="1"
+                                               {% if field.is_required %}required{% endif %}>
+                                        <label class="form-check-label" for="field_{{ field.id }}">
+                                            {{ field.label }}
+                                        </label>
+                                    </div>
+                                    
+                                {% elif field.field_type == 'select' %}
+                                    <select class="form-control" 
+                                            id="field_{{ field.id }}" 
+                                            name="field_{{ field.id }}"
+                                            {% if field.is_required %}required{% endif %}>
+                                        <option value="">Please select...</option>
+                                        {% for option in field.options %}
+                                            <option value="{{ option }}">{{ option }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    
+                                {% elif field.field_type == 'radio' %}
+                                    {% for option in field.options %}
+                                        <div class="form-check">
+                                            <input type="radio" 
+                                                   class="form-check-input" 
+                                                   id="field_{{ field.id }}_{{ forloop.counter }}" 
+                                                   name="field_{{ field.id }}"
+                                                   value="{{ option }}"
+                                                   {% if field.is_required %}required{% endif %}>
+                                            <label class="form-check-label" for="field_{{ field.id }}_{{ forloop.counter }}">
+                                                {{ option }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                    
+                                {% elif field.field_type == 'file' %}
+                                    <input type="file" 
+                                           class="form-control-file" 
+                                           id="field_{{ field.id }}" 
+                                           name="field_{{ field.id }}"
+                                           {% if field.is_required %}required{% endif %}
+                                           accept="{{ field.validation_rules.file_types|default:'' }}">
+                                           
+                                {% endif %}
+                                
+                                <div class="invalid-feedback" id="field_{{ field.id }}_error"></div>
+                            </div>
+                        {% endfor %}
+                        
+                        <div class="form-group mt-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-secondary" onclick="history.back()">
+                                        <i class="fas fa-arrow-left"></i> Back
+                                    </button>
+                                </div>
+                                <div class="col-md-6 text-right">
+                                    <button type="button" class="btn btn-outline-primary mr-2" onclick="saveDraft()">
+                                        <i class="fas fa-save"></i> Save Draft
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane"></i> Submit Form
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Patient Information -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6>Patient Information</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ patient.get_full_name }}</p>
+                    <p><strong>DOB:</strong> {{ patient.date_of_birth|date:"M d, Y" }}</p>
+                    <p><strong>MRN:</strong> {{ patient.medical_record_number }}</p>
+                    {% if patient.phone %}
+                        <p><strong>Phone:</strong> {{ patient.phone }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Form Information -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6>Form Information</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>Category:</strong> {{ template.category.name }}</p>
+                    <p><strong>Version:</strong> {{ template.version }}</p>
+                    <p><strong>Fields:</strong> {{ template.fields.count }}</p>
+                    <p><strong>Required Fields:</strong> {{ template.fields.filter:is_required=True.count }}</p>
+                    {% if template.estimated_time %}
+                        <p><strong>Est. Time:</strong> {{ template.estimated_time }} minutes</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Progress -->
+            <div class="card">
+                <div class="card-header">
+                    <h6>Progress</h6>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-2">
+                        <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar"></div>
+                    </div>
+                    <p class="text-muted mb-0">
+                        <span id="completedFields">0</span> of {{ template.fields.count }} fields completed
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var TEMPLATE_FIELDS_COUNT = {{ template.fields.count|default:0 }};
+    
+    $(document).ready(function() {
+        // Initialize form validation and progress tracking
+        initializeFormValidation();
+        updateProgress();
+        
+        // Auto-save draft every 2 minutes
+        setInterval(saveDraft, 120000);
+        
+        // Track field completion
+        $('input, textarea, select').on('change blur', function() {
+            updateProgress();
+        });
+        
+        // Form submission handling
+        $('#formSubmissionForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            if (validateForm()) {
+                // Show loading state
+                $(this).find('button[type="submit"]').prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin"></i> Submitting...');
+                
+                // Submit the form
+                this.submit();
+            }
+        });
+    });
+    
+    function initializeFormValidation() {
+        // Initialize custom validation rules
+        $('[data-validation]').each(function() {
+            var $field = $(this);
+            var validation = JSON.parse($field.attr('data-validation') || '{}');
+            
+            $field.on('blur', function() {
+                validateField($field, validation);
+            });
+        });
+    }
+    
+    function validateField($field, validation) {
+        var value = $field.val();
+        var fieldId = $field.attr('id');
+        var errorDiv = $('#' + fieldId + '_error');
+        
+        // Clear previous errors
+        $field.removeClass('is-invalid');
+        errorDiv.text('');
+        
+        // Required field validation
+        if ($field.prop('required') && !value) {
+            showFieldError($field, 'This field is required');
+            return false;
+        }
+        
+        // Custom validation rules
+        if (validation.min_length && value.length < validation.min_length) {
+            showFieldError($field, 'Minimum length is ' + validation.min_length + ' characters');
+            return false;
+        }
+        
+        if (validation.max_length && value.length > validation.max_length) {
+            showFieldError($field, 'Maximum length is ' + validation.max_length + ' characters');
+            return false;
+        }
+        
+        if (validation.pattern && !new RegExp(validation.pattern).test(value)) {
+            showFieldError($field, validation.pattern_message || 'Invalid format');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    function showFieldError($field, message) {
+        $field.addClass('is-invalid');
+        $('#' + $field.attr('id') + '_error').text(message);
+    }
+    
+    function validateForm() {
+        var isValid = true;
+        
+        $('[data-validation]').each(function() {
+            var $field = $(this);
+            var validation = JSON.parse($field.attr('data-validation') || '{}');
+            
+            if (!validateField($field, validation)) {
+                isValid = false;
+            }
+        });
+        
+        // Check required fields
+        $('[required]').each(function() {
+            if (!$(this).val()) {
+                showFieldError($(this), 'This field is required');
+                isValid = false;
+            }
+        });
+        
+        return isValid;
+    }
+    
+    function updateProgress() {
+        var totalFields = TEMPLATE_FIELDS_COUNT;
+        var completedFields = 0;
+        
+        $('input, textarea, select').each(function() {
+            if ($(this).attr('type') === 'checkbox') {
+                if ($(this).is(':checked')) completedFields++;
+            } else if ($(this).attr('type') === 'radio') {
+                if ($(this).is(':checked')) completedFields++;
+            } else if ($(this).val()) {
+                completedFields++;
+            }
+        });
+        
+        var progress = Math.round((completedFields / totalFields) * 100);
+        $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress);
+        $('#completedFields').text(completedFields);
+    }
+    
+    function saveDraft() {
+        var formData = new FormData(document.getElementById('formSubmissionForm'));
+        formData.append('is_draft', 'true');
+        
+        $.ajax({
+            url: "{% url 'forms:form_submit' template.pk %}",
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    // Show success message briefly
+                    $('<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                      '<i class="fas fa-check"></i> Draft saved successfully!' +
+                      '<button type="button" class="close" data-dismiss="alert">' +
+                      '<span>&times;</span></button></div>')
+                      .prependTo('.card-body').delay(3000).fadeOut();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error saving draft:', error);
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}新增診療記錄 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: white;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .section-title {
+        color: #5a5c69;
+        font-weight: 600;
+        border-bottom: 2px solid #e3e6f0;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .required {
+        color: #e74a3b;
+    }
+    
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    
+    .patient-info {
+        background: #f8f9fc;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">新增診療記錄</h1>
+        <a href="{% url 'encounters_web:encounter_list' %}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> 返回列表
+        </a>
+    </div>
+
+    <form id="encounterForm" action="#" method="post">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- 左側：基本資訊 -->
+            <div class="col-md-6">
+                <!-- 患者選擇 -->
+                <div class="form-card">
+                    <h5 class="section-title">患者資訊</h5>
+                    
+                    <div class="mb-3">
+                        <label for="patient" class="form-label">患者 <span class="required">*</span></label>
+                        <select name="patient" id="patient" class="form-select" required>
+                            <option value="">請選擇患者</option>
+                            {% for patient in patients %}
+                            <option value="{{ patient.id }}" 
+                                    {% if selected_patient and selected_patient.id == patient.id %}selected{% endif %}
+                                    data-info="{{ patient.first_name }} {{ patient.last_name }} | {{ patient.gender }} | {{ patient.date_of_birth|date:'Y-m-d' }}">
+                                {{ patient.first_name }} {{ patient.last_name }} ({{ patient.patient_number }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 患者資訊顯示 -->
+                    <div id="patientInfo" class="patient-info" style="display: none;">
+                        <h6>患者詳情</h6>
+                        <div id="patientDetails"></div>
+                    </div>
+                </div>
+
+                <!-- 診療基本資訊 -->
+                <div class="form-card">
+                    <h5 class="section-title">診療基本資訊</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">診療類別 <span class="required">*</span></label>
+                            <select name="category" id="category" class="form-select" required>
+                                <option value="">請選擇診療類別</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" data-color="{{ category.color_code }}">
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="primary_provider" class="form-label">主治醫護人員 <span class="required">*</span></label>
+                            <select name="primary_provider" id="primary_provider" class="form-select" required>
+                                <option value="">請選擇醫護人員</option>
+                                {% for provider in providers %}
+                                <option value="{{ provider.id }}">
+                                    {{ provider.user.first_name }} {{ provider.user.last_name }} ({{ provider.provider_type }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="encounter_date" class="form-label">診療日期 <span class="required">*</span></label>
+                            <input type="date" name="encounter_date" id="encounter_date" class="form-control" required value="{{ today|date:'Y-m-d' }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="encounter_time" class="form-label">診療時間</label>
+                            <input type="time" name="encounter_time" id="encounter_time" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 主訴與症狀 -->
+                <div class="form-card">
+                    <h5 class="section-title">主訴與症狀</h5>
+                    
+                    <div class="mb-3">
+                        <label for="chief_complaint" class="form-label">主訴 (Chief Complaint) <span class="required">*</span></label>
+                        <textarea name="chief_complaint" id="chief_complaint" class="form-control" rows="3" required
+                                  placeholder="請描述患者的主要症狀或就診原因"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="history_present_illness" class="form-label">現病史 (History of Present Illness)</label>
+                        <textarea name="history_present_illness" id="history_present_illness" class="form-control" rows="4"
+                                  placeholder="請描述現病史的詳細資訊"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：生命徵象與檢查 -->
+            <div class="col-md-6">
+                <!-- 生命徵象 -->
+                <div class="form-card">
+                    <h5 class="section-title">生命徵象</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="temperature_celsius" class="form-label">體溫 (°C)</label>
+                            <input type="number" name="temperature_celsius" id="temperature_celsius" class="form-control" 
+                                   step="0.1" min="30" max="45" placeholder="36.5">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="heart_rate_bpm" class="form-label">心率 (bpm)</label>
+                            <input type="number" name="heart_rate_bpm" id="heart_rate_bpm" class="form-control" 
+                                   min="30" max="200" placeholder="72">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="blood_pressure_systolic" class="form-label">收縮壓 (mmHg)</label>
+                            <input type="number" name="blood_pressure_systolic" id="blood_pressure_systolic" class="form-control" 
+                                   min="50" max="250" placeholder="120">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="blood_pressure_diastolic" class="form-label">舒張壓 (mmHg)</label>
+                            <input type="number" name="blood_pressure_diastolic" id="blood_pressure_diastolic" class="form-control" 
+                                   min="30" max="150" placeholder="80">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="respiratory_rate_rpm" class="form-label">呼吸率 (rpm)</label>
+                            <input type="number" name="respiratory_rate_rpm" id="respiratory_rate_rpm" class="form-control" 
+                                   min="8" max="40" placeholder="16">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="oxygen_saturation" class="form-label">血氧飽和度 (%)</label>
+                            <input type="number" name="oxygen_saturation" id="oxygen_saturation" class="form-control" 
+                                   min="70" max="100" placeholder="98">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="weight_kg" class="form-label">體重 (kg)</label>
+                            <input type="number" name="weight_kg" id="weight_kg" class="form-control" 
+                                   step="0.1" min="1" max="300" placeholder="70">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="height_cm" class="form-label">身高 (cm)</label>
+                            <input type="number" name="height_cm" id="height_cm" class="form-control" 
+                                   step="0.1" min="30" max="250" placeholder="170">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 理學檢查 -->
+                <div class="form-card">
+                    <h5 class="section-title">理學檢查</h5>
+                    
+                    <div class="mb-3">
+                        <label for="physical_examination" class="form-label">理學檢查結果</label>
+                        <textarea name="physical_examination" id="physical_examination" class="form-control" rows="4"
+                                  placeholder="請記錄理學檢查的發現"></textarea>
+                    </div>
+                </div>
+
+                <!-- 評估與計劃 -->
+                <div class="form-card">
+                    <h5 class="section-title">評估與計劃</h5>
+                    
+                    <div class="mb-3">
+                        <label for="assessment" class="form-label">評估 (Assessment)</label>
+                        <textarea name="assessment" id="assessment" class="form-control" rows="3"
+                                  placeholder="請記錄臨床評估"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="plan" class="form-label">計劃 (Plan)</label>
+                        <textarea name="plan" id="plan" class="form-control" rows="3"
+                                  placeholder="請記錄治療計劃"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">備註</label>
+                        <textarea name="notes" id="notes" class="form-control" rows="2"
+                                  placeholder="其他備註事項"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提交按鈕 -->
+        <div class="form-card">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'encounters_web:encounter_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> 取消
+                </a>
+                
+                <div>
+                    <button type="button" class="btn btn-info" id="saveDraftBtn">
+                        <i class="fas fa-save"></i> 儲存草稿
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> 建立診療記錄
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 患者選擇變更處理
+    document.getElementById('patient').addEventListener('change', function() {
+        const patientInfo = document.getElementById('patientInfo');
+        const patientDetails = document.getElementById('patientDetails');
+        const selectedOption = this.options[this.selectedIndex];
+        
+        if (this.value) {
+            const info = selectedOption.getAttribute('data-info');
+            patientDetails.innerHTML = info;
+            patientInfo.style.display = 'block';
+        } else {
+            patientInfo.style.display = 'none';
+        }
+    });
+
+    // 表單提交處理
+    document.getElementById('encounterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 收集表單數據
+        const formData = new FormData(this);
+        
+        // 這裡可以加入API調用來創建診療記錄
+        console.log('表單數據:', Object.fromEntries(formData));
+        
+        // 暫時顯示成功訊息
+        alert('診療記錄創建成功！');
+        window.location.href = "{% url 'encounters_web:encounter_list' %}";
+    });
+
+    // 儲存草稿
+    document.getElementById('saveDraftBtn').addEventListener('click', function() {
+        const formData = new FormData(document.getElementById('encounterForm'));
+        
+        // 這裡可以加入API調用來儲存草稿
+        console.log('儲存草稿:', Object.fromEntries(formData));
+        
+        alert('草稿已儲存！');
+    });
+
+    // 自動計算BMI
+    function calculateBMI() {
+        const weight = parseFloat(document.getElementById('weight_kg').value);
+        const height = parseFloat(document.getElementById('height_cm').value);
+        
+        if (weight && height) {
+            const heightM = height / 100;
+            const bmi = (weight / (heightM * heightM)).toFixed(1);
+            
+            // 可以在這裡顯示BMI
+            console.log('BMI:', bmi);
+        }
+    }
+
+    document.getElementById('weight_kg').addEventListener('input', calculateBMI);
+    document.getElementById('height_cm').addEventListener('input', calculateBMI);
+
+    // 初始化：如果有預選患者，顯示患者資訊
+    if (document.getElementById('patient').value) {
+        document.getElementById('patient').dispatchEvent(new Event('change'));
+    }
+</script>
+{% endblock %}

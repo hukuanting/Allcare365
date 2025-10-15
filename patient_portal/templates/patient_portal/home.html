@@ -1,0 +1,175 @@
+{% extends 'patient_portal/base.html' %}
+
+{% block title %}Welcome - Patient Portal{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="text-center mb-5">
+                <h1 class="display-4">
+                    <i class="fas fa-hospital-user text-primary"></i> 
+                    Patient Portal
+                </h1>
+                <p class="lead text-muted">
+                    Secure access to your medical information and healthcare services
+                </p>
+            </div>
+
+            {% if user.is_authenticated %}
+                <!-- Authenticated User Welcome -->
+                <div class="alert alert-success" role="alert">
+                    <h4 class="alert-heading">Welcome back, {{ user.get_full_name|default:user.username }}!</h4>
+                    <p>You're successfully logged in to your patient portal. Access your medical records, schedule appointments, and communicate with your healthcare team.</p>
+                    <hr>
+                    <p class="mb-0">
+                        <a href="{% url 'patient_portal:dashboard' %}" class="btn btn-success">
+                            <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                        </a>
+                    </p>
+                </div>
+
+                <!-- Quick Access Cards -->
+                <div class="row mt-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-calendar-alt fa-3x text-primary mb-3"></i>
+                                <h5 class="card-title">Appointments</h5>
+                                <p class="card-text">View upcoming appointments and schedule new ones</p>
+                                <a href="{% url 'patient_portal:appointments' %}" class="btn btn-primary">
+                                    <i class="fas fa-calendar-alt"></i> View Appointments
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-medical fa-3x text-success mb-3"></i>
+                                <h5 class="card-title">Medical Records</h5>
+                                <p class="card-text">Access your complete medical history and records</p>
+                                <a href="{% url 'patient_portal:medical_records' %}" class="btn btn-success">
+                                    <i class="fas fa-file-medical"></i> View Records
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-flask fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Lab Results</h5>
+                                <p class="card-text">Review your latest lab results and test reports</p>
+                                <a href="{% url 'patient_portal:lab_results' %}" class="btn btn-warning">
+                                    <i class="fas fa-flask"></i> View Results
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-envelope fa-3x text-info mb-3"></i>
+                                <h5 class="card-title">Messages</h5>
+                                <p class="card-text">Communicate securely with your healthcare team</p>
+                                <a href="{% url 'patient_portal:messages' %}" class="btn btn-info">
+                                    <i class="fas fa-envelope"></i> View Messages
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            {% else %}
+                <!-- Non-authenticated User Welcome -->
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Welcome to Your Patient Portal</h3>
+                        <p class="card-text">
+                            The Patient Portal provides you with secure, convenient access to your medical information 
+                            and healthcare services. Through this portal, you can:
+                        </p>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success"></i> View your medical records</li>
+                                    <li><i class="fas fa-check text-success"></i> Schedule appointments</li>
+                                    <li><i class="fas fa-check text-success"></i> Review lab results</li>
+                                    <li><i class="fas fa-check text-success"></i> Request prescription refills</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success"></i> Communicate with providers</li>
+                                    <li><i class="fas fa-check text-success"></i> Update personal information</li>
+                                    <li><i class="fas fa-check text-success"></i> Access health education</li>
+                                    <li><i class="fas fa-check text-success"></i> View billing information</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <a href="{% url 'patient_portal:login' %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt"></i> Login to Your Portal
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Information Cards -->
+                <div class="row mt-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-shield-alt fa-2x text-primary mb-3"></i>
+                                <h5 class="card-title">Secure & Private</h5>
+                                <p class="card-text">Your information is protected with bank-level security and HIPAA compliance.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <i class="fas fa-clock fa-2x text-success mb-3"></i>
+                                <h5 class="card-title">24/7 Access</h5>
+                                <p class="card-text">Access your health information anytime, anywhere, from any device.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <i class="fas fa-users fa-2x text-info mb-3"></i>
+                                <h5 class="card-title">Better Care</h5>
+                                <p class="card-text">Enhanced communication with your healthcare team for better outcomes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Getting Started -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Getting Started</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>New to the Patient Portal?</strong></p>
+                        <p>To access your patient portal, you'll need login credentials provided by your healthcare provider. 
+                           If you don't have login information, please contact your provider's office.</p>
+                        
+                        <div class="alert alert-info">
+                            <h6>Need Help?</h6>
+                            <p class="mb-0">
+                                Contact your healthcare provider's office for assistance with registration or login issues.
+                                Technical support is available during business hours.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

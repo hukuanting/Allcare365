@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}健檢管理系統{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .metric-card .metric-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .metric-card .metric-label {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    
+    .quick-action-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .quick-action-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .recent-screenings-table {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    
+    .table-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+    }
+    
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .status-normal {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-abnormal {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 頁面標題 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-primary fw-bold">
+                <i class="fas fa-heartbeat me-2"></i>健檢管理系統
+            </h2>
+            <p class="text-muted">USCDI ONC 標準健康檢查數據管理平台</p>
+        </div>
+    </div>
+
+    <!-- 統計指標 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ total_screenings }}</div>
+                <div class="metric-label">總檢查數</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ this_month_screenings }}</div>
+                <div class="metric-label">本月檢查</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ pending_results }}</div>
+                <div class="metric-label">待處理結果</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-number">{{ abnormal_results }}</div>
+                <div class="metric-label">異常結果</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速操作 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">快速操作</h4>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'health_screening:create' %}" class="text-decoration-none">
+                <div class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <h5>新增健檢記錄</h5>
+                    <p class="text-muted">手動輸入健檢數據</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'health_screening:bulk_import' %}" class="text-decoration-none">
+                <div class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <h5>批量匯入</h5>
+                    <p class="text-muted">Excel/CSV 批量上傳</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'health_screening:list' %}" class="text-decoration-none">
+                <div class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <h5>檢查記錄</h5>
+                    <p class="text-muted">查看所有健檢記錄</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'health_screening:reports' %}" class="text-decoration-none">
+                <div class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h5>統計報告</h5>
+                    <p class="text-muted">生成分析報告</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 最近的健檢記錄 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="recent-screenings-table">
+                <div class="table-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>最近的健檢記錄
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>患者姓名</th>
+                                <th>檢查日期</th>
+                                <th>檢查類型</th>
+                                <th>BMI</th>
+                                <th>血壓</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for screening in recent_screenings %}
+                            <tr>
+                                <td>
+                                    <strong>{{ screening.patient.first_name }} {{ screening.patient.last_name }}</strong>
+                                    <br><small class="text-muted">{{ screening.patient.patient_id }}</small>
+                                </td>
+                                <td>{{ screening.screening_date|date:"Y-m-d" }}</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ screening.get_screening_type_display }}</span>
+                                </td>
+                                <td>
+                                    {% if screening.vital_signs %}
+                                        {{ screening.vital_signs.bmi|floatformat:1 }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if screening.vital_signs %}
+                                        {{ screening.vital_signs.systolic_bp_mmhg }}/{{ screening.vital_signs.diastolic_bp_mmhg }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if screening.vital_signs %}
+                                        <span class="status-badge status-normal">已完成</span>
+                                    {% else %}
+                                        <span class="status-badge status-pending">待完成</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'health_screening:detail' screening.id %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'health_screening:edit' screening.id %}" 
+                                           class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-2x mb-3 d-block"></i>
+                                    尚無健檢記錄
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 初始化工具提示
+    $('[data-bs-toggle="tooltip"]').tooltip();
+    
+    // 卡片懸停效果
+    $('.quick-action-card').hover(
+        function() {
+            $(this).find('.quick-action-icon').addClass('animated pulse');
+        },
+        function() {
+            $(this).find('.quick-action-icon').removeClass('animated pulse');
+        }
+    );
+});
+</script>
+{% endblock %}

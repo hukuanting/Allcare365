@@ -1,0 +1,494 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}預約排程 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<style>
+    .schedule-container {
+        background: white;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .provider-card {
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .provider-card:hover {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .time-slot {
+        padding: 0.5rem;
+        margin: 0.25rem;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .time-slot.available {
+        background-color: #1cc88a;
+        color: white;
+    }
+    
+    .time-slot.occupied {
+        background-color: #e74a3b;
+        color: white;
+    }
+    
+    .time-slot.pending {
+        background-color: #f6c23e;
+        color: white;
+    }
+    
+    .time-slot:hover {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+    
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .schedule-legend {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-calendar-week text-primary"></i>
+            預約排程管理
+        </h1>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary" id="btnTodaySchedule">
+                <i class="fas fa-calendar-day"></i> 今日排程
+            </button>
+            <button type="button" class="btn btn-success" id="btnWeekSchedule">
+                <i class="fas fa-calendar-week"></i> 週排程
+            </button>
+            <button type="button" class="btn btn-info" id="btnManageSchedule">
+                <i class="fas fa-cog"></i> 排程設定
+            </button>
+        </div>
+    </div>
+
+    <!-- Schedule Legend -->
+    <div class="schedule-legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #1cc88a;"></div>
+            <span>可預約</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e74a3b;"></div>
+            <span>已預約</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #f6c23e;"></div>
+            <span>待確認</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #6c757d;"></div>
+            <span>不可預約</span>
+        </div>
+    </div>
+
+    <!-- Date Selection -->
+    <div class="schedule-container">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="scheduleDate"><strong>選擇日期</strong></label>
+                    <input type="date" class="form-control" id="scheduleDate" value="">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="scheduleProvider"><strong>選擇醫護人員</strong></label>
+                    <select class="form-control" id="scheduleProvider">
+                        <option value="">所有醫護人員</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Provider Schedule Grid -->
+    <div class="schedule-container">
+        <h5 class="mb-3">
+            <i class="fas fa-user-md text-primary"></i>
+            醫護人員排程
+        </h5>
+        <div id="providerScheduleGrid" class="schedule-grid">
+            <!-- Provider schedules will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Time Slot Details -->
+    <div class="schedule-container">
+        <h5 class="mb-3">
+            <i class="fas fa-clock text-primary"></i>
+            時段詳情
+        </h5>
+        <div id="timeSlotDetails">
+            <div class="text-center text-muted">
+                <i class="fas fa-info-circle fa-2x"></i>
+                <p class="mt-2">請點選上方時段查看詳細資訊</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Schedule Management Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scheduleModalTitle">排程管理</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="scheduleModalBody">
+                <!-- Schedule form will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveSchedule">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Appointment Creation Modal -->
+<div class="modal fade" id="appointmentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增預約</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="appointmentForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="patientSearch">病患搜尋</label>
+                                <input type="text" class="form-control" id="patientSearch" placeholder="輸入病患姓名或ID">
+                                <small class="form-text text-muted">開始輸入以搜尋病患</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="appointmentType">預約類型</label>
+                                <select class="form-control" id="appointmentType" required>
+                                    <option value="">請選擇預約類型</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="appointmentNotes">備註</label>
+                                <textarea class="form-control" id="appointmentNotes" rows="3" placeholder="預約相關備註..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="createAppointment">建立預約</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    $('#scheduleDate').val(today);
+    
+    // Initialize the schedule view
+    loadProviders();
+    loadSchedule();
+    
+    // Event handlers
+    $('#scheduleDate, #scheduleProvider').on('change', function() {
+        loadSchedule();
+    });
+    
+    $('#btnTodaySchedule').on('click', function() {
+        $('#scheduleDate').val(today);
+        loadSchedule();
+    });
+    
+    $('#btnWeekSchedule').on('click', function() {
+        showWeekSchedule();
+    });
+    
+    $('#btnManageSchedule').on('click', function() {
+        showScheduleManagement();
+    });
+    
+    function loadProviders() {
+        // Load providers list
+        $.get('/api/v1/administration/api/users/', function(data) {
+            const select = $('#scheduleProvider');
+            select.empty().append('<option value="">所有醫護人員</option>');
+            
+            if (data.results) {
+                data.results.forEach(function(provider) {
+                    if (provider.role && provider.role.includes('doctor')) {
+                        select.append(`<option value="${provider.id}">${provider.first_name} ${provider.last_name}</option>`);
+                    }
+                });
+            }
+        }).fail(function() {
+            showNotification('無法載入醫護人員列表', 'error');
+        });
+    }
+    
+    function loadSchedule() {
+        const date = $('#scheduleDate').val();
+        const providerId = $('#scheduleProvider').val();
+        
+        if (!date) return;
+        
+        // Show loading
+        $('#providerScheduleGrid').html(`
+            <div class="text-center">
+                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                <p class="mt-2">載入排程中...</p>
+            </div>
+        `);
+        
+        // Load schedule data
+        const params = { date: date };
+        if (providerId) params.provider = providerId;
+        
+        $.get('/api/v1/appointments/api/schedules/', { params })
+            .done(function(data) {
+                renderScheduleGrid(data);
+            })
+            .fail(function() {
+                $('#providerScheduleGrid').html(`
+                    <div class="text-center text-muted">
+                        <i class="fas fa-exclamation-circle fa-2x"></i>
+                        <p class="mt-2">無法載入排程資料</p>
+                    </div>
+                `);
+            });
+    }
+    
+    function renderScheduleGrid(scheduleData) {
+        const grid = $('#providerScheduleGrid');
+        grid.empty();
+        
+        if (!scheduleData || scheduleData.length === 0) {
+            grid.html(`
+                <div class="text-center text-muted">
+                    <i class="fas fa-calendar-times fa-2x"></i>
+                    <p class="mt-2">此日期暫無排程</p>
+                </div>
+            `);
+            return;
+        }
+        
+        scheduleData.forEach(function(provider) {
+            const providerCard = $(`
+                <div class="provider-card">
+                    <h6 class="mb-3">
+                        <i class="fas fa-user-md text-primary"></i>
+                        ${provider.name}
+                    </h6>
+                    <div class="time-slots"></div>
+                </div>
+            `);
+            
+            const slotsContainer = providerCard.find('.time-slots');
+            
+            if (provider.slots && provider.slots.length > 0) {
+                provider.slots.forEach(function(slot) {
+                    const slotElement = $(`
+                        <div class="time-slot ${slot.status}" data-slot-id="${slot.id}" data-provider-id="${provider.id}">
+                            <strong>${slot.start_time} - ${slot.end_time}</strong>
+                            <br>
+                            <small>${slot.patient || '可預約'}</small>
+                        </div>
+                    `);
+                    
+                    slotElement.on('click', function() {
+                        handleSlotClick(slot, provider);
+                    });
+                    
+                    slotsContainer.append(slotElement);
+                });
+            } else {
+                slotsContainer.html('<p class="text-muted">此日期無時段安排</p>');
+            }
+            
+            grid.append(providerCard);
+        });
+    }
+    
+    function handleSlotClick(slot, provider) {
+        // Show slot details
+        const details = $('#timeSlotDetails');
+        
+        if (slot.status === 'available') {
+            // Available slot - show appointment creation
+            details.html(`
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-plus-circle"></i> 可預約時段</h6>
+                    <p><strong>醫護人員:</strong> ${provider.name}</p>
+                    <p><strong>時段:</strong> ${slot.start_time} - ${slot.end_time}</p>
+                    <button class="btn btn-primary btn-sm" onclick="createAppointment('${slot.id}', '${provider.id}')">
+                        <i class="fas fa-plus"></i> 建立預約
+                    </button>
+                </div>
+            `);
+        } else if (slot.status === 'occupied') {
+            // Occupied slot - show appointment details
+            details.html(`
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-calendar-check"></i> 已預約時段</h6>
+                    <p><strong>醫護人員:</strong> ${provider.name}</p>
+                    <p><strong>時段:</strong> ${slot.start_time} - ${slot.end_time}</p>
+                    <p><strong>病患:</strong> ${slot.patient}</p>
+                    ${slot.appointment_id ? `
+                        <button class="btn btn-info btn-sm" onclick="viewAppointment('${slot.appointment_id}')">
+                            <i class="fas fa-eye"></i> 查看詳情
+                        </button>
+                        <button class="btn btn-warning btn-sm ml-2" onclick="editAppointment('${slot.appointment_id}')">
+                            <i class="fas fa-edit"></i> 編輯
+                        </button>
+                    ` : ''}
+                </div>
+            `);
+        } else {
+            // Pending or unavailable
+            details.html(`
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-clock"></i> ${slot.status === 'pending' ? '待確認時段' : '不可預約時段'}</h6>
+                    <p><strong>醫護人員:</strong> ${provider.name}</p>
+                    <p><strong>時段:</strong> ${slot.start_time} - ${slot.end_time}</p>
+                    ${slot.patient ? `<p><strong>病患:</strong> ${slot.patient}</p>` : ''}
+                </div>
+            `);
+        }
+    }
+    
+    function createAppointment(slotId, providerId) {
+        // Load appointment types
+        $.get('/api/v1/appointments/api/appointment-types/active/')
+            .done(function(types) {
+                const select = $('#appointmentType');
+                select.empty().append('<option value="">請選擇預約類型</option>');
+                types.forEach(function(type) {
+                    select.append(`<option value="${type.id}">${type.name}</option>`);
+                });
+            });
+        
+        // Store slot and provider info
+        $('#appointmentModal').data('slot-id', slotId).data('provider-id', providerId);
+        $('#appointmentModal').modal('show');
+    }
+    
+    $('#createAppointment').on('click', function() {
+        const modal = $('#appointmentModal');
+        const slotId = modal.data('slot-id');
+        const providerId = modal.data('provider-id');
+        
+        const formData = {
+            slot_id: slotId,
+            provider: providerId,
+            appointment_type: $('#appointmentType').val(),
+            notes: $('#appointmentNotes').val()
+        };
+        
+        // Add patient selection logic here
+        // For now, this is a placeholder
+        
+        $.post('/api/v1/appointments/api/appointments/', formData)
+            .done(function() {
+                modal.modal('hide');
+                showNotification('預約建立成功', 'success');
+                loadSchedule();
+            })
+            .fail(function() {
+                showNotification('預約建立失敗', 'error');
+            });
+    });
+    
+    function showWeekSchedule() {
+        // Switch to week view
+        window.location.href = '/appointments/calendar/';
+    }
+    
+    function showScheduleManagement() {
+        // Show schedule management modal
+        $('#scheduleModal').modal('show');
+    }
+    
+    function showNotification(message, type) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        
+        const notification = $(`
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                <i class="fas fa-${icon}"></i> ${message}
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            </div>
+        `);
+        
+        $('body').prepend(notification);
+        
+        setTimeout(function() {
+            notification.alert('close');
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

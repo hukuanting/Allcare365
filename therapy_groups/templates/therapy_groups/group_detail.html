@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ group.name }} - Therapy Groups{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">{{ group.name }}</h3>
+                    <div>
+                        <a href="#" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a href="{% url 'therapy_groups:session_list' %}" class="btn btn-info">
+                            <i class="fas fa-calendar"></i> Sessions
+                        </a>
+                        <a href="{% url 'therapy_groups:group_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Group Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Type:</strong></td>
+                                    <td>{{ group.get_therapy_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <span class="badge badge-{% if group.status == 'active' %}success{% elif group.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                            {{ group.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Start Date:</strong></td>
+                                    <td>{{ group.start_date|date:"M d, Y" }}</td>
+                                </tr>
+                                {% if group.end_date %}
+                                <tr>
+                                    <td><strong>End Date:</strong></td>
+                                    <td>{{ group.end_date|date:"M d, Y" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Session Duration:</strong></td>
+                                    <td>{{ group.session_duration }} minutes</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Max Participants:</strong></td>
+                                    <td>{{ group.max_participants }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Current Participants:</strong></td>
+                                    <td>{{ group.current_participants_count }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Available Slots:</strong></td>
+                                    <td>{{ group.available_slots }}</td>
+                                </tr>
+                                {% if group.location %}
+                                <tr>
+                                    <td><strong>Location:</strong></td>
+                                    <td>{{ group.location }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if group.room_number %}
+                                <tr>
+                                    <td><strong>Room:</strong></td>
+                                    <td>{{ group.room_number }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Staff Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Primary Therapist:</strong></td>
+                                    <td>{{ group.primary_therapist.get_full_name }}</td>
+                                </tr>
+                                {% if group.co_therapists.exists %}
+                                <tr>
+                                    <td><strong>Co-Therapists:</strong></td>
+                                    <td>
+                                        {% for therapist in group.co_therapists.all %}
+                                            {{ therapist.get_full_name }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if group.description %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Description</h5>
+                            <p>{{ group.description|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if group.treatment_goals %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Treatment Goals</h5>
+                            <p>{{ group.treatment_goals|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if participants %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h5>Participants</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Status</th>
+                                            <th>Join Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for participant in participants %}
+                                        <tr>
+                                            <td>{{ participant.patient.first_name }} {{ participant.patient.last_name }}</td>
+                                            <td>
+                                                <span class="badge badge-{% if participant.status == 'active' %}success{% else %}secondary{% endif %}">
+                                                    {{ participant.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ participant.join_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-user"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

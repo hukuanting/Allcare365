@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ encounter.encounter_number }} - 診療記錄詳情 - MedicalCare{% endblock %}
+
+{% block extra_css %}
+<style>
+    .encounter-header {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+        color: white;
+        border-radius: 0.35rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .info-card {
+        background: white;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .status-badge {
+        font-size: 0.85rem;
+        padding: 0.5rem 1rem;
+        border-radius: 10rem;
+        font-weight: 600;
+    }
+    
+    .status-scheduled { background-color: #f6c23e; color: white; }
+    .status-checked_in { background-color: #36b9cc; color: white; }
+    .status-in_progress { background-color: #4e73df; color: white; }
+    .status-completed { background-color: #1cc88a; color: white; }
+    .status-cancelled { background-color: #e74a3b; color: white; }
+    .status-no_show { background-color: #5a5c69; color: white; }
+    
+    .section-title {
+        color: #5a5c69;
+        font-weight: 600;
+        border-bottom: 2px solid #e3e6f0;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .vital-sign {
+        text-align: center;
+        padding: 1rem;
+        border: 1px solid #e3e6f0;
+        border-radius: 0.35rem;
+        background: #f8f9fc;
+    }
+    
+    .vital-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #4e73df;
+    }
+    
+    .vital-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 診療記錄標題 -->
+    <div class="encounter-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="h3 mb-1">{{ encounter.encounter_number }}</h1>
+                <p class="mb-0">{{ encounter.patient.first_name }} {{ encounter.patient.last_name }} | {{ encounter.category.name }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="status-badge status-{{ encounter.encounter_status }}">
+                    {% if encounter.encounter_status == 'scheduled' %}已排程
+                    {% elif encounter.encounter_status == 'checked_in' %}已報到
+                    {% elif encounter.encounter_status == 'in_progress' %}進行中
+                    {% elif encounter.encounter_status == 'completed' %}已完成
+                    {% elif encounter.encounter_status == 'cancelled' %}已取消
+                    {% elif encounter.encounter_status == 'no_show' %}未到
+                    {% else %}{{ encounter.encounter_status }}
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="mb-4">
+        <a href="{% url 'encounters_web:encounter_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+        <a href="{% url 'encounters_web:encounter_edit' encounter.id %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> 編輯診療記錄
+        </a>
+        <button class="btn btn-info" onclick="window.print()">
+            <i class="fas fa-print"></i> 列印
+        </button>
+    </div>
+
+    <div class="row">
+        <!-- 左側：基本資訊 -->
+        <div class="col-md-6">
+            <!-- 基本資訊 -->
+            <div class="info-card">
+                <h5 class="section-title">基本資訊</h5>
+                <div class="row">
+                    <div class="col-sm-4"><strong>診療號碼:</strong></div>
+                    <div class="col-sm-8">{{ encounter.encounter_number }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>患者:</strong></div>
+                    <div class="col-sm-8">{{ encounter.patient.first_name }} {{ encounter.patient.last_name }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>主治醫護:</strong></div>
+                    <div class="col-sm-8">{{ encounter.primary_provider.user.first_name }} {{ encounter.primary_provider.user.last_name }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>診療類別:</strong></div>
+                    <div class="col-sm-8">
+                        <span class="badge" style="background-color: {{ encounter.category.color_code }}; color: white;">
+                            {{ encounter.category.name }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>診療日期:</strong></div>
+                    <div class="col-sm-8">{{ encounter.encounter_date|date:"Y年m月d日" }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4"><strong>醫療機構:</strong></div>
+                    <div class="col-sm-8">{{ encounter.facility.name }}</div>
+                </div>
+            </div>
+
+            <!-- 主訴與症狀 -->
+            <div class="info-card">
+                <h5 class="section-title">主訴與症狀</h5>
+                <div class="mb-3">
+                    <strong>主訴 (Chief Complaint):</strong>
+                    <p class="mt-2">{{ encounter.chief_complaint|default:"無記錄" }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>現病史 (History of Present Illness):</strong>
+                    <p class="mt-2">{{ encounter.history_present_illness|default:"無記錄" }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>檢查發現 (Physical Examination):</strong>
+                    <p class="mt-2">{{ encounter.physical_examination|default:"無記錄" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：生命徵象與診斷 -->
+        <div class="col-md-6">
+            <!-- 生命徵象 -->
+            <div class="info-card">
+                <h5 class="section-title">生命徵象</h5>
+                <div class="row">
+                    {% if encounter.temperature_celsius %}
+                    <div class="col-md-6 mb-3">
+                        <div class="vital-sign">
+                            <div class="vital-value">{{ encounter.temperature_celsius }}°C</div>
+                            <div class="vital-label">體溫</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if encounter.blood_pressure_systolic and encounter.blood_pressure_diastolic %}
+                    <div class="col-md-6 mb-3">
+                        <div class="vital-sign">
+                            <div class="vital-value">{{ encounter.blood_pressure_systolic }}/{{ encounter.blood_pressure_diastolic }}</div>
+                            <div class="vital-label">血壓 (mmHg)</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if encounter.heart_rate_bpm %}
+                    <div class="col-md-6 mb-3">
+                        <div class="vital-sign">
+                            <div class="vital-value">{{ encounter.heart_rate_bpm }}</div>
+                            <div class="vital-label">心率 (bpm)</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if encounter.respiratory_rate_rpm %}
+                    <div class="col-md-6 mb-3">
+                        <div class="vital-sign">
+                            <div class="vital-value">{{ encounter.respiratory_rate_rpm }}</div>
+                            <div class="vital-label">呼吸率 (rpm)</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if encounter.weight_kg %}
+                    <div class="col-md-6 mb-3">
+                        <div class="vital-sign">
+                            <div class="vital-value">{{ encounter.weight_kg }} kg</div>
+                            <div class="vital-label">體重</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if encounter.height_cm %}
+                    <div class="col-md-6 mb-3">
+                        <div class="vital-sign">
+                            <div class="vital-value">{{ encounter.height_cm }} cm</div>
+                            <div class="vital-label">身高</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if not encounter.temperature_celsius and not encounter.blood_pressure_systolic and not encounter.heart_rate_bpm and not encounter.respiratory_rate_rpm and not encounter.weight_kg and not encounter.height_cm %}
+                <p class="text-muted">無生命徵象記錄</p>
+                {% endif %}
+            </div>
+
+            <!-- 診斷 -->
+            <div class="info-card">
+                <h5 class="section-title">診斷</h5>
+                {% if encounter.diagnoses.all %}
+                <div class="list-group list-group-flush">
+                    {% for diagnosis in encounter.diagnoses.all %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ diagnosis.diagnosis_code }} - {{ diagnosis.diagnosis_description }}</h6>
+                            {% if diagnosis.is_primary %}
+                            <small class="badge bg-primary">主診斷</small>
+                            {% endif %}
+                        </div>
+                        {% if diagnosis.notes %}
+                        <p class="mb-1">{{ diagnosis.notes }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">無診斷記錄</p>
+                {% endif %}
+            </div>
+
+            <!-- 處置與程序 -->
+            <div class="info-card">
+                <h5 class="section-title">處置與程序</h5>
+                {% if encounter.procedures.all %}
+                <div class="list-group list-group-flush">
+                    {% for procedure in encounter.procedures.all %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ procedure.procedure_code }} - {{ procedure.procedure_description }}</h6>
+                            <small class="text-muted">{{ procedure.procedure_date|date:"m/d H:i" }}</small>
+                        </div>
+                        {% if procedure.notes %}
+                        <p class="mb-1">{{ procedure.notes }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">無處置程序記錄</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 下半部：完整記錄 -->
+    <div class="row">
+        <div class="col-12">
+            <!-- 用藥記錄 -->
+            <div class="info-card">
+                <h5 class="section-title">用藥記錄</h5>
+                {% if encounter.medications.all %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>藥品名稱</th>
+                                <th>劑量</th>
+                                <th>頻率</th>
+                                <th>途徑</th>
+                                <th>開始日期</th>
+                                <th>備註</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for medication in encounter.medications.all %}
+                            <tr>
+                                <td>{{ medication.medication_name }}</td>
+                                <td>{{ medication.dosage|default:"-" }}</td>
+                                <td>{{ medication.frequency|default:"-" }}</td>
+                                <td>{{ medication.route|default:"-" }}</td>
+                                <td>{{ medication.start_date|date:"Y-m-d"|default:"-" }}</td>
+                                <td>{{ medication.notes|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">無用藥記錄</p>
+                {% endif %}
+            </div>
+
+            <!-- 評估與計劃 -->
+            <div class="info-card">
+                <h5 class="section-title">評估與計劃</h5>
+                <div class="mb-3">
+                    <strong>評估 (Assessment):</strong>
+                    <p class="mt-2">{{ encounter.assessment|default:"無記錄" }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>計劃 (Plan):</strong>
+                    <p class="mt-2">{{ encounter.plan|default:"無記錄" }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>備註 (Notes):</strong>
+                    <p class="mt-2">{{ encounter.notes|default:"無記錄" }}</p>
+                </div>
+            </div>
+
+            <!-- 系統資訊 -->
+            <div class="info-card">
+                <h5 class="section-title">系統資訊</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>建立時間:</strong> {{ encounter.created_at|date:"Y-m-d H:i:s" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>更新時間:</strong> {{ encounter.updated_at|date:"Y-m-d H:i:s" }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>建立者:</strong> {{ encounter.created_by.first_name }} {{ encounter.created_by.last_name|default:"系統" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>帳務狀態:</strong> 
+                        {% if encounter.billing_status == 'pending' %}待處理
+                        {% elif encounter.billing_status == 'submitted' %}已提交
+                        {% elif encounter.billing_status == 'paid' %}已付款
+                        {% elif encounter.billing_status == 'denied' %}拒絕
+                        {% elif encounter.billing_status == 'partial' %}部分付款
+                        {% else %}{{ encounter.billing_status }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 列印樣式調整
+    window.addEventListener('beforeprint', function() {
+        document.body.classList.add('printing');
+    });
+    
+    window.addEventListener('afterprint', function() {
+        document.body.classList.remove('printing');
+    });
+</script>
+<style>
+    @media print {
+        .btn, .encounter-header .col-md-4 {
+            display: none !important;
+        }
+        
+        .encounter-header {
+            background: #4e73df !important;
+            -webkit-print-color-adjust: exact;
+        }
+        
+        .info-card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}

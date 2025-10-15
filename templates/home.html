@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Allcare365 - 專業健康管理系統{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- 英雄區域 -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-heart-pulse" style="font-size: 4rem; color: var(--primary-color);"></i>
+                </div>
+                <h1 class="display-3 fw-bold mb-3">Allcare365</h1>
+                <p class="lead fs-4 mb-4 text-muted">您的專業健康管理夥伴</p>
+                <p class="fs-5 mb-4">提供全方位的醫療健康管理服務，讓健康管理變得更簡單、更有效率</p>
+                
+                {% if not user.is_authenticated %}
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="{% url 'authentication:login' %}" class="btn btn-primary btn-lg px-4 py-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>立即登入
+                        </a>
+                        <a href="{% url 'authentication:register' %}" class="btn btn-outline-primary btn-lg px-4 py-3">
+                            <i class="fas fa-user-plus me-2"></i>免費註冊
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg px-4 py-3">
+                            <i class="fas fa-tachometer-alt me-2"></i>進入系統
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能特色 -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-5 fw-bold">核心功能</h2>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-users fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">患者管理</h5>
+                    <p class="card-text text-muted">完整的患者資料管理系統，包括基本資料、病史記錄、聯絡資訊等。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-check fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">預約管理</h5>
+                    <p class="card-text text-muted">智能預約系統，支援線上預約、時間管理、提醒通知等功能。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-file-medical fa-3x text-info"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">醫療記錄</h5>
+                    <p class="card-text text-muted">數位化病歷管理，包括診斷記錄、處方籤、檢查報告等。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-pills fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">藥房管理</h5>
+                    <p class="card-text text-muted">藥物庫存管理、處方籤開立、用藥記錄追蹤等功能。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-flask fa-3x text-danger"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">實驗室</h5>
+                    <p class="card-text text-muted">檢驗報告管理、結果追蹤、異常值提醒等實驗室功能。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-chart-bar fa-3x text-secondary"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">報表分析</h5>
+                    <p class="card-text text-muted">多樣化的統計報表，提供數據分析和決策支援。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系統優勢 -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-5 fw-bold">為什麼選擇 Allcare365?</h2>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0 me-3">
+                    <div class="bg-primary rounded-circle p-3 text-white">
+                        <i class="fas fa-shield-alt fa-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="fw-bold">安全可靠</h5>
+                    <p class="text-muted">採用業界最高標準的安全加密技術，確保醫療資料的隱私和安全。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0 me-3">
+                    <div class="bg-success rounded-circle p-3 text-white">
+                        <i class="fas fa-mobile-alt fa-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="fw-bold">行動友善</h5>
+                    <p class="text-muted">響應式設計，支援手機、平板等各種裝置，隨時隨地存取資料。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0 me-3">
+                    <div class="bg-info rounded-circle p-3 text-white">
+                        <i class="fas fa-cogs fa-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="fw-bold">簡單易用</h5>
+                    <p class="text-muted">直觀的使用者介面設計，讓醫護人員能快速上手，提升工作效率。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0 me-3">
+                    <div class="bg-warning rounded-circle p-3 text-white">
+                        <i class="fas fa-headset fa-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="fw-bold">專業支援</h5>
+                    <p class="text-muted">提供全天候技術支援服務，確保系統穩定運行。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 呼籲行動 -->
+    {% if not user.is_authenticated %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg bg-gradient" style="background: var(--warm-gradient);">
+                <div class="card-body text-center py-5 text-white">
+                    <h3 class="fw-bold mb-3">立即開始使用 Allcare365</h3>
+                    <p class="fs-5 mb-4 opacity-90">加入我們，體驗專業的健康管理服務</p>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="{% url 'authentication:register' %}" class="btn btn-light btn-lg px-4 py-3">
+                            <i class="fas fa-rocket me-2"></i>免費開始
+                        </a>
+                        <a href="{% url 'authentication:login' %}" class="btn btn-outline-light btn-lg px-4 py-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>登入系統
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

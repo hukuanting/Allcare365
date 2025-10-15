@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - MedicalCare System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-item {
+            border: 1px solid #e9ecef;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+        .test-item:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .test-item.selected {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+        .category-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <!-- 頁面標題 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h1 class="h3 mb-0"><i class="fas fa-plus-circle me-2"></i>{{ title }}</h1>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="{% url 'laboratory_web:laboratory_dashboard' %}">實驗室管理</a></li>
+                                <li class="breadcrumb-item"><a href="{% url 'laboratory_web:lab_order_list' %}">檢驗申請單</a></li>
+                                <li class="breadcrumb-item active">新增申請單</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div>
+                        <a href="{% url 'laboratory_web:lab_order_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>返回列表
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" id="orderForm">
+            {% csrf_token %}
+            <div class="row">
+                <!-- 患者和醫師資訊 -->
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>基本資訊</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="patient_id" class="form-label">選擇患者 *</label>
+                                <select class="form-select" id="patient_id" name="patient_id" required>
+                                    <option value="">請選擇患者</option>
+                                    {% for patient in patients %}
+                                    <option value="{{ patient.id }}">
+                                        {{ patient.first_name }} {{ patient.last_name }} ({{ patient.medical_record_number }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ordering_provider_id" class="form-label">申請醫師 *</label>
+                                <select class="form-select" id="ordering_provider_id" name="ordering_provider_id" required>
+                                    <option value="">請選擇醫師</option>
+                                    {% for provider in providers %}
+                                    <option value="{{ provider.id }}">
+                                        {{ provider.user.first_name }} {{ provider.user.last_name }} - {{ provider.primary_specialty }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">優先級</label>
+                                <select class="form-select" id="priority" name="priority">
+                                    <option value="routine">常規</option>
+                                    <option value="asap">優先</option>
+                                    <option value="urgent">緊急</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">備註說明</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                          placeholder="請輸入相關備註或特殊要求..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 已選檢驗項目 -->
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-check-circle me-2"></i>已選項目 
+                                <span class="badge bg-light text-dark" id="selectedCount">0</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="selectedTests" class="mb-3">
+                                <p class="text-muted">尚未選擇檢驗項目</p>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                                    <i class="fas fa-save me-1"></i>建立申請單
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 檢驗項目選擇 -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header category-header">
+                            <h5 class="mb-0"><i class="fas fa-vials me-2"></i>選擇檢驗項目</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- 搜尋框 -->
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="testSearch" 
+                                           placeholder="搜尋檢驗項目名稱或代碼...">
+                                </div>
+                            </div>
+
+                            <!-- 檢驗項目分類 -->
+                            {% for category in test_categories %}
+                            <div class="category-section mb-4">
+                                <h6 class="category-title bg-light p-2 rounded">
+                                    <i class="fas fa-folder-open me-2"></i>{{ category.name }}
+                                    <span class="badge bg-info">{{ category.tests.count }}項</span>
+                                </h6>
+                                
+                                <div class="row">
+                                    {% for test in category.tests.all %}
+                                    <div class="col-md-6">
+                                        <div class="test-item" data-test-id="{{ test.id }}" data-test-name="{{ test.name }}">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       name="test_ids" value="{{ test.id }}" 
+                                                       id="test_{{ test.id }}">
+                                                <label class="form-check-label w-100" for="test_{{ test.id }}">
+                                                    <div>
+                                                        <strong>{{ test.name }}</strong>
+                                                        {% if test.short_name %}
+                                                            <small class="text-muted">({{ test.short_name }})</small>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        <i class="fas fa-vial me-1"></i>{{ test.get_specimen_type_display }}
+                                                        {% if test.units %}
+                                                            | {{ test.units }}
+                                                        {% endif %}
+                                                        {% if test.average_tat %}
+                                                            | TAT: {{ test.average_tat }}小時
+                                                        {% endif %}
+                                                    </div>
+                                                    {% if test.requires_fasting %}
+                                                    <div class="small text-warning">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>需要空腹
+                                                    </div>
+                                                    {% endif %}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const testCheckboxes = document.querySelectorAll('input[name="test_ids"]');
+            const selectedTestsDiv = document.getElementById('selectedTests');
+            const selectedCountSpan = document.getElementById('selectedCount');
+            const submitBtn = document.getElementById('submitBtn');
+            const searchInput = document.getElementById('testSearch');
+            
+            // 更新已選項目顯示
+            function updateSelectedTests() {
+                const selected = Array.from(testCheckboxes).filter(cb => cb.checked);
+                selectedCountSpan.textContent = selected.length;
+                
+                if (selected.length === 0) {
+                    selectedTestsDiv.innerHTML = '<p class="text-muted">尚未選擇檢驗項目</p>';
+                    submitBtn.disabled = true;
+                } else {
+                    const selectedHtml = selected.map(cb => {
+                        const testItem = cb.closest('.test-item');
+                        const testName = testItem.dataset.testName;
+                        return `<div class="badge bg-success me-1 mb-1">${testName}</div>`;
+                    }).join('');
+                    selectedTestsDiv.innerHTML = selectedHtml;
+                    submitBtn.disabled = false;
+                }
+            }
+            
+            // 檢驗項目選擇事件
+            testCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const testItem = this.closest('.test-item');
+                    if (this.checked) {
+                        testItem.classList.add('selected');
+                    } else {
+                        testItem.classList.remove('selected');
+                    }
+                    updateSelectedTests();
+                });
+            });
+            
+            // 搜尋功能
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                document.querySelectorAll('.test-item').forEach(item => {
+                    const testName = item.dataset.testName.toLowerCase();
+                    if (testName.includes(searchTerm)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+            
+            // 表單驗證
+            document.getElementById('orderForm').addEventListener('submit', function(e) {
+                const patientId = document.getElementById('patient_id').value;
+                const providerId = document.getElementById('ordering_provider_id').value;
+                const selectedTests = Array.from(testCheckboxes).filter(cb => cb.checked);
+                
+                if (!patientId) {
+                    alert('請選擇患者');
+                    e.preventDefault();
+                    return;
+                }
+                
+                if (!providerId) {
+                    alert('請選擇申請醫師');
+                    e.preventDefault();
+                    return;
+                }
+                
+                if (selectedTests.length === 0) {
+                    alert('請至少選擇一項檢驗項目');
+                    e.preventDefault();
+                    return;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
