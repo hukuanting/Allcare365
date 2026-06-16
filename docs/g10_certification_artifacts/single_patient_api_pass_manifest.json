@@ -1,0 +1,48 @@
+{
+  "status": "passed_in_inferno_user_reported",
+  "reported_pass_date": "2026-05-29",
+  "suite": "ONC Certification g10 Single Patient API",
+  "inferno_group": "12",
+  "us_core_version": "7.0.0",
+  "fhir_version": "4.0.1",
+  "smart_version_floor": "2.0.0",
+  "golden_patient": {
+    "name": "Justin Hu",
+    "id": "00000000-0000-4000-a000-000000000001"
+  },
+  "fhir_base_path": "/fhir/R4",
+  "public_tunnel_policy": "Cloudflare quick tunnel host is ephemeral and must not be hard-coded in backend certification logic.",
+  "source_of_truth": [
+    "Relational DB",
+    "US Core semantic mapping",
+    "Golden patient seed",
+    "Projector contracts",
+    "Deterministic FHIR projection",
+    "Inferno validation"
+  ],
+  "local_regression_guard": ".\\verify_onc_single_patient_api.ps1",
+  "required_local_checks": [
+    ".\\venv\\Scripts\\python.exe manage.py check",
+    ".\\venv\\Scripts\\python.exe -m unittest tests.test_uscore_projection_contracts"
+  ],
+  "certification_locked_paths": [
+    "apps/integration/fhir_integration/views.py",
+    "apps/integration/fhir_integration/fhir_context.py",
+    "apps/integration/fhir_integration/fhir_search/",
+    "apps/integration/fhir_integration/projectors/",
+    "apps/integration/fhir_integration/terminology.py",
+    "apps/integration/fhir_integration/resource_identity.py",
+    "apps/integration/fhir_integration/reference_builder.py",
+    "apps/integration/fhir_integration/reference_resolution.py",
+    "apps/integration/fhir_integration/meta_builder.py",
+    "apps/integration/fhir_integration/capability_statement.py",
+    "apps/integration/fhir_integration/uscore_capability.py",
+    "apps/integration/fhir_integration/projection_contracts.py",
+    "apps/integration/fhir_integration/g10_testkit.py",
+    "medical_system/settings.py",
+    "medical_system/urls.py",
+    "apps/core/authentication/"
+  ],
+  "archive_document": "docs/onc_single_patient_api_us_core_7_pass_archive.md",
+  "repair_log": "ONC_CERTIFICATION_LOG.md"
+}

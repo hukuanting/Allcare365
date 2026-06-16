@@ -1,83 +1,110 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import LockIcon from '@mui/icons-material/Lock';
 import { checkAuthStatus } from '../utils/auth';
+import { hasAnyRole } from '../utils/roles';
 
-function ProtectedRoute({ children }) {
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+function ProtectedRoute({ children, allowedRoles = [] }) {
+  const location = useLocation();
+  const [authState, setAuthState] = useState({
+    loading: true,
+    authenticated: false,
+    userInfo: null,
+  });
 
   useEffect(() => {
-    const checkAuth = () => {
-      console.log('ProtectedRoute: 檢查認證狀態');
-      
-      const authResult = checkAuthStatus();
-      
-      console.log('ProtectedRoute auth result:', authResult);
-      
-      if (authResult.isAuthenticated) {
-        console.log('ProtectedRoute: 認證通過');
-        setIsAuthenticated(true);
-      } else {
-        console.log('ProtectedRoute: 認證失敗', authResult.reason);
-        setIsAuthenticated(false);
-      }
-      setIsChecking(false);
+    const evaluate = () => {
+      const result = checkAuthStatus();
+      setAuthState({
+        loading: false,
+        authenticated: result.isAuthenticated,
+        userInfo: result.userInfo || null,
+      });
     };
 
-    // 初始檢查
-    checkAuth();
-    
-    // 監聽認證狀態變更事件
+    evaluate();
+
     const handleAuthChange = (event) => {
-      console.log('ProtectedRoute: 收到認證狀態變更事件', event.detail);
-      
-      if (event.detail.isAuthenticated) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
-      setIsChecking(false);
+      const result = checkAuthStatus();
+      setAuthState({
+        loading: false,
+        authenticated: Boolean(event.detail?.isAuthenticated),
+        userInfo: event.detail?.userInfo || result.userInfo || null,
+      });
     };
-    
-    // 監聽會話登出事件
+
     const handleSessionLogout = () => {
-      console.log('ProtectedRoute: 收到會話登出事件');
-      setIsAuthenticated(false);
-      setIsChecking(false);
+      setAuthState({ loading: false, authenticated: false, userInfo: null });
     };
-    
+
     window.addEventListener('auth-change', handleAuthChange);
     window.addEventListener('session-logout', handleSessionLogout);
-    
+
     return () => {
       window.removeEventListener('auth-change', handleAuthChange);
       window.removeEventListener('session-logout', handleSessionLogout);
     };
   }, []);
 
-  if (isChecking) {
+  if (authState.loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '200px',
-        fontSize: '16px',
-        color: '#666'
-      }}>
-        <div>
-          <div style={{ marginBottom: '10px' }}>🔐</div>
-          檢查認證狀態...
-        </div>
-      </div>
+      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 320 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <CircularProgress size={24} />
+          <Typography color="text.secondary">Checking session</Typography>
+        </Box>
+      </Box>
     );
   }
-  
-  if (!isAuthenticated) {
-    console.log('ProtectedRoute: 未認證，重定向到登入頁');
-    return <Navigate to="/login" replace />;
+
+  if (!authState.authenticated) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
-  
+
+  if (!hasAnyRole(authState.userInfo, allowedRoles)) {
+    return (
+      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 420, px: 2 }}>
+        <Paper
+          sx={{
+            maxWidth: 520,
+            width: '100%',
+            p: 3,
+            border: '1px solid #e3ebf4',
+            textAlign: 'center',
+          }}
+        >
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              mx: 'auto',
+              mb: 2,
+              borderRadius: 2,
+              display: 'grid',
+              placeItems: 'center',
+              color: 'primary.main',
+              bgcolor: 'rgba(25,118,210,0.08)',
+            }}
+          >
+            <LockIcon />
+          </Box>
+          <Typography variant="h5">Access restricted</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+            This workspace is limited to approved clinical and research roles.
+          </Typography>
+          <Button variant="contained" onClick={() => window.history.back()}>
+            Go back
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
   return children;
 }
 

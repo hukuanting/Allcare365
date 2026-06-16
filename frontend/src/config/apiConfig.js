@@ -41,7 +41,7 @@ export const API_ENDPOINTS = {
     UPDATE: (id) => `/api/health-screening/screenings/${id}/`,
     DELETE: (id) => `/api/health-screening/screenings/${id}/`,
     PARSE_FILE: '/api/health-screening/parse-file/',
-    BULK_IMPORT: '/api/health-screening/bulk-import/',
+    BULK_IMPORT: '/api/health-screening/fhir-import/',
     RISK_ANALYSIS: (id) => `/api/health-screening/screenings/${id}/calculate_comprehensive_risk/`,
     EXPORT_PDF: (id) => `/api/health-screening/screenings/${id}/export_pdf/`,
     EXPORT_EXCEL: '/api/health-screening/export_excel/',

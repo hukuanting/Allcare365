@@ -1,0 +1,394 @@
+[
+    {
+        "profile_dir":  "allergy_intolerance",
+        "source":  "AllergyIntolerance",
+        "path":  "patient",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "care_plan",
+        "source":  "CarePlan",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "care_team",
+        "source":  "CareTeam",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "care_team",
+        "source":  "CareTeam",
+        "path":  "participant.member",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "care_team",
+        "source":  "CareTeam",
+        "path":  "participant.member",
+        "target":  "PractitionerRole",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitionerrole"
+    },
+    {
+        "profile_dir":  "care_team",
+        "source":  "CareTeam",
+        "path":  "participant.member",
+        "target":  "RelatedPerson",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-relatedperson"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "source":  "Condition",
+        "path":  "encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "source":  "Condition",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "coverage",
+        "source":  "Coverage",
+        "path":  "payor",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "coverage",
+        "source":  "Coverage",
+        "path":  "beneficiary",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "device",
+        "source":  "Device",
+        "path":  "patient",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "source":  "DiagnosticReport",
+        "path":  "encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "source":  "DiagnosticReport",
+        "path":  "result",
+        "target":  "Observation",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-result"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "source":  "DiagnosticReport",
+        "path":  "performer",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "source":  "DiagnosticReport",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "source":  "DiagnosticReport",
+        "path":  "performer",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "source":  "DocumentReference",
+        "path":  "context.encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "source":  "DocumentReference",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "source":  "DocumentReference",
+        "path":  "author",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "encounter",
+        "source":  "Encounter",
+        "path":  "reasonReference",
+        "target":  "Condition",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns"
+    },
+    {
+        "profile_dir":  "encounter",
+        "source":  "Encounter",
+        "path":  "location.location",
+        "target":  "Location",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-location"
+    },
+    {
+        "profile_dir":  "encounter",
+        "source":  "Encounter",
+        "path":  "serviceProvider",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "encounter",
+        "source":  "Encounter",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "encounter",
+        "source":  "Encounter",
+        "path":  "participant.individual",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "goal",
+        "source":  "Goal",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "immunization",
+        "source":  "Immunization",
+        "path":  "encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "immunization",
+        "source":  "Immunization",
+        "path":  "location",
+        "target":  "Location",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-location"
+    },
+    {
+        "profile_dir":  "immunization",
+        "source":  "Immunization",
+        "path":  "patient",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "location",
+        "source":  "Location",
+        "path":  "managingOrganization",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "source":  "MedicationDispense",
+        "path":  "context",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "source":  "MedicationDispense",
+        "path":  "authorizingPrescription",
+        "target":  "MedicationRequest",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "source":  "MedicationDispense",
+        "path":  "performer.actor",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "source":  "MedicationDispense",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "source":  "MedicationRequest",
+        "path":  "encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "source":  "MedicationRequest",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "source":  "MedicationRequest",
+        "path":  "reportedReference",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "source":  "MedicationRequest",
+        "path":  "requester",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "source":  "Observation",
+        "path":  "encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "source":  "Observation",
+        "path":  "derivedFrom",
+        "target":  "Observation",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-screening-assessment"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "source":  "Observation",
+        "path":  "hasMember",
+        "target":  "Observation",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-screening-assessment"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "source":  "Observation",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "source":  "Observation",
+        "path":  "specimen",
+        "target":  "Specimen",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-specimen"
+    },
+    {
+        "profile_dir":  "practitioner_role",
+        "source":  "PractitionerRole",
+        "path":  "location",
+        "target":  "Location",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-location"
+    },
+    {
+        "profile_dir":  "practitioner_role",
+        "source":  "PractitionerRole",
+        "path":  "organization",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "practitioner_role",
+        "source":  "PractitionerRole",
+        "path":  "practitioner",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "procedure",
+        "source":  "Procedure",
+        "path":  "encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "procedure",
+        "source":  "Procedure",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "provenance",
+        "source":  "Provenance",
+        "path":  "agent.onBehalfOf",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "provenance",
+        "source":  "Provenance",
+        "path":  "agent.who",
+        "target":  "Organization",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+    },
+    {
+        "profile_dir":  "questionnaire_response",
+        "source":  "QuestionnaireResponse",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "questionnaire_response",
+        "source":  "QuestionnaireResponse",
+        "path":  "author",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "related_person",
+        "source":  "RelatedPerson",
+        "path":  "patient",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "service_request",
+        "source":  "ServiceRequest",
+        "path":  "encounter",
+        "target":  "Encounter",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+    },
+    {
+        "profile_dir":  "service_request",
+        "source":  "ServiceRequest",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    },
+    {
+        "profile_dir":  "service_request",
+        "source":  "ServiceRequest",
+        "path":  "requester",
+        "target":  "Practitioner",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+    },
+    {
+        "profile_dir":  "specimen",
+        "source":  "Specimen",
+        "path":  "subject",
+        "target":  "Patient",
+        "target_profile":  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    }
+]

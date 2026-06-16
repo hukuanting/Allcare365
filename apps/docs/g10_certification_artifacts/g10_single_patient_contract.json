@@ -1,0 +1,1567 @@
+{
+  "manifest": {
+    "repository": "https://github.com/onc-healthit/onc-certification-g10-test-kit",
+    "release": "v7.2.6",
+    "release_date": "2025-08-27",
+    "fhir_version": "4.0.1",
+    "us_core_version": "7.0.0",
+    "smart_version_floor": "2.0.0",
+    "golden_patient_name": "Justin Hu",
+    "golden_patient_id": "00000000-0000-4000-a000-000000000001"
+  },
+  "architecture_chain": [
+    "RelationDB",
+    "US Core semantic design",
+    "Golden patient dataset",
+    "Relational seed",
+    "Projector contract",
+    "Deterministic FHIR projection",
+    "Inferno validation"
+  ],
+  "resource_types": [
+    "AllergyIntolerance",
+    "CarePlan",
+    "CareTeam",
+    "Condition",
+    "Coverage",
+    "Device",
+    "DiagnosticReport",
+    "DocumentReference",
+    "Encounter",
+    "Goal",
+    "Immunization",
+    "Location",
+    "MedicationDispense",
+    "MedicationRequest",
+    "Observation",
+    "Organization",
+    "Patient",
+    "Practitioner",
+    "PractitionerRole",
+    "Procedure",
+    "Provenance",
+    "QuestionnaireResponse",
+    "RelatedPerson",
+    "ServiceRequest",
+    "Specimen"
+  ],
+  "resources": {
+    "AllergyIntolerance": {
+      "required_profiles": [
+        "us-core-allergyintolerance"
+      ],
+      "required_searches": [
+        "patient",
+        "patient+clinical-status"
+      ],
+      "must_support_elements": [
+        "clinicalStatus",
+        "code",
+        "patient",
+        "reaction",
+        "reaction.manifestation",
+        "verificationStatus"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "patient"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-allergyintolerance"
+      ],
+      "deterministic_search_params": [
+        "patient"
+      ]
+    },
+    "CarePlan": {
+      "required_profiles": [
+        "us-core-careplan"
+      ],
+      "required_searches": [
+        "patient+category",
+        "patient+category+date+date",
+        "patient+category+status",
+        "patient+category+status+date+date"
+      ],
+      "must_support_elements": [
+        "category",
+        "intent",
+        "status",
+        "subject",
+        "text",
+        "text.div",
+        "text.status"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-careplan"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "category",
+        "date",
+        "status"
+      ]
+    },
+    "CareTeam": {
+      "required_profiles": [
+        "us-core-careteam"
+      ],
+      "required_searches": [
+        "patient+role",
+        "patient+status+role"
+      ],
+      "must_support_elements": [
+        "participant",
+        "participant.member",
+        "participant.role",
+        "status",
+        "subject"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "participant.member"
+          ]
+        },
+        {
+          "target": "PractitionerRole",
+          "paths": [
+            "participant.member"
+          ]
+        },
+        {
+          "target": "RelatedPerson",
+          "paths": [
+            "participant.member"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-careteam"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "status"
+      ]
+    },
+    "Condition": {
+      "required_profiles": [
+        "us-core-condition-encounter-diagnosis",
+        "us-core-condition-problems-health-concerns"
+      ],
+      "required_searches": [
+        "patient+_lastUpdated",
+        "patient+_lastUpdated+_lastUpdated",
+        "patient+abatement-date",
+        "patient+asserted-date+asserted-date",
+        "patient+category+clinical-status",
+        "patient+category+clinical-status+clinical-status",
+        "patient+category+encounter",
+        "patient+category+encounter+encounter",
+        "patient+category+patient",
+        "patient+clinical-status",
+        "patient+clinical-status+clinical-status",
+        "patient+code",
+        "patient+onset-date",
+        "patient+onset-date+onset-date",
+        "patient+recorded-date"
+      ],
+      "must_support_elements": [
+        "abatementDateTime",
+        "category",
+        "clinicalStatus",
+        "code",
+        "encounter",
+        "meta",
+        "meta.lastUpdated",
+        "onsetDateTime",
+        "recordedDate",
+        "subject",
+        "verificationStatus"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        }
+      ],
+      "enforced_elements": [
+        "clinicalStatus",
+        "verificationStatus",
+        "category",
+        "code",
+        "subject",
+        "onsetDateTime",
+        "recordedDate",
+        "encounter"
+      ],
+      "enforced_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        }
+      ],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-encounter-diagnosis",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "category"
+      ]
+    },
+    "Coverage": {
+      "required_profiles": [
+        "us-core-coverage"
+      ],
+      "required_searches": [
+        "patient"
+      ],
+      "must_support_elements": [
+        "beneficiary",
+        "class",
+        "class:group.value",
+        "class:plan.name",
+        "class:plan.value",
+        "identifier",
+        "identifier:memberid.type",
+        "payor",
+        "period",
+        "relationship",
+        "status",
+        "subscriberId",
+        "type"
+      ],
+      "must_support_references": [
+        {
+          "target": "Organization",
+          "paths": [
+            "payor"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "beneficiary"
+          ]
+        }
+      ],
+      "enforced_elements": [
+        "identifier",
+        "status",
+        "type",
+        "subscriberId",
+        "beneficiary",
+        "relationship",
+        "period",
+        "payor",
+        "class"
+      ],
+      "enforced_references": [
+        {
+          "target": "Organization",
+          "paths": [
+            "payor"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "beneficiary"
+          ]
+        }
+      ],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-coverage"
+      ],
+      "deterministic_search_params": [
+        "patient"
+      ]
+    },
+    "Device": {
+      "required_profiles": [
+        "us-core-implantable-device"
+      ],
+      "required_searches": [
+        "patient",
+        "patient+status+status",
+        "patient+type"
+      ],
+      "must_support_elements": [
+        "distinctIdentifier",
+        "expirationDate",
+        "lotNumber",
+        "manufactureDate",
+        "patient",
+        "serialNumber",
+        "type",
+        "udiCarrier",
+        "udiCarrier.carrierHRF",
+        "udiCarrier.deviceIdentifier"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "patient"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-implantable-device"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "status"
+      ]
+    },
+    "DiagnosticReport": {
+      "required_profiles": [
+        "us-core-diagnosticreport-lab",
+        "us-core-diagnosticreport-note"
+      ],
+      "required_searches": [
+        "patient+category+_lastUpdated",
+        "patient+category+_lastUpdated+_lastUpdated",
+        "patient+category+date",
+        "patient+category+patient",
+        "patient+code",
+        "patient+code+date",
+        "patient+status"
+      ],
+      "must_support_elements": [
+        "category",
+        "code",
+        "effectiveDateTime",
+        "encounter",
+        "issued",
+        "media",
+        "media.link",
+        "meta",
+        "meta.lastUpdated",
+        "performer",
+        "presentedForm",
+        "result",
+        "status",
+        "subject"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Observation",
+          "paths": [
+            "result"
+          ]
+        },
+        {
+          "target": "Organization",
+          "paths": [
+            "performer"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "performer"
+          ]
+        }
+      ],
+      "enforced_elements": [
+        "status",
+        "category",
+        "code",
+        "subject",
+        "encounter",
+        "effectiveDateTime",
+        "issued",
+        "performer",
+        "result"
+      ],
+      "enforced_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Observation",
+          "paths": [
+            "result"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "performer"
+          ]
+        }
+      ],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-note"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "category",
+        "date",
+        "status"
+      ]
+    },
+    "DocumentReference": {
+      "required_profiles": [
+        "us-core-documentreference"
+      ],
+      "required_searches": [
+        "patient+_id",
+        "patient+category",
+        "patient+category+date",
+        "patient+status",
+        "patient+type",
+        "patient+type+period"
+      ],
+      "must_support_elements": [
+        "author",
+        "category",
+        "content",
+        "content.attachment",
+        "content.attachment.contentType",
+        "content.attachment.data",
+        "content.attachment.url",
+        "content.format",
+        "context",
+        "context.encounter",
+        "context.period",
+        "date",
+        "identifier",
+        "status",
+        "subject",
+        "type"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "context.encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "author"
+          ]
+        }
+      ],
+      "enforced_elements": [
+        "identifier",
+        "status",
+        "type",
+        "category",
+        "subject",
+        "date",
+        "author",
+        "content",
+        "context"
+      ],
+      "enforced_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "context.encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "author"
+          ]
+        }
+      ],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-documentreference"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "_id",
+        "category",
+        "date",
+        "status"
+      ]
+    },
+    "Encounter": {
+      "required_profiles": [
+        "us-core-encounter"
+      ],
+      "required_searches": [
+        "class+patient",
+        "date+patient",
+        "patient+_id+identifier",
+        "patient+_lastUpdated",
+        "patient+discharge-disposition",
+        "patient+location",
+        "patient+status",
+        "patient+type"
+      ],
+      "must_support_elements": [
+        "class",
+        "hospitalization",
+        "hospitalization.dischargeDisposition",
+        "identifier",
+        "identifier.system",
+        "identifier.value",
+        "location",
+        "location.location",
+        "meta",
+        "meta.lastUpdated",
+        "participant",
+        "participant.individual",
+        "participant.period",
+        "participant.type",
+        "period",
+        "reasonCode",
+        "reasonReference",
+        "serviceProvider",
+        "status",
+        "subject",
+        "type"
+      ],
+      "must_support_references": [
+        {
+          "target": "Condition",
+          "paths": [
+            "reasonReference"
+          ]
+        },
+        {
+          "target": "Location",
+          "paths": [
+            "location.location"
+          ]
+        },
+        {
+          "target": "Organization",
+          "paths": [
+            "serviceProvider"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "participant.individual"
+          ]
+        }
+      ],
+      "enforced_elements": [
+        "identifier",
+        "status",
+        "class",
+        "type",
+        "subject",
+        "participant",
+        "period",
+        "reasonReference",
+        "location",
+        "serviceProvider",
+        "hospitalization"
+      ],
+      "enforced_references": [
+        {
+          "target": "Condition",
+          "paths": [
+            "reasonReference"
+          ]
+        },
+        {
+          "target": "Location",
+          "paths": [
+            "location.location"
+          ]
+        },
+        {
+          "target": "Organization",
+          "paths": [
+            "serviceProvider"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "participant.individual"
+          ]
+        }
+      ],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "date",
+        "_id",
+        "identifier",
+        "status"
+      ]
+    },
+    "Goal": {
+      "required_profiles": [
+        "us-core-goal"
+      ],
+      "required_searches": [
+        "patient",
+        "patient+description",
+        "patient+lifecycle-status",
+        "patient+target-date"
+      ],
+      "must_support_elements": [
+        "description",
+        "lifecycleStatus",
+        "startDate",
+        "subject",
+        "target",
+        "target.dueDate"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-goal"
+      ],
+      "deterministic_search_params": [
+        "patient"
+      ]
+    },
+    "Immunization": {
+      "required_profiles": [
+        "us-core-immunization"
+      ],
+      "required_searches": [
+        "patient",
+        "patient+date",
+        "patient+status"
+      ],
+      "must_support_elements": [
+        "encounter",
+        "location",
+        "occurrenceDateTime",
+        "patient",
+        "primarySource",
+        "status",
+        "statusReason",
+        "vaccineCode"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Location",
+          "paths": [
+            "location"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "patient"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-immunization"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "date",
+        "status"
+      ]
+    },
+    "Location": {
+      "required_profiles": [
+        "us-core-location"
+      ],
+      "required_searches": [
+        "address+address-city+address-postalcode+address-state+name"
+      ],
+      "must_support_elements": [
+        "address",
+        "address.city",
+        "address.line",
+        "address.postalCode",
+        "address.state",
+        "identifier",
+        "managingOrganization",
+        "name",
+        "status",
+        "telecom",
+        "type"
+      ],
+      "must_support_references": [
+        {
+          "target": "Organization",
+          "paths": [
+            "managingOrganization"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-location"
+      ],
+      "deterministic_search_params": []
+    },
+    "MedicationDispense": {
+      "required_profiles": [
+        "us-core-medicationdispense"
+      ],
+      "required_searches": [
+        "patient",
+        "patient+status",
+        "patient+status+type"
+      ],
+      "must_support_elements": [
+        "authorizingPrescription",
+        "context",
+        "dosageInstruction",
+        "dosageInstruction.doseAndRate",
+        "dosageInstruction.doseAndRate.doseQuantity",
+        "dosageInstruction.text",
+        "dosageInstruction.timing",
+        "medication[x]",
+        "performer",
+        "performer.actor",
+        "quantity",
+        "status",
+        "subject",
+        "type",
+        "whenHandedOver"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "context"
+          ]
+        },
+        {
+          "target": "MedicationRequest",
+          "paths": [
+            "authorizingPrescription"
+          ]
+        },
+        {
+          "target": "Organization",
+          "paths": [
+            "performer.actor"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationdispense"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "status"
+      ]
+    },
+    "MedicationRequest": {
+      "required_profiles": [
+        "us-core-medicationrequest"
+      ],
+      "required_searches": [
+        "patient+intent",
+        "patient+intent+authoredon",
+        "patient+intent+encounter",
+        "patient+intent+status"
+      ],
+      "must_support_elements": [
+        "authoredOn",
+        "category",
+        "dispenseRequest",
+        "dispenseRequest.numberOfRepeatsAllowed",
+        "dispenseRequest.quantity",
+        "dosageInstruction",
+        "dosageInstruction.doseAndRate",
+        "dosageInstruction.doseAndRate.doseQuantity",
+        "dosageInstruction.text",
+        "dosageInstruction.timing",
+        "encounter",
+        "intent",
+        "medication[x]",
+        "reasonCode",
+        "reasonReference",
+        "reportedBoolean",
+        "reportedReference",
+        "requester",
+        "status",
+        "subject"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "reportedReference",
+            "requester"
+          ]
+        }
+      ],
+      "enforced_elements": [
+        "status",
+        "intent",
+        "category",
+        "reportedBoolean",
+        "medicationReference",
+        "subject",
+        "encounter",
+        "authoredOn",
+        "requester",
+        "dosageInstruction",
+        "dispenseRequest"
+      ],
+      "enforced_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "reportedReference",
+            "requester"
+          ]
+        }
+      ],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "status"
+      ]
+    },
+    "Observation": {
+      "required_profiles": [
+        "us-core-average-blood-pressure",
+        "us-core-blood-pressure",
+        "us-core-bmi",
+        "us-core-body-height",
+        "us-core-body-temperature",
+        "us-core-body-weight",
+        "us-core-care-experience-preference",
+        "us-core-head-circumference",
+        "us-core-head-circumference-percentile",
+        "us-core-heart-rate",
+        "us-core-observation-clinical-result",
+        "us-core-observation-lab",
+        "us-core-observation-occupation",
+        "us-core-observation-pregnancyintent",
+        "us-core-observation-pregnancystatus",
+        "us-core-observation-screening-assessment",
+        "us-core-pediatric-bmi-for-age",
+        "us-core-pediatric-weight-for-height",
+        "us-core-pulse-oximetry",
+        "us-core-respiratory-rate",
+        "us-core-smokingstatus",
+        "us-core-treatment-intervention-preference",
+        "us-core-vital-signs"
+      ],
+      "required_searches": [
+        "patient+category",
+        "patient+category+_lastUpdated",
+        "patient+category+_lastUpdated+_lastUpdated",
+        "patient+category+_lastUpdated+category+_lastUpdated",
+        "patient+category+category",
+        "patient+category+date",
+        "patient+category+date+category",
+        "patient+category+status",
+        "patient+category+status+category",
+        "patient+code",
+        "patient+code+date"
+      ],
+      "must_support_elements": [
+        "category",
+        "category:VSCat.coding",
+        "category:VSCat.coding.code",
+        "category:VSCat.coding.system",
+        "code",
+        "code.coding",
+        "code.coding.code",
+        "component",
+        "component.code",
+        "component.dataAbsentReason",
+        "component.valueQuantity",
+        "component:Concentration.code",
+        "component:Concentration.valueQuantity",
+        "component:Concentration.valueQuantity.code",
+        "component:Concentration.valueQuantity.system",
+        "component:Concentration.valueQuantity.unit",
+        "component:Concentration.valueQuantity.value",
+        "component:FlowRate.code",
+        "component:FlowRate.valueQuantity",
+        "component:FlowRate.valueQuantity.code",
+        "component:FlowRate.valueQuantity.system",
+        "component:FlowRate.valueQuantity.unit",
+        "component:FlowRate.valueQuantity.value",
+        "component:diastolic.code",
+        "component:diastolic.dataAbsentReason",
+        "component:diastolic.valueQuantity",
+        "component:diastolic.valueQuantity.code",
+        "component:diastolic.valueQuantity.system",
+        "component:diastolic.valueQuantity.unit",
+        "component:diastolic.valueQuantity.value",
+        "component:diastolic.value[x]",
+        "component:industry.code",
+        "component:industry.value[x]",
+        "component:systolic.code",
+        "component:systolic.dataAbsentReason",
+        "component:systolic.valueQuantity",
+        "component:systolic.valueQuantity.code",
+        "component:systolic.valueQuantity.system",
+        "component:systolic.valueQuantity.unit",
+        "component:systolic.valueQuantity.value",
+        "component:systolic.value[x]",
+        "derivedFrom",
+        "effectiveDateTime",
+        "effectivePeriod",
+        "effective[x]",
+        "encounter",
+        "hasMember",
+        "interpretation",
+        "meta",
+        "meta.lastUpdated",
+        "performer",
+        "referenceRange",
+        "specimen",
+        "status",
+        "subject",
+        "valueBoolean",
+        "valueCodeableConcept",
+        "valueQuantity",
+        "valueQuantity:valueQuantity.code",
+        "valueQuantity:valueQuantity.system",
+        "valueQuantity:valueQuantity.unit",
+        "valueQuantity:valueQuantity.value",
+        "valueString",
+        "value[x]"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Observation",
+          "paths": [
+            "derivedFrom",
+            "hasMember"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Specimen",
+          "paths": [
+            "specimen"
+          ]
+        }
+      ],
+      "enforced_elements": [
+        "status",
+        "category",
+        "code",
+        "subject",
+        "encounter",
+        "effectiveDateTime"
+      ],
+      "enforced_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Specimen",
+          "paths": [
+            "specimen"
+          ]
+        }
+      ],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-average-blood-pressure",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-blood-pressure",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-bmi",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-body-height",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-body-temperature",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-body-weight",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-care-experience-preference",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-head-circumference",
+        "http://hl7.org/fhir/us/core/StructureDefinition/head-occipital-frontal-circumference-percentile",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-heart-rate",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-result",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-occupation",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-pregnancyintent",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-pregnancystatus",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-screening-assessment",
+        "http://hl7.org/fhir/us/core/StructureDefinition/pediatric-bmi-for-age",
+        "http://hl7.org/fhir/us/core/StructureDefinition/pediatric-weight-for-height",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-pulse-oximetry",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-respiratory-rate",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-smokingstatus",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-treatment-intervention-preference",
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "category",
+        "date",
+        "status"
+      ]
+    },
+    "Organization": {
+      "required_profiles": [
+        "us-core-organization"
+      ],
+      "required_searches": [
+        "address+name"
+      ],
+      "must_support_elements": [
+        "active",
+        "address",
+        "address.city",
+        "address.country",
+        "address.line",
+        "address.postalCode",
+        "address.state",
+        "identifier",
+        "identifier.system",
+        "identifier.value",
+        "name",
+        "telecom",
+        "telecom.system",
+        "telecom.value"
+      ],
+      "must_support_references": [],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"
+      ],
+      "deterministic_search_params": []
+    },
+    "Patient": {
+      "required_profiles": [
+        "us-core-patient"
+      ],
+      "required_searches": [
+        "_id+identifier+name",
+        "birthdate+family",
+        "birthdate+name",
+        "death-date+family",
+        "family+gender",
+        "gender+name"
+      ],
+      "must_support_elements": [
+        "address",
+        "address.city",
+        "address.line",
+        "address.period.end",
+        "address.postalCode",
+        "address.state",
+        "address.use",
+        "birthDate",
+        "communication",
+        "communication.language",
+        "deceasedDateTime",
+        "gender",
+        "identifier",
+        "identifier.system",
+        "identifier.value",
+        "name",
+        "name.family",
+        "name.given",
+        "name.period.end",
+        "name.suffix",
+        "name.use",
+        "telecom",
+        "telecom.system",
+        "telecom.use",
+        "telecom.value"
+      ],
+      "must_support_references": [],
+      "enforced_elements": [
+        "active",
+        "identifier",
+        "name",
+        "gender",
+        "birthDate",
+        "address",
+        "communication",
+        "extension"
+      ],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+      ],
+      "deterministic_search_params": [
+        "_id",
+        "identifier"
+      ]
+    },
+    "Practitioner": {
+      "required_profiles": [
+        "us-core-practitioner"
+      ],
+      "required_searches": [
+        "_id+identifier+name"
+      ],
+      "must_support_elements": [
+        "identifier",
+        "identifier.system",
+        "identifier.value",
+        "name",
+        "name.family",
+        "telecom",
+        "telecom.system",
+        "telecom.value"
+      ],
+      "must_support_references": [],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"
+      ],
+      "deterministic_search_params": [
+        "_id",
+        "identifier"
+      ]
+    },
+    "PractitionerRole": {
+      "required_profiles": [],
+      "required_searches": [
+        "practitioner+specialty"
+      ],
+      "must_support_elements": [
+        "code",
+        "endpoint",
+        "location",
+        "organization",
+        "practitioner",
+        "specialty",
+        "telecom",
+        "telecom.system",
+        "telecom.value"
+      ],
+      "must_support_references": [
+        {
+          "target": "Location",
+          "paths": [
+            "location"
+          ]
+        },
+        {
+          "target": "Organization",
+          "paths": [
+            "organization"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "practitioner"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [],
+      "deterministic_search_params": []
+    },
+    "Procedure": {
+      "required_profiles": [
+        "us-core-procedure"
+      ],
+      "required_searches": [
+        "patient",
+        "patient+code+date",
+        "patient+date",
+        "patient+status"
+      ],
+      "must_support_elements": [
+        "basedOn",
+        "code",
+        "encounter",
+        "performedDateTime",
+        "reasonCode",
+        "reasonReference",
+        "status",
+        "subject"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "date",
+        "status"
+      ]
+    },
+    "Provenance": {
+      "required_profiles": [
+        "us-core-provenance"
+      ],
+      "required_searches": [],
+      "must_support_elements": [
+        "agent",
+        "agent.onBehalfOf",
+        "agent.type",
+        "agent.who",
+        "agent:ProvenanceAuthor.type",
+        "agent:ProvenanceTransmitter.type",
+        "recorded",
+        "target",
+        "target.reference"
+      ],
+      "must_support_references": [
+        {
+          "target": "Organization",
+          "paths": [
+            "agent.onBehalfOf",
+            "agent.who"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-provenance"
+      ],
+      "deterministic_search_params": []
+    },
+    "QuestionnaireResponse": {
+      "required_profiles": [],
+      "required_searches": [
+        "patient+_id",
+        "patient+authored",
+        "patient+questionnaire",
+        "patient+status"
+      ],
+      "must_support_elements": [
+        "author",
+        "authored",
+        "identifier",
+        "item",
+        "item.answer",
+        "item.answer.item",
+        "item.answer.valueCoding",
+        "item.answer.valueDecimal",
+        "item.answer.valueString",
+        "item.item",
+        "item.linkId",
+        "item.text",
+        "questionnaire",
+        "status",
+        "subject"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "author"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [],
+      "deterministic_search_params": [
+        "patient",
+        "_id",
+        "status"
+      ]
+    },
+    "RelatedPerson": {
+      "required_profiles": [
+        "us-core-relatedperson"
+      ],
+      "required_searches": [
+        "patient+_id+name",
+        "patient+name"
+      ],
+      "must_support_elements": [
+        "active",
+        "address",
+        "name",
+        "patient",
+        "relationship",
+        "telecom"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "patient"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-relatedperson"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "_id"
+      ]
+    },
+    "ServiceRequest": {
+      "required_profiles": [
+        "us-core-servicerequest"
+      ],
+      "required_searches": [
+        "patient+_id",
+        "patient+category",
+        "patient+category+authored",
+        "patient+code",
+        "patient+code+authored",
+        "patient+status"
+      ],
+      "must_support_elements": [
+        "authoredOn",
+        "category",
+        "code",
+        "encounter",
+        "intent",
+        "occurrencePeriod",
+        "reasonCode",
+        "reasonReference",
+        "requester",
+        "status",
+        "subject"
+      ],
+      "must_support_references": [
+        {
+          "target": "Encounter",
+          "paths": [
+            "encounter"
+          ]
+        },
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        },
+        {
+          "target": "Practitioner",
+          "paths": [
+            "requester"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-servicerequest"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "_id",
+        "category",
+        "status"
+      ]
+    },
+    "Specimen": {
+      "required_profiles": [
+        "us-core-specimen"
+      ],
+      "required_searches": [
+        "patient+_id"
+      ],
+      "must_support_elements": [
+        "accessionIdentifier",
+        "collection",
+        "collection.bodySite",
+        "condition",
+        "identifier",
+        "subject",
+        "type"
+      ],
+      "must_support_references": [
+        {
+          "target": "Patient",
+          "paths": [
+            "subject"
+          ]
+        }
+      ],
+      "enforced_elements": [],
+      "enforced_references": [],
+      "supported_profile_urls": [
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-specimen"
+      ],
+      "deterministic_search_params": [
+        "patient",
+        "_id"
+      ]
+    }
+  }
+}

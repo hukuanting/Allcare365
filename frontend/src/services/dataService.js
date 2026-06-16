@@ -91,11 +91,7 @@ const dataService = {
   // 系統健康檢查（不返回虛擬資料）
   async getSystemHealth() {
     const candidates = [
-      '/health-check',
-      '/api/health-check',
-      '/api/health',
-      '/health',
-      '/api/status'
+      '/api/health-check'
     ];
 
     for (const path of candidates) {

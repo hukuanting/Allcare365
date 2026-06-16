@@ -1,0 +1,242 @@
+.research-cohorts {
+  --research-ink: #102033;
+  --research-muted: #5d6b7a;
+  --research-line: #dce7f2;
+  --research-panel: #ffffff;
+  --research-wash: #f3f8fb;
+  --research-teal: #0f9f94;
+  --research-blue: #1976d2;
+  --research-green: #22a35a;
+  --research-amber: #b7791f;
+}
+
+.cohort-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.38fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.cohort-filter-panel {
+  grid-column: 1;
+  position: sticky;
+  top: 88px;
+}
+
+.patients-like-panel {
+  grid-column: 1;
+}
+
+.cohort-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.advanced-filters {
+  padding-top: 16px;
+  border-top: 1px solid var(--research-line);
+}
+
+.cohort-results {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.similar-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.quality-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quality-stat {
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid var(--research-line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.coverage-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coverage-item {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 38px;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.coverage-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #e6eef6;
+  overflow: hidden;
+}
+
+.coverage-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--research-blue), var(--research-teal));
+}
+
+.cohort-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cohort-metric {
+  min-height: 96px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--research-line);
+  border-radius: 8px;
+}
+
+.cohort-count {
+  border-left: 5px solid var(--research-green);
+}
+
+.cohort-summary-panel {
+  overflow: hidden;
+}
+
+.similar-results-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.similar-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.similar-stat,
+.similar-feature {
+  min-height: 76px;
+  padding: 14px;
+  border: 1px solid var(--research-line);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.similar-feature-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.similar-trend-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.similar-feature {
+  background:
+    linear-gradient(90deg, rgba(15, 159, 148, 0.06), rgba(34, 163, 90, 0.05)),
+    #ffffff;
+}
+
+.similar-trend {
+  border-color: rgba(183, 121, 31, 0.24);
+  background:
+    linear-gradient(90deg, rgba(183, 121, 31, 0.08), rgba(15, 159, 148, 0.05)),
+    #ffffff;
+}
+
+.cohort-demographics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.demographic-stat,
+.flag-tile {
+  min-height: 76px;
+  padding: 14px;
+  border: 1px solid var(--research-line);
+  border-radius: 8px;
+  background: var(--research-wash);
+}
+
+.cohort-table {
+  border: 1px solid var(--research-line);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(16, 32, 51, 0.06);
+  overflow-x: auto;
+}
+
+.flag-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.flag-tile {
+  background:
+    linear-gradient(90deg, rgba(25, 118, 210, 0.06), rgba(15, 159, 148, 0.06)),
+    #ffffff;
+}
+
+@media (max-width: 1120px) {
+  .cohort-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cohort-filter-panel,
+  .patients-like-panel {
+    grid-column: auto;
+    position: static;
+  }
+
+  .cohort-results {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .cohort-filter-grid,
+  .similar-profile-grid,
+  .cohort-metric-strip,
+  .cohort-demographics,
+  .similar-metric-grid,
+  .similar-feature-list,
+  .similar-trend-list,
+  .quality-grid,
+  .coverage-strip,
+  .flag-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cohort-metric {
+    min-height: 84px;
+  }
+}

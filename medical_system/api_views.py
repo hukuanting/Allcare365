@@ -22,7 +22,7 @@ def api_root(request, format=None):
             'status': 'Development'
         },
         '可用端點': {
-            'patients': request.build_absolute_uri('/api/v1/patients/'),
+            'apps.clinical.patients': request.build_absolute_uri('/api/v1/patients/'),
             'appointments': request.build_absolute_uri('/api/v1/appointments/'),
             'medical_records': request.build_absolute_uri('/api/v1/medical-records/'),
             'billing': request.build_absolute_uri('/api/v1/billing/'),
@@ -37,7 +37,7 @@ def api_root(request, format=None):
             'api_auth': request.build_absolute_uri('/api/auth/'),
         },
         '說明': {
-            'authentication': '此API需要認證。請使用Token或Session認證。',
+            'apps.core.authentication': '此API需要認證。請使用Token或Session認證。',
             'permissions': '不同端點有不同的權限要求。',
             'documentation': '詳細文檔請參考 README.md'
         }

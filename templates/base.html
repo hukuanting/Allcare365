@@ -323,17 +323,17 @@
                                 <li><a class="dropdown-item" href="/auth/profile/">個人資料</a></li>
                                 <li><a class="dropdown-item" href="/auth/settings/">設定</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'authentication:logout' %}">登出</a></li>
+                                <li><a class="dropdown-item" href="{% url 'authentication_web:logout' %}">登出</a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'authentication:login' %}">
+                            <a class="nav-link" href="{% url 'authentication_web:login' %}">
                                 <i class="fas fa-sign-in-alt me-1"></i>登入
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'authentication:register' %}">
+                            <a class="nav-link" href="{% url 'authentication_web:register' %}">
                                 <i class="fas fa-user-plus me-1"></i>註冊
                             </a>
                         </li>

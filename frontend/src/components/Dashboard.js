@@ -1,193 +1,174 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import dataService from '../services/dataService';
-import './Dashboard.css';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import BiotechIcon from '@mui/icons-material/Biotech';
+import HistoryIcon from '@mui/icons-material/History';
+import PeopleIcon from '@mui/icons-material/People';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import API_CONFIG, { api, parseApiResponse } from '../config/api';
+import { useAuth } from '../hooks/useAuth';
+import { apiErrorMessage, countFromResponse, displayValue } from '../utils/apiData';
+
+const readinessText = {
+  research_ready: '可供研究',
+  needs_review: '需要檢查',
+  insufficient_data: '資料不足',
+};
 
 function Dashboard() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [userInfo, setUserInfo] = useState(null);
-  const [recentActivities, setRecentActivities] = useState([]);
-  const [systemHealth, setSystemHealth] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState(null);
+  const [data, setData] = useState({
+    patients: null,
+    screenings: null,
+    quality: null,
+    requestedReports: null,
+  });
+  const { userInfo } = useAuth();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log('主頁: 組件已掛載');
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    
-    try {
-      // 獲取用戶資訊
-      const userData = localStorage.getItem('user_info');
-      if (userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          setUserInfo(parsedUser);
-          console.log('主頁: 用戶資訊載入成功', parsedUser);
-        } catch (error) {
-          console.error('主頁: 用戶資訊解析失敗', error);
-        }
-      }
-
-      // 載入最近活動（真實 API）
-      const activitiesData = await dataService.getRecentActivities();
-      setRecentActivities(Array.isArray(activitiesData) ? activitiesData : []);
-
-      // 載入系統健康狀態（真實 API）
-      const health = await dataService.getSystemHealth();
-      setSystemHealth(health);
-
-      console.log('主頁: 數據載入完成', { activities: activitiesData, health });
-      
-    } catch (error) {
-      console.error('主頁: 數據載入失敗', error);
-    } finally {
-      setIsLoading(false);
+  const displayName = useMemo(() => {
+    if (userInfo?.first_name || userInfo?.last_name) {
+      return `${userInfo?.last_name || ''}${userInfo?.first_name || ''}`.trim();
     }
+    return userInfo?.username || '使用者';
+  }, [userInfo]);
+
+  const loadDashboard = async () => {
+    setLoading(true);
+    setMessage(null);
+    const requests = await Promise.allSettled([
+      api.get(`${API_CONFIG.ENDPOINTS.PATIENTS}?page_size=1`),
+      api.get(`${API_CONFIG.ENDPOINTS.HEALTH_SCREENINGS}?page_size=1`),
+      api.get(API_CONFIG.ENDPOINTS.DATA_QUALITY_SUMMARY),
+      api.get(`${API_CONFIG.ENDPOINTS.RESEARCH_REPORTS}?status=requested`),
+    ]);
+
+    const next = { patients: null, screenings: null, quality: null, requestedReports: null };
+    const errors = [];
+
+    for (const [index, result] of requests.entries()) {
+      if (result.status !== 'fulfilled') {
+        errors.push('後端請求未完成');
+        continue;
+      }
+      const payload = await parseApiResponse(result.value);
+      if (!result.value.ok) {
+        errors.push(apiErrorMessage(payload));
+        continue;
+      }
+      if (index === 0) next.patients = countFromResponse(payload);
+      if (index === 1) next.screenings = countFromResponse(payload);
+      if (index === 2) next.quality = payload;
+      if (index === 3) next.requestedReports = countFromResponse(payload);
+    }
+
+    setData(next);
+    if (errors.length) setMessage({ type: 'warning', text: `部分資料讀取失敗：${errors.join('；')}` });
+    setLoading(false);
   };
 
-  if (isLoading) {
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '400px',
-        fontSize: '18px'
-      }}>
-        <div>
-          <div>Allcare365 載入中...</div>
-        </div>
-      </div>
+      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 360 }}>
+        <Stack alignItems="center" spacing={2}>
+          <CircularProgress size={28} />
+          <Typography color="text.secondary">讀取後端資料中</Typography>
+        </Stack>
+      </Box>
     );
   }
 
+  const metrics = [
+    { label: '病患數', value: data.patients, icon: <PeopleIcon color="primary" /> },
+    { label: '健檢紀錄', value: data.screenings, icon: <HistoryIcon color="secondary" /> },
+    { label: '待審研究報告', value: data.requestedReports, icon: <AssignmentTurnedInIcon color="warning" /> },
+    { label: '資料狀態', value: readinessText[data.quality?.readiness?.label] || data.quality?.readiness?.label || null, icon: <BiotechIcon color="success" /> },
+  ];
+
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>Allcare365 主頁</h1>
-        <p>歡迎 {userInfo?.username || userInfo?.first_name || '用戶'} 回到您的健康管理系統</p>
-      </div>
+    <Box className="page-frame">
+      <Box className="page-heading">
+        <Box>
+          <Typography variant="overline" color="primary">總覽</Typography>
+          <Typography variant="h4">臨床資料工作台</Typography>
+          <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+            {displayName}，以下統計皆直接來自後端 API。
+          </Typography>
+        </Box>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadDashboard}>重新整理</Button>
+          <Button variant="contained" startIcon={<UploadFileIcon />} onClick={() => navigate('/bulk-import')}>匯入資料</Button>
+        </Stack>
+      </Box>
 
-      {/* 首屏大型橫幅（Hero） */}
-      <section className="dashboard-hero">
-        <div className="hero-content">
-          <h2>全方位智慧醫療管理平台</h2>
-          <p>以數據為核心，串聯健檢、門診、檢驗、藥局與報告，打造安全、專業且高效率的臨床作業環境。</p>
-          <div className="hero-cta">
-            <Link to="/health-data-input" className="cta-button primary">開始輸入資料</Link>
-            <Link to="/risk-analysis" className="cta-button secondary">查看風險分析</Link>
-          </div>
-        </div>
-      </section>
+      {message && <Alert severity={message.type} sx={{ mb: 2 }}>{message.text}</Alert>}
 
-      <div className="dashboard-main-content">
-        {/* 功能導覽（Modules Showcase） */}
-        <section className="modules-showcase">
-          <h2>功能導覽</h2>
-          <div className="modules-grid">
-            <Link to="/patients" className="module-tile">
-              <div className="tile-content">
-                <h3>患者管理</h3>
-                <p>病歷摘要、健康資料、就診紀錄</p>
-              </div>
-            </Link>
-            <Link to="/appointments" className="module-tile">
-              <div className="tile-content">
-                <h3>預約排程</h3>
-                <p>門診時段、提醒通知、候補管理</p>
-              </div>
-            </Link>
-            <Link to="/laboratory" className="module-tile">
-              <div className="tile-content">
-                <h3>檢驗管理</h3>
-                <p>檢驗單、結果回傳、異常警示</p>
-              </div>
-            </Link>
-            <Link to="/pharmacy" className="module-tile">
-              <div className="tile-content">
-                <h3>藥局與處方</h3>
-                <p>處方開立、調劑紀錄、庫存管理</p>
-              </div>
-            </Link>
-          </div>
-        </section>
+      <Box className="metric-grid">
+        {metrics.map((metric) => (
+          <Card key={metric.label}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2" color="text.secondary" fontWeight={800}>{metric.label}</Typography>
+                {metric.icon}
+              </Box>
+              <Typography variant="h4">{displayValue(metric.value)}</Typography>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
 
-        <div className="quick-actions-section">
-          <h2>快速操作</h2>
-          <div className="quick-actions-grid">
-            <Link to="/health-data-input" className="action-card">
-              <div className="action-content">
-                <h3>單筆資料輸入</h3>
-                <p>輸入單一患者的健康檢查數據</p>
-              </div>
-              <div className="action-arrow">→</div>
-            </Link>
-            
-            <Link to="/bulk-import" className="action-card">
-              <div className="action-content">
-                <h3>批量資料匯入</h3>
-                <p>批量匯入多位患者的健康數據</p>
-              </div>
-              <div className="action-arrow">→</div>
-            </Link>
-            
-            <Link to="/risk-analysis" className="action-card">
-              <div className="action-content">
-                <h3>風險分析</h3>
-                <p>查看患者的疾病風險評估報告</p>
-              </div>
-              <div className="action-arrow">→</div>
-            </Link>
-            
-            <Link to="/health-records" className="action-card">
-              <div className="action-content">
-                <h3>健檢記錄</h3>
-                <p>查詢和管理健檢歷史記錄</p>
-              </div>
-              <div className="action-arrow">→</div>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <Box className="dashboard-grid">
+        <Paper className="work-panel">
+          <Box className="panel-heading">
+            <Typography variant="h6">資料品質摘要</Typography>
+            <Chip size="small" label={data.quality?.dataset || '無資料'} variant="outlined" />
+          </Box>
+          <Box className="surface-grid" sx={{ mt: 2 }}>
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary">最早健檢日期</Typography>
+              <Typography variant="h6">{displayValue(data.quality?.date_range?.first)}</Typography>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary">最新健檢日期</Typography>
+              <Typography variant="h6">{displayValue(data.quality?.date_range?.last)}</Typography>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary">重複 Encounter</Typography>
+              <Typography variant="h6">{displayValue(data.quality?.duplicates?.duplicate_encounter_identifiers)}</Typography>
+            </Paper>
+          </Box>
+        </Paper>
 
-      {/* 開發者資訊區塊 */}
-      <div className="developer-info-section">
-        <div className="developer-content">
-          <h3>Allcare365 開發人員</h3>
-          <div className="info-grid">
-            <div className="info-item">
-              <h4>地址</h4>
-              <p>106台北市大安區芳蘭路49號</p>
-            </div>
-            <div className="info-item">
-              <h4>單位</h4>
-              <p>國立台灣大學醫學工程所</p>
-            </div>
-            <div className="info-item">
-              <h4>聯絡電話</h4>
-              <p>+886 911485919</p>
-            </div>
-            <div className="info-item">
-              <h4>開發者</h4>
-              <p>HU, KUAN TING</p>
-            </div>
-            <div className="info-item">
-              <h4>指導教授</h4>
-              <p>林啟萬教授</p>
-            </div>
-            <div className="info-item">
-              <h4>Email</h4>
-              <p>hukuanting@gmail.com</p>
-            </div>
-          </div>
-          <div className="developer-footer">
-            <p>© 2024 Allcare365. All Rights Reserved.</p>
-          </div>
-        </div>
-      </div>
-    </div>
+        <Paper className="work-panel">
+          <Box className="panel-heading">
+            <Typography variant="h6">目前可用流程</Typography>
+            <Chip size="small" label="已掛接後端" color="success" variant="outlined" />
+          </Box>
+          <Stack spacing={1.25} sx={{ mt: 2 }}>
+            <Button variant="outlined" onClick={() => navigate('/patients')}>病患管理</Button>
+            <Button variant="outlined" onClick={() => navigate('/history')}>健檢紀錄</Button>
+            <Button variant="outlined" onClick={() => navigate('/research-cohorts')}>研究 Cohort</Button>
+            <Button variant="outlined" onClick={() => navigate('/research-reports')}>研究報告審核</Button>
+          </Stack>
+        </Paper>
+      </Box>
+    </Box>
   );
 }
 

@@ -1,148 +1,99 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { api } from '../config/api';
-import './Login.css'; // 使用與登入頁面相同的樣式
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
+import API_CONFIG, { api, parseApiResponse } from '../config/api';
+import { apiErrorMessage } from '../utils/apiData';
+
+const initialForm = {
+  username: '',
+  email: '',
+  first_name: '',
+  last_name: '',
+  password: '',
+  password2: '',
+};
 
 function Register() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [password2, setPassword2] = useState('');
-  const [email, setEmail] = useState('');
+  const [formData, setFormData] = useState(initialForm);
   const [message, setMessage] = useState('');
-
+  const [severity, setSeverity] = useState('error');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('正在註冊...');
+  const updateField = (field, value) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+  };
 
-    // 基本驗證
-    if (password !== password2) {
-      setMessage('密碼不匹配，請重新輸入');
+  const submit = async (event) => {
+    event.preventDefault();
+    setMessage('');
+
+    if (formData.password !== formData.password2) {
+      setSeverity('error');
+      setMessage('兩次輸入的密碼不一致');
       return;
     }
 
-    if (password.length < 8) {
-      setMessage('密碼長度至少需要 8 個字符');
-      return;
-    }
+    setSubmitting(true);
 
     try {
-      console.log('Attempting registration with:', { username, email: email || `${username}@example.com` });
-      
-      const response = await api.post('/api/auth/register/', {
-        username, 
-        password, 
-        password2,
-        email: email || `${username}@example.com`,
-        first_name: '',
-        last_name: ''
-      });
-
-      console.log('Registration response:', response);
-
-      if (response && response.ok) {
-        const data = await response.json();
-        console.log('Registration successful:', data);
-        setMessage('註冊成功！正在跳轉到登入頁面...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } else if (response) {
-        const errorData = await response.json();
-        console.error('Registration error:', errorData);
-        
-        // 處理不同類型的錯誤
-        if (errorData.username) {
-          setMessage(`註冊失敗: ${errorData.username[0]}`);
-        } else if (errorData.password) {
-          setMessage(`註冊失敗: ${errorData.password[0]}`);
-        } else if (errorData.email) {
-          setMessage(`註冊失敗: ${errorData.email[0]}`);
-        } else {
-          setMessage(`註冊失敗: ${errorData.detail || '未知錯誤'}`);
-        }
-      } else {
-        setMessage('註冊失敗: 網絡連接問題');
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      setMessage(`註冊錯誤: ${error.message}`);
+      const response = await api.post(API_CONFIG.ENDPOINTS.REGISTER, formData);
+      const payload = await parseApiResponse(response);
+      if (!response.ok) throw new Error(apiErrorMessage(payload, '註冊失敗'));
+      setSeverity('success');
+      setMessage('帳號已建立，請登入');
+      setTimeout(() => navigate('/login'), 900);
+    } catch (requestError) {
+      setSeverity('error');
+      setMessage(requestError.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Register</h2>
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label className="form-label">用戶名 *:</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="form-input"
-              placeholder="請輸入用戶名"
-              required
-              minLength="3"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label className="form-label">電子郵件:</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="form-input"
-              placeholder="選填，如不填寫將自動生成"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label className="form-label">密碼 *:</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-input"
-              placeholder="至少 8 個字符"
-              required
-              minLength="8"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label className="form-label">確認密碼 *:</label>
-            <input
-              type="password"
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-              className="form-input"
-              placeholder="請再次輸入密碼"
-              required
-              minLength="8"
-            />
-          </div>
-          
-          <button type="submit" className="login-button">
-            註冊帳號
-          </button>
-        </form>
-        
-        {message && (
-          <div className={`message ${message.includes('成功') ? 'success-message' : 'error-message'}`}>
-            {message}
-          </div>
-        )}
-        
-        <div className="login-auth-links">
-          <p>已有帳號？ <Link to="/login">立即登入</Link></p>
-          <p><Link to="/">返回首頁</Link></p>
-        </div>
-      </div>
-    </div>
+    <Box className="auth-page">
+      <Paper className="auth-card wide">
+        <Box>
+          <Typography variant="overline" color="primary">AllCare365</Typography>
+          <Typography variant="h4">註冊帳號</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>
+            建立可連到後端認證系統的使用者帳號。
+          </Typography>
+        </Box>
+
+        {message && <Alert severity={severity}>{message}</Alert>}
+
+        <Box component="form" onSubmit={submit}>
+          <Box className="form-grid">
+            <TextField label="帳號" value={formData.username} onChange={(event) => updateField('username', event.target.value)} required />
+            <TextField label="Email" type="email" value={formData.email} onChange={(event) => updateField('email', event.target.value)} required />
+            <TextField label="名" value={formData.first_name} onChange={(event) => updateField('first_name', event.target.value)} />
+            <TextField label="姓" value={formData.last_name} onChange={(event) => updateField('last_name', event.target.value)} />
+            <TextField label="密碼" type="password" value={formData.password} onChange={(event) => updateField('password', event.target.value)} required />
+            <TextField label="確認密碼" type="password" value={formData.password2} onChange={(event) => updateField('password2', event.target.value)} required />
+          </Box>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3 }}>
+            <Button type="submit" variant="contained" startIcon={<PersonAddAltIcon />} disabled={submitting}>
+              {submitting ? '建立中' : '建立帳號'}
+            </Button>
+            <Button component={RouterLink} to="/login">返回登入</Button>
+          </Stack>
+        </Box>
+
+        <Typography variant="body2" color="text.secondary">
+          已有帳號？ <Link component={RouterLink} to="/login">登入</Link>
+        </Typography>
+      </Paper>
+    </Box>
   );
 }
 

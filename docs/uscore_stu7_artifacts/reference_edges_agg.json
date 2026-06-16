@@ -1,0 +1,267 @@
+[
+    {
+        "source":  "AllergyIntolerance",
+        "target":  "Patient",
+        "paths":  "patient"
+    },
+    {
+        "source":  "CarePlan",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "CareTeam",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "CareTeam",
+        "target":  "Practitioner",
+        "paths":  "participant.member"
+    },
+    {
+        "source":  "CareTeam",
+        "target":  "PractitionerRole",
+        "paths":  "participant.member"
+    },
+    {
+        "source":  "CareTeam",
+        "target":  "RelatedPerson",
+        "paths":  "participant.member"
+    },
+    {
+        "source":  "Condition",
+        "target":  "Encounter",
+        "paths":  "encounter"
+    },
+    {
+        "source":  "Condition",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "Coverage",
+        "target":  "Organization",
+        "paths":  "payor"
+    },
+    {
+        "source":  "Coverage",
+        "target":  "Patient",
+        "paths":  "beneficiary"
+    },
+    {
+        "source":  "Device",
+        "target":  "Patient",
+        "paths":  "patient"
+    },
+    {
+        "source":  "DiagnosticReport",
+        "target":  "Encounter",
+        "paths":  "encounter"
+    },
+    {
+        "source":  "DiagnosticReport",
+        "target":  "Observation",
+        "paths":  "result"
+    },
+    {
+        "source":  "DiagnosticReport",
+        "target":  "Organization",
+        "paths":  "performer"
+    },
+    {
+        "source":  "DiagnosticReport",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "DiagnosticReport",
+        "target":  "Practitioner",
+        "paths":  "performer"
+    },
+    {
+        "source":  "DocumentReference",
+        "target":  "Encounter",
+        "paths":  "context.encounter"
+    },
+    {
+        "source":  "DocumentReference",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "DocumentReference",
+        "target":  "Practitioner",
+        "paths":  "author"
+    },
+    {
+        "source":  "Encounter",
+        "target":  "Condition",
+        "paths":  "reasonReference"
+    },
+    {
+        "source":  "Encounter",
+        "target":  "Location",
+        "paths":  "location.location"
+    },
+    {
+        "source":  "Encounter",
+        "target":  "Organization",
+        "paths":  "serviceProvider"
+    },
+    {
+        "source":  "Encounter",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "Encounter",
+        "target":  "Practitioner",
+        "paths":  "participant.individual"
+    },
+    {
+        "source":  "Goal",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "Immunization",
+        "target":  "Encounter",
+        "paths":  "encounter"
+    },
+    {
+        "source":  "Immunization",
+        "target":  "Location",
+        "paths":  "location"
+    },
+    {
+        "source":  "Immunization",
+        "target":  "Patient",
+        "paths":  "patient"
+    },
+    {
+        "source":  "Location",
+        "target":  "Organization",
+        "paths":  "managingOrganization"
+    },
+    {
+        "source":  "MedicationDispense",
+        "target":  "Encounter",
+        "paths":  "context"
+    },
+    {
+        "source":  "MedicationDispense",
+        "target":  "MedicationRequest",
+        "paths":  "authorizingPrescription"
+    },
+    {
+        "source":  "MedicationDispense",
+        "target":  "Organization",
+        "paths":  "performer.actor"
+    },
+    {
+        "source":  "MedicationDispense",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "MedicationRequest",
+        "target":  "Encounter",
+        "paths":  "encounter"
+    },
+    {
+        "source":  "MedicationRequest",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "MedicationRequest",
+        "target":  "Practitioner",
+        "paths":  "reportedReference; requester"
+    },
+    {
+        "source":  "Observation",
+        "target":  "Encounter",
+        "paths":  "encounter"
+    },
+    {
+        "source":  "Observation",
+        "target":  "Observation",
+        "paths":  "derivedFrom; hasMember"
+    },
+    {
+        "source":  "Observation",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "Observation",
+        "target":  "Specimen",
+        "paths":  "specimen"
+    },
+    {
+        "source":  "PractitionerRole",
+        "target":  "Location",
+        "paths":  "location"
+    },
+    {
+        "source":  "PractitionerRole",
+        "target":  "Organization",
+        "paths":  "organization"
+    },
+    {
+        "source":  "PractitionerRole",
+        "target":  "Practitioner",
+        "paths":  "practitioner"
+    },
+    {
+        "source":  "Procedure",
+        "target":  "Encounter",
+        "paths":  "encounter"
+    },
+    {
+        "source":  "Procedure",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "Provenance",
+        "target":  "Organization",
+        "paths":  "agent.onBehalfOf; agent.who"
+    },
+    {
+        "source":  "QuestionnaireResponse",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "QuestionnaireResponse",
+        "target":  "Practitioner",
+        "paths":  "author"
+    },
+    {
+        "source":  "RelatedPerson",
+        "target":  "Patient",
+        "paths":  "patient"
+    },
+    {
+        "source":  "ServiceRequest",
+        "target":  "Encounter",
+        "paths":  "encounter"
+    },
+    {
+        "source":  "ServiceRequest",
+        "target":  "Patient",
+        "paths":  "subject"
+    },
+    {
+        "source":  "ServiceRequest",
+        "target":  "Practitioner",
+        "paths":  "requester"
+    },
+    {
+        "source":  "Specimen",
+        "target":  "Patient",
+        "paths":  "subject"
+    }
+]

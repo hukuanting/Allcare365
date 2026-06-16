@@ -1,159 +1,160 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
+
 import Navigation from './components/Navigation';
+import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import Register from './components/Register';
+import Launch from './components/Launch';
 import HealthDataInput from './components/HealthDataInput';
 import RiskAnalysis from './components/RiskAnalysis';
+import ResearchCohorts from './components/ResearchCohorts';
+import ResearchReports from './components/ResearchReports';
 import BulkHealthDataImport from './components/BulkHealthDataImport';
-import HealthRecords from './components/HealthRecords';
 import PatientManagement from './components/PatientManagement';
-import AppointmentManagement from './components/AppointmentManagement';
-import LaboratoryManagement from './components/LaboratoryManagement';
-import PharmacyManagement from './components/PharmacyManagement';
-import UnifiedManagementCenter from './components/UnifiedManagementCenter';
+import PatientChart from './components/PatientChart';
+import HistoryRecords from './components/HistoryRecords';
 import ProtectedRoute from './components/ProtectedRoute';
 import sessionManager from './utils/sessionManager';
 import { checkAuthStatus } from './utils/auth';
+import { RESEARCH_ACCESS_ROLES } from './utils/roles';
 import './App.css';
-import './components/HomePage.css';
 
-function Home() {
-  return (
-    <div className="home-page">
-      <div className="hero-section">
-        <div className="hero-content">
-          <h1>智慧健康管理平台</h1>
-          <p>您的全方位健康管理夥伴</p>
-        </div>
-      </div>
-      
-      <div className="info-section">
-        <h2>核心服務</h2>
-        <div className="info-cards">
-          <div className="card">
-            <div className="icon">🏥</div>
-            <h3>院所介紹</h3>
-            <p>提供專業、溫馨的醫療服務，守護您的健康。</p>
-          </div>
-          <div className="card">
-            <div className="icon">❤️</div>
-            <h3>服務項目</h3>
-            <p>從預防保健到急症處理，提供全方位的醫療選擇。</p>
-          </div>
-          <div className="card">
-            <div className="icon">🤝</div>
-            <h3>合作夥伴</h3>
-            <p>與頂尖醫療機構合作，提供最先進的醫療技術。</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+const createAppTheme = () => createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1976d2',
+      light: '#4ea3ff',
+      dark: '#0d47a1',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#15d1c3',
+      light: '#78ffeb',
+      dark: '#008b84',
+      contrastText: '#062a31',
+    },
+    success: {
+      main: '#22c55e',
+      light: '#78ff9b',
+      dark: '#15803d',
+    },
+    background: {
+      default: '#f6f9fc',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: '#102033',
+      secondary: '#5d6b7a',
+    },
+    divider: '#e3ebf4',
+  },
+  typography: {
+    fontFamily: '"Noto Sans TC", "Microsoft JhengHei", "Segoe UI", sans-serif',
+    h1: { letterSpacing: 0, fontWeight: 900 },
+    h2: { letterSpacing: 0, fontWeight: 900 },
+    h3: { letterSpacing: 0, fontWeight: 850 },
+    h4: { letterSpacing: 0, fontWeight: 850 },
+    h5: { letterSpacing: 0, fontWeight: 800 },
+    h6: { letterSpacing: 0, fontWeight: 800 },
+    button: { letterSpacing: 0, fontWeight: 800, textTransform: 'none' },
+  },
+  shape: {
+    borderRadius: 8,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { minHeight: 38, borderRadius: 8 },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          border: '1px solid #e3ebf4',
+          boxShadow: '0 10px 28px rgba(16, 32, 51, 0.06)',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        head: {
+          color: '#5d6b7a',
+          fontWeight: 800,
+          background: '#f7fbff',
+        },
+      },
+    },
+  },
+});
+
+function ProtectedPage({ children, allowedRoles = [] }) {
+  return <ProtectedRoute allowedRoles={allowedRoles}>{children}</ProtectedRoute>;
 }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const theme = useMemo(() => createAppTheme(), []);
+
   useEffect(() => {
-    console.log('App: 應用程序啟動');
-    
-    // 檢查是否有現有的認證狀態
     const authResult = checkAuthStatus();
+    setIsAuthenticated(authResult.isAuthenticated);
+
     if (authResult.isAuthenticated) {
-      console.log('App: 檢測到現有認證狀態，初始化會話管理');
       sessionManager.init();
     }
-    
-    // 監聽會話登出事件
-    const handleSessionLogout = (event) => {
-      console.log('App: 收到會話登出事件', event.detail);
-      
-      // 根據登出原因顯示不同的提示
-      if (event.detail.reason === 'browser_close') {
-        console.log('App: 瀏覽器關閉導致的登出');
-      } else if (event.detail.reason === 'token_refresh_failed') {
-        console.log('App: TOKEN刷新失敗導致的登出');
-        // 可以在這裡顯示友好的提示信息
-      }
+
+    const handleAuthChange = (event) => {
+      setIsAuthenticated(Boolean(event.detail?.isAuthenticated));
     };
-    
-    window.addEventListener('session-logout', handleSessionLogout);
-    
+
+    window.addEventListener('auth-change', handleAuthChange);
+
     return () => {
-      window.removeEventListener('session-logout', handleSessionLogout);
-      // 清理會話管理器
       sessionManager.cleanup();
+      window.removeEventListener('auth-change', handleAuthChange);
     };
   }, []);
 
   return (
-    <Router>
-      <div className="app">
-        <Navigation />
-        <main className="main-content">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<Home />} />
-            <Route path="/main" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/health-data-input" element={
-              <ProtectedRoute>
-                <HealthDataInput />
-              </ProtectedRoute>
-            } />
-            <Route path="/bulk-import" element={
-              <ProtectedRoute>
-                <BulkHealthDataImport />
-              </ProtectedRoute>
-            } />
-            <Route path="/risk-analysis" element={
-              <ProtectedRoute>
-                <RiskAnalysis />
-              </ProtectedRoute>
-            } />
-            <Route path="/health-records" element={
-              <ProtectedRoute>
-                <HealthRecords />
-              </ProtectedRoute>
-            } />
-            <Route path="/patients" element={
-              <ProtectedRoute>
-                <PatientManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/appointments" element={
-              <ProtectedRoute>
-                <AppointmentManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/laboratory" element={
-              <ProtectedRoute>
-                <LaboratoryManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/pharmacy" element={
-              <ProtectedRoute>
-                <PharmacyManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/management-center" element={
-              <ProtectedRoute>
-                <UnifiedManagementCenter />
-              </ProtectedRoute>
-            } />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Box className="app-shell">
+          <Navigation />
+          <Box component="main" className={isAuthenticated ? 'app-main app-main-authenticated' : 'app-main'}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/launch" element={<Launch />} />
+              <Route path="/dashboard" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
+              <Route path="/patients" element={<ProtectedPage><PatientManagement /></ProtectedPage>} />
+              <Route path="/patients/:patientId" element={<ProtectedPage><PatientChart /></ProtectedPage>} />
+              <Route path="/health-data-input" element={<ProtectedPage><HealthDataInput /></ProtectedPage>} />
+              <Route path="/bulk-import" element={<ProtectedPage><BulkHealthDataImport /></ProtectedPage>} />
+              <Route path="/risk-analysis" element={<ProtectedPage><RiskAnalysis /></ProtectedPage>} />
+              <Route path="/research-cohorts" element={<ProtectedPage allowedRoles={RESEARCH_ACCESS_ROLES}><ResearchCohorts /></ProtectedPage>} />
+              <Route path="/research-reports" element={<ProtectedPage allowedRoles={RESEARCH_ACCESS_ROLES}><ResearchReports /></ProtectedPage>} />
+              <Route path="/history" element={<ProtectedPage><HistoryRecords /></ProtectedPage>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Box>
+        </Box>
+      </Router>
+    </ThemeProvider>
   );
 }
 

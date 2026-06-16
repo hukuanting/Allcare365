@@ -1,0 +1,20 @@
+{
+  "scenario": "8 Multi-Patient Authorization and API STU2",
+  "bulk_fhir_url_template": "https://<cloudflare-host>/fhir/R4",
+  "group_id": "example-group",
+  "client_id": "inferno_bulk_client",
+  "jwks_url": "https://inferno.healthit.gov/suites/custom/g10_certification/.well-known/jwks.json",
+  "recommended_scope": "system/*.read",
+  "recommended_algorithm": "ES384",
+  "supported_algorithms": ["ES384", "RS384", "RS256"],
+  "exported_group_patient_ids": [
+    "10000000-0000-4000-a000-000000000001",
+    "10000000-0000-4000-a000-000000000002",
+    "10000000-0000-4000-a000-000000000003"
+  ],
+  "implantable_device_type_codes": ["14106009"],
+  "supported_bulk_parameters": ["_since", "_type", "_typeFilter", "_outputFormat"],
+  "required_context_resources": ["Encounter", "Location", "Organization", "Practitioner"],
+  "additional_reference_resources": ["Media", "Endpoint"],
+  "local_guard": "powershell -ExecutionPolicy Bypass -File .\\verify_onc_bulk_data_stu2.ps1 -Seed"
+}

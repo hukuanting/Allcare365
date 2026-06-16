@@ -1,110 +1,96 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { api } from '../config/api';
-import API_CONFIG from '../config/api';
-import { setAuthState, checkAuthStatus } from '../utils/auth';
-import './Login.css';
+import React, { useEffect, useState } from 'react';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import LoginIcon from '@mui/icons-material/Login';
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
+import API_CONFIG, { api, parseApiResponse } from '../config/api';
+import { checkAuthStatus, setAuthState } from '../utils/auth';
+import { apiErrorMessage } from '../utils/apiData';
 
 function Login() {
-  const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // 檢查是否已經登入
   useEffect(() => {
-    const authResult = checkAuthStatus();
-    if (authResult.isAuthenticated) {
-      console.log('Login: 用戶已登入，重定向到儀表板');
+    if (checkAuthStatus().isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('正在登入...');
-    
-    try {
-      // 使用配置好的 API
-      const response = await api.post(API_CONFIG.ENDPOINTS.LOGIN, {
-        username: username,
-        password: password
-      });
+  const submit = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setMessage('');
 
-      if (response && response.ok) {
-        const data = await response.json();
-        console.log('Login successful:', data);
-        console.log('Setting localStorage items...');
-        
-        // 使用統一的認證狀態設置
-        setAuthState(data);
-        
-        console.log('Auth state set, localStorage:', {
-          access_token: !!localStorage.getItem('access_token'),
-          user_info: !!localStorage.getItem('user_info')
-        });
-        
-        setMessage('登入成功！正在跳轉...');
-        
-        // 延遲跳轉，確保所有組件都收到狀態更新
-        setTimeout(() => {
-          console.log('Navigating to dashboard...');
-          navigate('/dashboard', { replace: true });
-        }, 500);
-      } else if (response) {
-        const data = await response.json();
-        setMessage(`登入失敗: ${data.detail || '無效的憑證'}`);
-      } else {
-        setMessage('登入失敗: 網絡連接問題');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      setMessage(`網絡錯誤: ${error.message}`);
+    try {
+      const response = await api.post(API_CONFIG.ENDPOINTS.LOGIN, credentials);
+      const payload = await parseApiResponse(response);
+      if (!response.ok) throw new Error(apiErrorMessage(payload, '登入失敗，請確認帳號與密碼'));
+      setAuthState(payload);
+      navigate(location.state?.from?.pathname || '/dashboard', { replace: true });
+    } catch (requestError) {
+      setMessage(requestError.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Login</h2>
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label className="form-label">Username:</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="form-input"
-              placeholder="請輸入您的用戶名"
+    <Box className="auth-page">
+      <Paper className="auth-card">
+        <Box>
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 2 }}>
+            <MonitorHeartIcon color="primary" />
+            <Typography fontWeight={900}>AllCare365</Typography>
+          </Stack>
+          <Typography variant="h4">登入</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>
+            使用後端帳號登入臨床資料與研究治理系統。
+          </Typography>
+        </Box>
+
+        {message && <Alert severity="error">{message}</Alert>}
+
+        <Box component="form" onSubmit={submit}>
+          <Stack spacing={2}>
+            <TextField
+              label="帳號"
+              value={credentials.username}
+              onChange={(event) => setCredentials((current) => ({ ...current, username: event.target.value }))}
+              autoComplete="username"
               required
+              fullWidth
             />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Password:</label>
-            <input
+            <TextField
+              label="密碼"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-input"
-              placeholder="請輸入您的密碼"
+              value={credentials.password}
+              onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))}
+              autoComplete="current-password"
               required
+              fullWidth
             />
-          </div>
-          <button type="submit" className="login-button">登入</button>
-        </form>
-        
-        {message && (
-          <div className={`message ${message.includes('成功') ? 'success-message' : 'error-message'}`}>
-            {message}
-          </div>
-        )}
-        
-        <div className="login-auth-links">
-          <p>還沒有帳號？ <Link to="/register">立即註冊</Link></p>
-          <p><Link to="/">返回首頁</Link></p>
-        </div>
-      </div>
-    </div>
+            <Button type="submit" variant="contained" size="large" startIcon={<LoginIcon />} disabled={submitting}>
+              {submitting ? '登入中' : '登入'}
+            </Button>
+          </Stack>
+        </Box>
+
+        <Typography variant="body2" color="text.secondary">
+          尚未建立帳號？ <Link component={RouterLink} to="/register">前往註冊</Link>
+        </Typography>
+      </Paper>
+    </Box>
   );
 }
 

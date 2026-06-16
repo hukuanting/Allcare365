@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Authorize Access</h3>
+                </div>
+                <div class="card-body">
+                    <h4 class="card-title">Application <strong>{{ application.name }}</strong> wants to access your
+                        account.</h4>
+                    <p class="card-text">Please review and select the permissions you wish to grant:</p>
+                    {% if offline_access_requested %}
+                    <div class="alert alert-warning" role="alert">
+                        Granting offline access allows this application to receive refresh tokens and continue access when you are not actively using the application, until the authorization is revoked or expires.
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="{{ authorize_action|default:request.get_full_path }}" id="authForm">
+                        {% csrf_token %}
+
+                        <!-- OAuth2 Hidden Fields - Rendered from oauth_params to persist state across POSTs -->
+                        {% if oauth_params %}
+                            {% for param in oauth_params %}
+                                <input type="hidden" name="{{ param.name }}" value="{{ param.value }}">
+                            {% endfor %}
+                        {% else %}
+                            <!-- Fallback if oauth_params is missing -->
+                            {% for field in form.hidden_fields %}
+                                {% if field.name != 'scope' %}
+                                    {{ field }}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Final scope field for submission -->
+                        <input type="hidden" name="scope" id="final_scope_input">
+
+                        <!-- Also render form errors -->
+                        {{ form.errors }}
+                        {{ form.non_field_errors }}
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Scopes:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                                <label class="form-check-label fw-bold" for="selectAll">
+                                    Select All / Deselect All
+                                </label>
+                            </div>
+                            <hr>
+                            <div id="scopeList" class="row">
+                                {% for item in scopes_list %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <!-- 注意：這裡改名為 scope_selector，避免與真正的 scope 參數衝突 -->
+                                        <input class="form-check-input scope-checkbox" type="checkbox"
+                                            name="scope_selector" value="{{ item.key }}"
+                                            id="scope_{{ forloop.counter }}" {{ item.checked }}>
+                                        <label class="form-check-label" for="scope_{{ forloop.counter }}">
+                                            {{ item.description }}
+                                            <small class="text-muted d-block" style="font-size: 0.75em;">({{ item.key }})</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <input type="submit" class="btn btn-secondary me-md-2" value="Cancel" name="cancel" />
+                            <button type="button" class="btn btn-primary" onclick="submitForm()">Authorize</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 全選/取消全選
+    document.getElementById('selectAll').addEventListener('change', function () {
+        var checkboxes = document.querySelectorAll('.scope-checkbox');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    });
+
+    function submitForm() {
+        var checkboxes = document.querySelectorAll('.scope-checkbox:checked');
+        var selectedScopes = [];
+        checkboxes.forEach(function (cb) {
+            selectedScopes.push(cb.value);
+        });
+
+        var joinedScopes = selectedScopes.join(' ').trim();
+        document.getElementById('final_scope_input').value = joinedScopes;
+
+        console.log("Submitting scopes:", joinedScopes);
+
+        // Add a hidden input to simulate the 'allow' button click (required by DOT)
+        var form = document.getElementById('authForm');
+        var allowInput = document.createElement('input');
+        allowInput.type = 'hidden';
+        allowInput.name = 'allow';
+        allowInput.value = 'Authorize';
+        form.appendChild(allowInput);
+
+        form.submit();
+    }
+</script>
+{% endblock %}

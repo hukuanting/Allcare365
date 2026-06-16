@@ -8,6 +8,15 @@
 .env.production.local
 *.key
 *.pem
+cloudflared-quick-tunnel.log
+cloudflare-current-url.env
+
+# Local clinical/source artifacts
+H2U_cvd_input_update.csv
+CORE.xlsx
+ONC_CERTIFICATION.pdf
+.agents/
+anon/*.db
 
 # Python
 __pycache__/

@@ -1,0 +1,352 @@
+[
+    {
+        "profile_dir":  "allergy_intolerance",
+        "resource":  "AllergyIntolerance",
+        "title":  "AllergyIntolerance",
+        "must_support_count":  6,
+        "must_support_elements":  "clinicalStatus, verificationStatus, code, patient, reaction, reaction.manifestation"
+    },
+    {
+        "profile_dir":  "average_blood_pressure",
+        "resource":  "Observation",
+        "title":  "Observation Average Blood Pressure",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, code.coding.code, subject, effectivePeriod, component, component.valueQuantity, component.dataAbsentReason, component:systolic.code, component:systolic.value[x], component:diastolic.code, component:diastolic.value[x]"
+    },
+    {
+        "profile_dir":  "blood_pressure",
+        "resource":  "Observation",
+        "title":  "Observation Blood Pressure",
+        "must_support_count":  26,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, component, component.code, component.valueQuantity, component.dataAbsentReason, component:systolic.code, component:systolic.valueQuantity, component:systolic.valueQuantity.value, component:systolic.valueQuantity.unit, component:systolic.valueQuantity.system, component:systolic.valueQuantity.code, component:systolic.dataAbsentReason, component:diastolic.code, component:diastolic.valueQuantity, component:diastolic.valueQuantity.value, component:diastolic.valueQuantity.unit, component:diastolic.valueQuantity.system, component:diastolic.valueQuantity.code, component:diastolic.dataAbsentReason"
+    },
+    {
+        "profile_dir":  "bmi",
+        "resource":  "Observation",
+        "title":  "Observation BMI",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "body_height",
+        "resource":  "Observation",
+        "title":  "Observation Body Height",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "body_temperature",
+        "resource":  "Observation",
+        "title":  "Observation Body Temperature",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "body_weight",
+        "resource":  "Observation",
+        "title":  "Observation Body Weight",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "care_experience_preference",
+        "resource":  "Observation",
+        "title":  "Observation Care Experience Preference",
+        "must_support_count":  7,
+        "must_support_elements":  "status, category, code.coding.code, subject, effectiveDateTime, valueString, valueCodeableConcept"
+    },
+    {
+        "profile_dir":  "care_plan",
+        "resource":  "CarePlan",
+        "title":  "CarePlan",
+        "must_support_count":  7,
+        "must_support_elements":  "text, text.status, text.div, status, intent, category, subject"
+    },
+    {
+        "profile_dir":  "care_team",
+        "resource":  "CareTeam",
+        "title":  "CareTeam",
+        "must_support_count":  5,
+        "must_support_elements":  "status, subject, participant, participant.role, participant.member"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "title":  "Condition Encounter Diagnosis",
+        "must_support_count":  6,
+        "must_support_elements":  "category, code, subject, encounter, abatementDateTime, recordedDate"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "title":  "Condition Problems and Health Concerns",
+        "must_support_count":  10,
+        "must_support_elements":  "meta, meta.lastUpdated, clinicalStatus, verificationStatus, category, code, subject, onsetDateTime, abatementDateTime, recordedDate"
+    },
+    {
+        "profile_dir":  "coverage",
+        "resource":  "Coverage",
+        "title":  "Coverage",
+        "must_support_count":  13,
+        "must_support_elements":  "identifier, identifier:memberid.type, status, type, subscriberId, beneficiary, relationship, period, payor, class, class:group.value, class:plan.value, class:plan.name"
+    },
+    {
+        "profile_dir":  "device",
+        "resource":  "Device",
+        "title":  "Implantable Device",
+        "must_support_count":  10,
+        "must_support_elements":  "udiCarrier, udiCarrier.deviceIdentifier, udiCarrier.carrierHRF, distinctIdentifier, manufactureDate, expirationDate, lotNumber, serialNumber, type, patient"
+    },
+    {
+        "profile_dir":  "diagnostic_report_lab",
+        "resource":  "DiagnosticReport",
+        "title":  "DiagnosticReport for Laboratory Results Reporting",
+        "must_support_count":  11,
+        "must_support_elements":  "meta, meta.lastUpdated, status, category, code, subject, encounter, effectiveDateTime, issued, performer, result"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "resource":  "DiagnosticReport",
+        "title":  "DiagnosticReport for Report and Note Exchange",
+        "must_support_count":  12,
+        "must_support_elements":  "status, category, code, subject, encounter, effectiveDateTime, issued, performer, result, media, media.link, presentedForm"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "resource":  "DocumentReference",
+        "title":  "DocumentReference",
+        "must_support_count":  16,
+        "must_support_elements":  "identifier, status, type, category, subject, date, author, content, content.attachment, content.attachment.contentType, content.attachment.data, content.attachment.url, content.format, context, context.encounter, context.period"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "title":  "Encounter",
+        "must_support_count":  21,
+        "must_support_elements":  "meta, meta.lastUpdated, identifier, identifier.system, identifier.value, status, class, type, subject, participant, participant.type, participant.period, participant.individual, period, reasonCode, reasonReference, hospitalization, hospitalization.dischargeDisposition, location, location.location, serviceProvider"
+    },
+    {
+        "profile_dir":  "goal",
+        "resource":  "Goal",
+        "title":  "Goal",
+        "must_support_count":  6,
+        "must_support_elements":  "lifecycleStatus, description, subject, startDate, target, target.dueDate"
+    },
+    {
+        "profile_dir":  "head_circumference",
+        "resource":  "Observation",
+        "title":  "Observation Head Circumference",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "head_circumference_percentile",
+        "resource":  "Observation",
+        "title":  "Observation Pediatric Head Occipital Frontal Circumference Percentile",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "heart_rate",
+        "resource":  "Observation",
+        "title":  "Observation Heart Rate",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "immunization",
+        "resource":  "Immunization",
+        "title":  "Immunization",
+        "must_support_count":  8,
+        "must_support_elements":  "status, statusReason, vaccineCode, patient, encounter, occurrenceDateTime, primarySource, location"
+    },
+    {
+        "profile_dir":  "location",
+        "resource":  "Location",
+        "title":  "Location",
+        "must_support_count":  11,
+        "must_support_elements":  "identifier, status, name, type, telecom, address, address.line, address.city, address.state, address.postalCode, managingOrganization"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "resource":  "MedicationDispense",
+        "title":  "MedicationDispense",
+        "must_support_count":  15,
+        "must_support_elements":  "status, medication[x], subject, context, performer, performer.actor, authorizingPrescription, type, quantity, whenHandedOver, dosageInstruction, dosageInstruction.text, dosageInstruction.timing, dosageInstruction.doseAndRate, dosageInstruction.doseAndRate.doseQuantity"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "resource":  "MedicationRequest",
+        "title":  "MedicationRequest",
+        "must_support_count":  20,
+        "must_support_elements":  "status, intent, category, reportedBoolean, reportedReference, medication[x], subject, encounter, authoredOn, requester, reasonCode, reasonReference, dosageInstruction, dosageInstruction.text, dosageInstruction.timing, dosageInstruction.doseAndRate, dosageInstruction.doseAndRate.doseQuantity, dispenseRequest, dispenseRequest.numberOfRepeatsAllowed, dispenseRequest.quantity"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "resource":  "Observation",
+        "title":  "Observation Clinical Result",
+        "must_support_count":  9,
+        "must_support_elements":  "status, category, code, subject, encounter, effectiveDateTime, valueQuantity, valueCodeableConcept, valueString"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "resource":  "Observation",
+        "title":  "Observation Laboratory Result",
+        "must_support_count":  14,
+        "must_support_elements":  "meta, meta.lastUpdated, status, category, code, subject, encounter, effectiveDateTime, valueQuantity, valueCodeableConcept, valueString, interpretation, specimen, referenceRange"
+    },
+    {
+        "profile_dir":  "observation_occupation",
+        "resource":  "Observation",
+        "title":  "Observation Occupation",
+        "must_support_count":  7,
+        "must_support_elements":  "status, category, code.coding.code, subject, component, component:industry.code, component:industry.value[x]"
+    },
+    {
+        "profile_dir":  "observation_pregnancyintent",
+        "resource":  "Observation",
+        "title":  "Observation Pregnancy Intent",
+        "must_support_count":  4,
+        "must_support_elements":  "status, category, code.coding.code, subject"
+    },
+    {
+        "profile_dir":  "observation_pregnancystatus",
+        "resource":  "Observation",
+        "title":  "Observation Pregnancy Status",
+        "must_support_count":  4,
+        "must_support_elements":  "status, category, code.coding.code, subject"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "resource":  "Observation",
+        "title":  "Observation Screening Assessment",
+        "must_support_count":  11,
+        "must_support_elements":  "status, category, code, subject, effectiveDateTime, performer, valueQuantity, valueCodeableConcept, valueString, hasMember, derivedFrom"
+    },
+    {
+        "profile_dir":  "observation_sexual_orientation",
+        "resource":  "Observation",
+        "title":  "Observation Sexual Orientation",
+        "must_support_count":  4,
+        "must_support_elements":  "status, code.coding.code, subject, effectiveDateTime"
+    },
+    {
+        "profile_dir":  "organization",
+        "resource":  "Organization",
+        "title":  "Organization",
+        "must_support_count":  14,
+        "must_support_elements":  "identifier, identifier.system, identifier.value, active, name, telecom, telecom.system, telecom.value, address, address.line, address.city, address.state, address.postalCode, address.country"
+    },
+    {
+        "profile_dir":  "patient",
+        "resource":  "Patient",
+        "title":  "Patient",
+        "must_support_count":  25,
+        "must_support_elements":  "identifier, identifier.system, identifier.value, name, name.use, name.family, name.given, name.suffix, name.period.end, telecom, telecom.system, telecom.value, telecom.use, gender, birthDate, deceasedDateTime, address, address.use, address.line, address.city, address.state, address.postalCode, address.period.end, communication, communication.language"
+    },
+    {
+        "profile_dir":  "pediatric_bmi_for_age",
+        "resource":  "Observation",
+        "title":  "Observation Pediatric BMI for Age",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "pediatric_weight_for_height",
+        "resource":  "Observation",
+        "title":  "Observation Pediatric Weight for Height",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "practitioner",
+        "resource":  "Practitioner",
+        "title":  "Practitioner",
+        "must_support_count":  8,
+        "must_support_elements":  "identifier, identifier.system, identifier.value, name, name.family, telecom, telecom.system, telecom.value"
+    },
+    {
+        "profile_dir":  "practitioner_role",
+        "resource":  "PractitionerRole",
+        "title":  "PractitionerRole",
+        "must_support_count":  9,
+        "must_support_elements":  "practitioner, organization, code, specialty, location, telecom, telecom.system, telecom.value, endpoint"
+    },
+    {
+        "profile_dir":  "procedure",
+        "resource":  "Procedure",
+        "title":  "Procedure",
+        "must_support_count":  8,
+        "must_support_elements":  "basedOn, status, code, subject, encounter, performedDateTime, reasonCode, reasonReference"
+    },
+    {
+        "profile_dir":  "provenance",
+        "resource":  "Provenance",
+        "title":  "Provenance",
+        "must_support_count":  9,
+        "must_support_elements":  "target, target.reference, recorded, agent, agent.type, agent.who, agent.onBehalfOf, agent:ProvenanceAuthor.type, agent:ProvenanceTransmitter.type"
+    },
+    {
+        "profile_dir":  "pulse_oximetry",
+        "resource":  "Observation",
+        "title":  "Observation Pulse Oximetry",
+        "must_support_count":  29,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code, code.coding, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code, component, component.code, component.valueQuantity, component:FlowRate.code, component:FlowRate.valueQuantity, component:FlowRate.valueQuantity.value, component:FlowRate.valueQuantity.unit, component:FlowRate.valueQuantity.system, component:FlowRate.valueQuantity.code, component:Concentration.code, component:Concentration.valueQuantity, component:Concentration.valueQuantity.value, component:Concentration.valueQuantity.unit, component:Concentration.valueQuantity.system, component:Concentration.valueQuantity.code"
+    },
+    {
+        "profile_dir":  "questionnaire_response",
+        "resource":  "QuestionnaireResponse",
+        "title":  "QuestionnaireResponse",
+        "must_support_count":  15,
+        "must_support_elements":  "identifier, questionnaire, status, subject, authored, author, item, item.linkId, item.text, item.answer, item.answer.valueDecimal, item.answer.valueString, item.answer.valueCoding, item.answer.item, item.item"
+    },
+    {
+        "profile_dir":  "related_person",
+        "resource":  "RelatedPerson",
+        "title":  "RelatedPerson",
+        "must_support_count":  6,
+        "must_support_elements":  "active, patient, relationship, name, telecom, address"
+    },
+    {
+        "profile_dir":  "respiratory_rate",
+        "resource":  "Observation",
+        "title":  "Observation Respiratory Rate",
+        "must_support_count":  13,
+        "must_support_elements":  "status, category, category:VSCat.coding, category:VSCat.coding.system, category:VSCat.coding.code, code.coding.code, subject, effectiveDateTime, valueQuantity, valueQuantity:valueQuantity.value, valueQuantity:valueQuantity.unit, valueQuantity:valueQuantity.system, valueQuantity:valueQuantity.code"
+    },
+    {
+        "profile_dir":  "service_request",
+        "resource":  "ServiceRequest",
+        "title":  "ServiceRequest",
+        "must_support_count":  11,
+        "must_support_elements":  "status, intent, category, code, subject, encounter, occurrencePeriod, authoredOn, requester, reasonCode, reasonReference"
+    },
+    {
+        "profile_dir":  "simple_observation",
+        "resource":  "Observation",
+        "title":  "Observation Simple",
+        "must_support_count":  11,
+        "must_support_elements":  "status, category, code, subject, effectiveDateTime, performer, valueQuantity, valueCodeableConcept, valueString, valueBoolean, derivedFrom"
+    },
+    {
+        "profile_dir":  "smokingstatus",
+        "resource":  "Observation",
+        "title":  "Observation Smoking Status",
+        "must_support_count":  6,
+        "must_support_elements":  "status, category, code, subject, effective[x], value[x]"
+    },
+    {
+        "profile_dir":  "specimen",
+        "resource":  "Specimen",
+        "title":  "Specimen",
+        "must_support_count":  7,
+        "must_support_elements":  "identifier, accessionIdentifier, type, subject, collection, collection.bodySite, condition"
+    },
+    {
+        "profile_dir":  "treatment_intervention_preference",
+        "resource":  "Observation",
+        "title":  "Observation Treatment Intervention Preference",
+        "must_support_count":  7,
+        "must_support_elements":  "status, category, code.coding.code, subject, effectiveDateTime, valueString, valueCodeableConcept"
+    }
+]

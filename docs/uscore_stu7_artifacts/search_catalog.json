@@ -1,0 +1,1460 @@
+[
+    {
+        "profile_dir":  "allergy_intolerance",
+        "resource":  "AllergyIntolerance",
+        "expectation":  "",
+        "search_combo":  "patient"
+    },
+    {
+        "profile_dir":  "allergy_intolerance",
+        "resource":  "AllergyIntolerance",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+clinical-status"
+    },
+    {
+        "profile_dir":  "average_blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "average_blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "average_blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "average_blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "average_blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "average_blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "blood_pressure",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "bmi",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "bmi",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "bmi",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "bmi",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "bmi",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "bmi",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "body_height",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "body_height",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "body_height",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "body_height",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "body_height",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "body_height",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "body_temperature",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "body_temperature",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "body_temperature",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "body_temperature",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "body_temperature",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "body_temperature",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "body_weight",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "body_weight",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "body_weight",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "body_weight",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "body_weight",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "body_weight",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "care_experience_preference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "care_experience_preference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "care_experience_preference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "care_experience_preference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "care_experience_preference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "care_experience_preference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "care_plan",
+        "resource":  "CarePlan",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "care_plan",
+        "resource":  "CarePlan",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status+date+date"
+    },
+    {
+        "profile_dir":  "care_plan",
+        "resource":  "CarePlan",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+date+date"
+    },
+    {
+        "profile_dir":  "care_plan",
+        "resource":  "CarePlan",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "care_team",
+        "resource":  "CareTeam",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+status+role"
+    },
+    {
+        "profile_dir":  "care_team",
+        "resource":  "CareTeam",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+role"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+patient"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+clinical-status+clinical-status"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+onset-date+onset-date"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+abatement-date"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+clinical-status+clinical-status"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+asserted-date+asserted-date"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+encounter"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "condition_encounter_diagnosis",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+recorded-date"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+patient"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+clinical-status"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+onset-date"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+abatement-date"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+clinical-status"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+asserted-date+asserted-date"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+encounter+encounter"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+_lastUpdated"
+    },
+    {
+        "profile_dir":  "condition_problems_health_concerns",
+        "resource":  "Condition",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+recorded-date"
+    },
+    {
+        "profile_dir":  "coverage",
+        "resource":  "Coverage",
+        "expectation":  "",
+        "search_combo":  "patient"
+    },
+    {
+        "profile_dir":  "device",
+        "resource":  "Device",
+        "expectation":  "",
+        "search_combo":  "patient"
+    },
+    {
+        "profile_dir":  "device",
+        "resource":  "Device",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status+status"
+    },
+    {
+        "profile_dir":  "device",
+        "resource":  "Device",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+type"
+    },
+    {
+        "profile_dir":  "diagnostic_report_lab",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+patient"
+    },
+    {
+        "profile_dir":  "diagnostic_report_lab",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "diagnostic_report_lab",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "diagnostic_report_lab",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "diagnostic_report_lab",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "diagnostic_report_lab",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+patient"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "diagnostic_report_note",
+        "resource":  "DiagnosticReport",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "resource":  "DocumentReference",
+        "expectation":  "",
+        "search_combo":  "patient+_id"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "resource":  "DocumentReference",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+type"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "resource":  "DocumentReference",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "resource":  "DocumentReference",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+type+period"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "resource":  "DocumentReference",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "document_reference",
+        "resource":  "DocumentReference",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "",
+        "search_combo":  "patient+_id+identifier"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "SHALL",
+        "search_combo":  "date+patient"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "SHOULD",
+        "search_combo":  "class+patient"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+type"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+_lastUpdated"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+location"
+    },
+    {
+        "profile_dir":  "encounter",
+        "resource":  "Encounter",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+discharge-disposition"
+    },
+    {
+        "profile_dir":  "goal",
+        "resource":  "Goal",
+        "expectation":  "",
+        "search_combo":  "patient"
+    },
+    {
+        "profile_dir":  "goal",
+        "resource":  "Goal",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+target-date"
+    },
+    {
+        "profile_dir":  "goal",
+        "resource":  "Goal",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+lifecycle-status"
+    },
+    {
+        "profile_dir":  "goal",
+        "resource":  "Goal",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+description"
+    },
+    {
+        "profile_dir":  "head_circumference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "head_circumference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "head_circumference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "head_circumference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "head_circumference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "head_circumference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "head_circumference_percentile",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "head_circumference_percentile",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "head_circumference_percentile",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "head_circumference_percentile",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "head_circumference_percentile",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "head_circumference_percentile",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "heart_rate",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "heart_rate",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "heart_rate",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "heart_rate",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "heart_rate",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "heart_rate",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "immunization",
+        "resource":  "Immunization",
+        "expectation":  "",
+        "search_combo":  "patient"
+    },
+    {
+        "profile_dir":  "immunization",
+        "resource":  "Immunization",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+date"
+    },
+    {
+        "profile_dir":  "immunization",
+        "resource":  "Immunization",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "location",
+        "resource":  "Location",
+        "expectation":  "",
+        "search_combo":  "address+address-city+address-postalcode+address-state+name"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "resource":  "MedicationDispense",
+        "expectation":  "",
+        "search_combo":  "patient"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "resource":  "MedicationDispense",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status+type"
+    },
+    {
+        "profile_dir":  "medication_dispense",
+        "resource":  "MedicationDispense",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "resource":  "MedicationRequest",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+intent"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "resource":  "MedicationRequest",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+intent+encounter"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "resource":  "MedicationRequest",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+intent+authoredon"
+    },
+    {
+        "profile_dir":  "medication_request",
+        "resource":  "MedicationRequest",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+intent+status"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "observation_clinical_result",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "observation_lab",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated"
+    },
+    {
+        "profile_dir":  "observation_occupation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "observation_occupation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "observation_occupation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "observation_occupation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "observation_occupation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "observation_occupation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "observation_pregnancyintent",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "observation_pregnancyintent",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "observation_pregnancyintent",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "observation_pregnancyintent",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "observation_pregnancyintent",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "observation_pregnancyintent",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "observation_pregnancystatus",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "observation_pregnancystatus",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "observation_pregnancystatus",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "observation_pregnancystatus",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "observation_pregnancystatus",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "observation_pregnancystatus",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "observation_screening_assessment",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "observation_sexual_orientation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "observation_sexual_orientation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date+category"
+    },
+    {
+        "profile_dir":  "observation_sexual_orientation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "observation_sexual_orientation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status+category"
+    },
+    {
+        "profile_dir":  "observation_sexual_orientation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+category+_lastUpdated"
+    },
+    {
+        "profile_dir":  "observation_sexual_orientation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+category"
+    },
+    {
+        "profile_dir":  "organization",
+        "resource":  "Organization",
+        "expectation":  "",
+        "search_combo":  "address+name"
+    },
+    {
+        "profile_dir":  "patient",
+        "resource":  "Patient",
+        "expectation":  "",
+        "search_combo":  "_id+identifier+name"
+    },
+    {
+        "profile_dir":  "patient",
+        "resource":  "Patient",
+        "expectation":  "SHALL",
+        "search_combo":  "birthdate+name"
+    },
+    {
+        "profile_dir":  "patient",
+        "resource":  "Patient",
+        "expectation":  "SHOULD",
+        "search_combo":  "family+gender"
+    },
+    {
+        "profile_dir":  "patient",
+        "resource":  "Patient",
+        "expectation":  "SHOULD",
+        "search_combo":  "birthdate+family"
+    },
+    {
+        "profile_dir":  "patient",
+        "resource":  "Patient",
+        "expectation":  "SHALL",
+        "search_combo":  "gender+name"
+    },
+    {
+        "profile_dir":  "patient",
+        "resource":  "Patient",
+        "expectation":  "SHOULD",
+        "search_combo":  "death-date+family"
+    },
+    {
+        "profile_dir":  "pediatric_bmi_for_age",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "pediatric_bmi_for_age",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "pediatric_bmi_for_age",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "pediatric_bmi_for_age",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "pediatric_bmi_for_age",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "pediatric_bmi_for_age",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "pediatric_weight_for_height",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "pediatric_weight_for_height",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "pediatric_weight_for_height",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "pediatric_weight_for_height",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "pediatric_weight_for_height",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "pediatric_weight_for_height",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "practitioner",
+        "resource":  "Practitioner",
+        "expectation":  "",
+        "search_combo":  "_id+identifier+name"
+    },
+    {
+        "profile_dir":  "practitioner_role",
+        "resource":  "PractitionerRole",
+        "expectation":  "",
+        "search_combo":  "practitioner+specialty"
+    },
+    {
+        "profile_dir":  "procedure",
+        "resource":  "Procedure",
+        "expectation":  "",
+        "search_combo":  "patient"
+    },
+    {
+        "profile_dir":  "procedure",
+        "resource":  "Procedure",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "procedure",
+        "resource":  "Procedure",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+date"
+    },
+    {
+        "profile_dir":  "procedure",
+        "resource":  "Procedure",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "pulse_oximetry",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "pulse_oximetry",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "pulse_oximetry",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "pulse_oximetry",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "pulse_oximetry",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "pulse_oximetry",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "questionnaire_response",
+        "resource":  "QuestionnaireResponse",
+        "expectation":  "",
+        "search_combo":  "patient+_id"
+    },
+    {
+        "profile_dir":  "questionnaire_response",
+        "resource":  "QuestionnaireResponse",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+questionnaire"
+    },
+    {
+        "profile_dir":  "questionnaire_response",
+        "resource":  "QuestionnaireResponse",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+authored"
+    },
+    {
+        "profile_dir":  "questionnaire_response",
+        "resource":  "QuestionnaireResponse",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "related_person",
+        "resource":  "RelatedPerson",
+        "expectation":  "",
+        "search_combo":  "patient+_id+name"
+    },
+    {
+        "profile_dir":  "related_person",
+        "resource":  "RelatedPerson",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+name"
+    },
+    {
+        "profile_dir":  "respiratory_rate",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "respiratory_rate",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "respiratory_rate",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "respiratory_rate",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "respiratory_rate",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "respiratory_rate",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "service_request",
+        "resource":  "ServiceRequest",
+        "expectation":  "",
+        "search_combo":  "patient+_id"
+    },
+    {
+        "profile_dir":  "service_request",
+        "resource":  "ServiceRequest",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "service_request",
+        "resource":  "ServiceRequest",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+authored"
+    },
+    {
+        "profile_dir":  "service_request",
+        "resource":  "ServiceRequest",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+authored"
+    },
+    {
+        "profile_dir":  "service_request",
+        "resource":  "ServiceRequest",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+status"
+    },
+    {
+        "profile_dir":  "service_request",
+        "resource":  "ServiceRequest",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "simple_observation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "simple_observation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "simple_observation",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "simple_observation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "simple_observation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "simple_observation",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "smokingstatus",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "smokingstatus",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "smokingstatus",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "smokingstatus",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "smokingstatus",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "smokingstatus",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    },
+    {
+        "profile_dir":  "specimen",
+        "resource":  "Specimen",
+        "expectation":  "",
+        "search_combo":  "patient+_id"
+    },
+    {
+        "profile_dir":  "treatment_intervention_preference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+code"
+    },
+    {
+        "profile_dir":  "treatment_intervention_preference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category+date"
+    },
+    {
+        "profile_dir":  "treatment_intervention_preference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+code+date"
+    },
+    {
+        "profile_dir":  "treatment_intervention_preference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+status"
+    },
+    {
+        "profile_dir":  "treatment_intervention_preference",
+        "resource":  "Observation",
+        "expectation":  "SHOULD",
+        "search_combo":  "patient+category+_lastUpdated+_lastUpdated"
+    },
+    {
+        "profile_dir":  "treatment_intervention_preference",
+        "resource":  "Observation",
+        "expectation":  "SHALL",
+        "search_combo":  "patient+category"
+    }
+]

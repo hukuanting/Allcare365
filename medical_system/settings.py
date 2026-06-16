@@ -14,6 +14,8 @@ from pathlib import Path
 import os
 from decouple import config
 
+from apps.integration.fhir_integration.fine_grained_scopes import fine_grained_scope_descriptions
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,7 +29,43 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-)o3xb8@i@5c+vqd*i&svm
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,.trycloudflare.com',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
+
+# Inferno / US Core test runs may be executed without OAuth. Default to allowing anonymous read in DEBUG,
+# while keeping production defaults locked down unless explicitly enabled.
+FHIR_ALLOW_ANONYMOUS_READ = config('FHIR_ALLOW_ANONYMOUS_READ', default=False, cast=bool)
+# PUBLIC_BASE_URL 優先級：環境變數 > HTTPS 預設
+PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default='').rstrip('/')
+INFERNO_BULK_JWKS_URL = config(
+    'INFERNO_BULK_JWKS_URL',
+    default='https://inferno.healthit.gov/suites/custom/g10_certification/.well-known/jwks.json'
+)
+INFERNO_BULK_CLIENT_IDS = config(
+    'INFERNO_BULK_CLIENT_IDS',
+    default='inferno_bulk_client',
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
+)
+INFERNO_BULK_ALLOW_DYNAMIC_CLIENT_REGISTRATION = config(
+    'INFERNO_BULK_ALLOW_DYNAMIC_CLIENT_REGISTRATION',
+    default=True,
+    cast=bool,
+)
+
+_oidc_iss_default = f'{PUBLIC_BASE_URL}/o' if PUBLIC_BASE_URL else ''
+
+# CSRF Trusted Origins for public tunnel and Inferno access
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.trycloudflare.com',
+    'https://inferno.healthit.gov',  # 允許 Inferno 進行認證回傳
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://localhost:8000',
+    'https://127.0.0.1:8000',
+]
 
 
 # Application definition
@@ -45,43 +83,49 @@ INSTALLED_APPS = [
     # 'rest_framework_simplejwt.token_blacklist',  # 移除blacklist避免問題
     'corsheaders',
     # 認證系統
-    'authentication',
+    'apps.core.authentication',
     # 醫療管理模組
-    'patients',
-    'appointments',
-    'medical_records',
-    'billing',
-    'administration',
-    'reports',
-    'pharmacy',
-    'laboratory',
-    'documents',
-    'communications',
-    'immunizations',
-    'patient_portal',
-    'forms',
-    'clinical_decision_support',
-    'therapy_groups',
-    'esign',
-    'erx',
-    'code_systems',
-    'encounters',
-    'health_screening',
-    'fhir_integration',
+    'apps.clinical.patients',
+    # 'appointments',
+    # 'medical_records',
+    # 'billing',
+    # 'administration',
+    # 'reports',
+    # 'pharmacy',
+    # 'laboratory',
+    # 'documents',
+    # 'communications',
+    # 'immunizations',
+    # 'patient_portal',
+    # 'forms',
+    # 'clinical_decision_support',
+    # 'therapy_groups',
+    # 'esign',
+    # 'erx',
+    # 'code_systems',
+    # 'encounters',
+    'apps.clinical.health_screening',
+    'apps.integration.fhir_integration',
+    # 'wearable_integration',
+    'oauth2_provider',  # SMART on FHIR OAuth2 Support
+    'sslserver',        # 支援本地開發 HTTPS (ONC 認證必備)
 ]
 
 MIDDLEWARE = [
+    'apps.core.authentication.middleware.OAuthScopeCleanupMiddleware',  # Clean scopes before OAuth processing
     'corsheaders.middleware.CorsMiddleware',
+    'apps.integration.fhir_integration.middleware.DynamicBaseURLMiddleware',  # Dynamically set Base URL
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware',  # OAuth2 Middleware
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',  # 暫時禁用 CSRF 用於測試
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # 暫時禁用自定義認證中間件
-    # 'authentication.middleware.AuthenticationMiddleware',
-    # 'authentication.middleware.SecurityAuditMiddleware',
+    # 'apps.core.authentication.middleware.AuthenticationMiddleware',
+    # 'apps.core.authentication.middleware.SecurityAuditMiddleware',
 ]
 
 ROOT_URLCONF = 'medical_system.urls'
@@ -190,11 +234,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # SMART on FHIR OAuth2
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # 暫時允許所有訪問，用於測試
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
@@ -211,10 +256,11 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://inferno.healthit.gov",  # For ONC testing
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True  # 開發階段暫時允許所有來源
+CORS_ALLOW_ALL_ORIGINS = True  # Enable for testing with Inferno
 
 # Additional CORS settings for API
 CORS_ALLOW_HEADERS = [
@@ -239,51 +285,79 @@ STATICFILES_DIRS = [
 ]
 
 # Security settings for medical data
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = False # Local Cloudflare Tunnel terminates HTTPS during certification testing.
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+
+# Trust Cloudflare Tunnel proxy headers for generated absolute URLs.
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # Session settings (開發階段調整)
-SESSION_COOKIE_SECURE = False  # 開發階段設為False
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600  # 1 hour
+SESSION_COOKIE_SAMESITE = config('SESSION_COOKIE_SAMESITE', default='None')
 
 # CSRF settings (開發階段調整)
-CSRF_COOKIE_SECURE = False  # 開發階段設為False
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='None')
+CSRF_TRUSTED_ORIGINS_ALLOWED_METHODS = ['POST', 'GET', 'OPTIONS']
 
 # Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
     'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'logs' / 'medical_system.log',
+            'formatter': 'verbose'
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
+        'apps.clinical.health_screening': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
         'medical_system': {
-            'handlers': ['file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
     },
 }
 
-# Celery configuration
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+# Celery configuration (for local development, assumes Redis is running on localhost)
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -304,7 +378,7 @@ from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=90),
     'ROTATE_REFRESH_TOKENS': False,  # 修復：關閉token輪換避免blacklist問題
     'BLACKLIST_AFTER_ROTATION': False,  # 修復：關閉blacklist
     'UPDATE_LAST_LOGIN': True,
@@ -318,6 +392,167 @@ SIMPLE_JWT = {
     'TOKEN_OBTAIN_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenObtainPairSerializer',
     'TOKEN_REFRESH_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenRefreshSerializer',
 }
+
+# SMART on FHIR OAuth2 Settings
+OAUTH2_PROVIDER = {
+    'SCOPES': {
+        'read': 'Read scope',
+        'write': 'Write scope',
+        'groups': 'Access to your groups',
+        'openid': 'OpenID Connect scope',
+        'profile': 'Profile scope',
+        'email': 'Email scope',
+        'fhirUser': 'Permission to retrieve current logged-in user',
+        'launch': 'Permission to obtain launch context when app is launched',
+        'launch/patient': 'Permission to obtain launch context for a specific patient',
+        'offline_access': 'Offline access',
+        
+        # Inferno / US Core Scopes
+        'patient/Medication.rs': 'Read Medication',
+        'patient/AllergyIntolerance.rs': 'Read AllergyIntolerance',
+        'patient/CarePlan.rs': 'Read CarePlan',
+        'patient/CareTeam.rs': 'Read CareTeam',
+        'patient/Condition.rs': 'Read Condition',
+        'patient/Device.rs': 'Read Device',
+        'patient/DiagnosticReport.rs': 'Read DiagnosticReport',
+        'patient/DocumentReference.rs': 'Read DocumentReference',
+        'patient/Encounter.rs': 'Read Encounter',
+        'patient/Goal.rs': 'Read Goal',
+        'patient/Immunization.rs': 'Read Immunization',
+        'patient/Location.rs': 'Read Location',
+        'patient/MedicationRequest.rs': 'Read MedicationRequest',
+        'patient/Observation.rs': 'Read Observation',
+        'patient/Organization.rs': 'Read Organization',
+        'patient/Patient.rs': 'Read Patient',
+        'patient/Practitioner.rs': 'Read Practitioner',
+        'patient/Procedure.rs': 'Read Procedure',
+        'patient/Provenance.rs': 'Read Provenance',
+        'patient/PractitionerRole.rs': 'Read PractitionerRole',
+        'patient/ServiceRequest.rs': 'Read ServiceRequest',
+        'patient/Coverage.rs': 'Read Coverage',
+        'patient/MedicationDispense.rs': 'Read MedicationDispense',
+        'patient/Specimen.rs': 'Read Specimen',
+        'patient/QuestionnaireResponse.rs': 'Read QuestionnaireResponse',
+        'patient/RelatedPerson.rs': 'Read RelatedPerson',
+        'patient/Person.rs': 'Read Person',
+        
+        # Redundant .read scopes for compatibility
+        'patient/Medication.read': 'Read Medication',
+        'patient/AllergyIntolerance.read': 'Read AllergyIntolerance',
+        'patient/CarePlan.read': 'Read CarePlan',
+        'patient/CareTeam.read': 'Read CareTeam',
+        'patient/Condition.read': 'Read Condition',
+        'patient/Device.read': 'Read Device',
+        'patient/DiagnosticReport.read': 'Read DiagnosticReport',
+        'patient/DocumentReference.read': 'Read DocumentReference',
+        'patient/Encounter.read': 'Read Encounter',
+        'patient/Goal.read': 'Read Goal',
+        'patient/Immunization.read': 'Read Immunization',
+        'patient/Location.read': 'Read Location',
+        'patient/MedicationRequest.read': 'Read MedicationRequest',
+        'patient/Observation.read': 'Read Observation',
+        'patient/Organization.read': 'Read Organization',
+        'patient/Patient.read': 'Read Patient',
+        'patient/Practitioner.read': 'Read Practitioner',
+        'patient/Procedure.read': 'Read Procedure',
+        'patient/Provenance.read': 'Read Provenance',
+        'patient/PractitionerRole.read': 'Read PractitionerRole',
+        'patient/ServiceRequest.read': 'Read ServiceRequest',
+        'patient/Coverage.read': 'Read Coverage',
+        'patient/MedicationDispense.read': 'Read MedicationDispense',
+        'patient/Specimen.read': 'Read Specimen',
+        'patient/QuestionnaireResponse.read': 'Read QuestionnaireResponse',
+        'patient/Communication.rs': 'Read Communication', 'patient/Communication.read': 'Read Communication',
+        'patient/Binary.rs': 'Read Binary', 'patient/Binary.read': 'Read Binary',
+        'patient/Bundle.rs': 'Read Bundle', 'patient/Bundle.read': 'Read Bundle',
+        'patient/SearchParameter.rs': 'Read SearchParameter', 'patient/SearchParameter.read': 'Read SearchParameter',
+
+        # User Scopes (EHR Practitioner App)
+        'user/Medication.rs': 'Read Medication (User)',
+        'user/AllergyIntolerance.rs': 'Read AllergyIntolerance (User)',
+        'user/CarePlan.rs': 'Read CarePlan (User)',
+        'user/CareTeam.rs': 'Read CareTeam (User)',
+        'user/Condition.rs': 'Read Condition (User)',
+        'user/Device.rs': 'Read Device (User)',
+        'user/DiagnosticReport.rs': 'Read DiagnosticReport (User)',
+        'user/DocumentReference.rs': 'Read DocumentReference (User)',
+        'user/Encounter.rs': 'Read Encounter (User)',
+        'user/Goal.rs': 'Read Goal (User)',
+        'user/Immunization.rs': 'Read Immunization (User)',
+        'user/Location.rs': 'Read Location (User)',
+        'user/MedicationRequest.rs': 'Read MedicationRequest (User)',
+        'user/Observation.rs': 'Read Observation (User)',
+        'user/Organization.rs': 'Read Organization (User)',
+        'user/Patient.rs': 'Read Patient (User)',
+        'user/Practitioner.rs': 'Read Practitioner (User)',
+        'user/Procedure.rs': 'Read Procedure (User)',
+        'user/Provenance.rs': 'Read Provenance (User)',
+        'user/PractitionerRole.rs': 'Read PractitionerRole (User)',
+        'user/ServiceRequest.rs': 'Read ServiceRequest (User)',
+        'user/Coverage.rs': 'Read Coverage (User)',
+        'user/MedicationDispense.rs': 'Read MedicationDispense (User)',
+        'user/Specimen.rs': 'Read Specimen (User)',
+        'user/QuestionnaireResponse.rs': 'Read QuestionnaireResponse (User)',
+        'user/RelatedPerson.rs': 'Read RelatedPerson (User)',
+        'user/Person.rs': 'Read Person (User)',
+
+        # SMART v2 fine-grained category scopes required by ONC g10 9.25.
+        **fine_grained_scope_descriptions(),
+
+        # Wildcards
+        'patient/*.read': 'Read all patient data',
+        'patient/*.rs': 'Read all patient data',
+        'patient/*.*': 'All patient operations',
+        'user/*.read': 'Read all user data',
+        'user/*.rs': 'Read all user data',
+        'user/*.*': 'All user operations',
+        'system/*.read': 'Read all system data',
+        'system/*.rs': 'Read/search all system data',
+        'system/*.*': 'System level access',
+    },
+    'DEFAULT_SCOPES': ['patient/*.read', 'launch'],
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 3600,
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 7776000,
+    'ROTATE_REFRESH_TOKEN': False,  # Disable rotation during testing to avoid sync issues
+    'PKCE_REQUIRED': True,
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['https', 'http'],
+    'JWT_ISS_VALIDATION_ENABLED': False,
+    'OAUTH2_VALIDATOR_CLASS': 'apps.integration.fhir_integration.views.SMARTv2Validator',
+
+
+    'OIDC_ENABLED': True,
+    'OIDC_ISS_ENDPOINT': config('OIDC_ISS_ENDPOINT', default=_oidc_iss_default),
+    'OIDC_RSA_PRIVATE_KEY': """-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAn/XHuvhjsAKSfk105psNpLlcr11/utG4KXZcrnbawVCWqZBT
+9iDxsgABdRYeRjKcc0g9MrS3usL4Nb129LiY/qGaHY6ld4kPsVF+wyP6QkTtDkZq
+15Sg+51cb+Hdc/A4XjzUs48sKWdBpQ6DiIbQBVYLfXgIi/oYWUrCz7/+/LJCXfNn
+vFDCrHcBTBzSUDxo8bHwZVPWWejX3PCFMq7OoD4nGqpFeHl+rCRyJ4NS3g13Nf6c
+57eBiWq6gOvriRH8tz+/ON+V6LJ0TLR82/zj+GUCDj0EV/QPCWZPeXjwwAT7Xv3M
+wcaCkzJu6nRU2AEmXOG8PTIaYu2/8n0yKdF5UQIDAQABAoIBAAcRmVCSwLQC3xao
+BVwZ+sO+YcFJplb7BNKHPaADllXv4eKPI1i3errRG39hOXgEbUu+Y97xY8Oj8UxN
+qbu1iyRIf6sh9j+2rbv6JBoLRVhHm7qzY64Qbj9ERFUY4/yHP3Rxp3wiXfMb8ieR
+QUCHpZpww5v5MZZ++DO89SgxXbsssw8Lm33ZWFDxpTMYKGsAY/RrI8pWt3rA85NN
+iUmNz03FrU3+Cqz1mfzmkW0wfwoVC5aayz+nqu1garWz4aON+Doruxnei/inkvFS
+BjZVgt2tFYXCyxUjRROcgjtm7D0qJNeghCvdgpKzOArWrLFAyiW7Df4zTSDsceSO
+beTSjQkCgYEA1Z3WtaW9PpgxS4vra54RtK0K6rv4Ig/NwtjbPciK5yQflP6rQ2f3
++59kzjV92jSPtiac39CaLKdB0zMB+xGxlnZLBsXhx+0PYxThNRv2n+U0ORO/gwd4
+t3OEQCJFi6PQ7AVSw4zwF2EJN0uaB8M3zZhSDLJBL/xW7bNHlyIHeokCgYEAv7KV
+jI7IzYrNDPD3RR1APjZ6m5c2+HRz3em4hgt5B3cVKTnajYRVL97xzBNaTFvUYyOo
+EapuN0GpQUdi/3GWlQYZraUs0nv7JKyQQ4I3o2ypJijQXcDBVMoa9I3ZAr32sRwA
+81yIU/78/OCtEBAGn6Wd15Wy+kUJga/OT4I4NokCgYEAmGt5Cj9qWsFpWwhJQI6W
+/54BDiB1GojAPmlRdjIjum1yA3P7a6tBrE69NM3CMPIUINpIUQKdH4NwWmwo26Zy
+WnOpcPm88lRaCE6bqrN7M/ftXVST78BjCDLqiIBrswl+Rwo9Vb64iVX5p3TQQP2w
+UYh/8wM1tDGPLSggytvDDlECgYB+8Xz1KmyxKFRnWH72hstPJ3aD6FwfpcZA0xA9
+vAU2u1YJCeW/xz0+SS3oDXzDiiAYUrlukWURNGsn7mURcZ/dKcABbJtE+5MxExEp
+k2bS0xckTOzG2OluA7Rb9D8cAL4HRNsgTUt+DCJuNz6Dn4kzWVIwPFLcRrFn7wr5
+PeuJuQKBgQCovMgzwH8Pb+iCDr/TgkdfnCwyCgoKLl0Qo8l3AayhmBiy/BuOEXYk
+yLlhbj3vuAxeayblO3beUTHvZm0g70iADGUPNQsmLQHzsH913dI2im0WCftxNMto
+V5yrGUqyHFRXx35e4cputxOdNSFjcECgNvdFKTwUWC9p6xFgnzXHYA==
+-----END RSA PRIVATE KEY-----""",
+}
+
+# 讓 OAuth 錯誤訊息包含更多細節 (幫助除錯)
+OAUTH2_PROVIDER['ERROR_RESPONSE_WITH_SCOPES'] = True
 
 # 登入成功後的重定向設置
 LOGIN_REDIRECT_URL = '/admin/'
