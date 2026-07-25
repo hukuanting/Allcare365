@@ -16,15 +16,21 @@ from .serializers import (
     MedicalDeviceSerializer, CareTeamMemberSerializer, CarePlanSerializer,
     MedicalOrderSerializer, InsuranceDataSerializer, AdvanceDirectiveSerializer
 )
+from .clinical_scope import clinical_patients, risk_selectable_patients
 
 class PatientViewSet(viewsets.ModelViewSet):
     """患者管理 REST API ViewSet - USCDI v6 兼容版"""
-    queryset = Patient.objects.filter(is_active=True)
+    queryset = clinical_patients()
     serializer_class = PatientSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        queryset = Patient.objects.filter(is_active=True)
+        include_demo = (
+            self.action == 'list'
+            and str(self.request.query_params.get('include_demo', '')).strip().lower()
+            in {'1', 'true', 'yes'}
+        )
+        queryset = risk_selectable_patients(include_golden_demo=include_demo)
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(

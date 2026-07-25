@@ -4,6 +4,10 @@ Relational-only ONC seed fixture.
 This command intentionally seeds only Django model fields and clinical truth
 data. All FHIR semantics (codes, categories, status mapping, references) are
 projected later by FHIR projectors/TerminologyService.
+
+The fixture owns only the explicitly selected patient. It must never delete or
+rewrite unrelated patient records in a shared development or validation
+database.
 """
 
 from datetime import date, datetime, timezone
@@ -54,9 +58,6 @@ class Command(BaseCommand):
         dt_visit_1 = datetime(2026, 3, 1, 9, 0, 0, tzinfo=timezone.utc)
         dt_visit_2 = datetime(2026, 4, 1, 14, 30, 0, tzinfo=timezone.utc)
 
-        # Keep fixture deterministic by replacing other patient rows.
-        Patient.objects.exclude(id=patient_id).delete()
-
         patient, created = Patient.objects.update_or_create(
             id=patient_id,
             defaults={
@@ -88,6 +89,14 @@ class Command(BaseCommand):
                 "occupation_industry": "Healthcare IT",
                 "medical_record_number": "ONC-2026-001",
                 "status": "active",
+                "source_system": "allcare365-onc-certification",
+                "source_record_id": str(patient_id),
+                "metadata_json": {
+                    "certification_fixture": "onc-g10-us-core",
+                    "synthetic": True,
+                    "clinical_use_prohibited": True,
+                    "fhir_mrn_system": "https://allcare365.local/fhir/identifier/onc-certification-mrn",
+                },
                 "is_active": True,
             },
         )

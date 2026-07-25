@@ -26,7 +26,7 @@ class Patient(BaseModel):
     name_suffix = models.CharField(max_length=20, blank=True, verbose_name='Name Suffix')
     previous_name = models.CharField(max_length=200, blank=True, verbose_name='Previous Name')
     
-    date_of_birth = models.DateField(verbose_name='Date of Birth')
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name='Date of Birth')
     date_of_death = models.DateField(null=True, blank=True, verbose_name='Date of Death')
     
     sex = models.CharField(max_length=50, blank=True, verbose_name='Sex')
@@ -77,14 +77,31 @@ class Patient(BaseModel):
             models.Index(fields=['status']),
             models.Index(fields=['source_system', 'source_record_id']),
         ]
+        permissions = [
+            (
+                'launch_any_patient_smart_context',
+                'Can launch SMART context for any patient',
+            ),
+            (
+                'run_all_patient_risk_assessments',
+                'Can run disease risk assessments for any patient',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.last_name}{self.first_name}"
 
     @property
+    def full_name(self):
+        return f"{self.last_name}{self.first_name}".strip()
+
+    def get_full_name(self):
+        return self.full_name
+
+    @property
     def age(self):
         if not self.date_of_birth:
-            return 0
+            return None
         today = timezone.now().date()
         return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
 

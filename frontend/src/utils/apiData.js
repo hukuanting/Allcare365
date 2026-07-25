@@ -11,10 +11,16 @@ export const countFromResponse = (payload) => {
 
 export const apiErrorMessage = (payload, fallback = '後端請求失敗') => {
   if (!payload) return fallback;
-  if (typeof payload === 'string') return payload;
-  if (payload.detail) return payload.detail;
-  if (payload.error) return payload.error;
-  return fallback;
+  const candidate = typeof payload === 'string'
+    ? payload
+    : (payload.detail || payload.error);
+  if (typeof candidate !== 'string') return fallback;
+
+  const message = candidate.trim();
+  if (!message || /<!doctype\s+html|<html\b|<head\b|<body\b/i.test(message)) {
+    return fallback;
+  }
+  return message.length > 500 ? `${message.slice(0, 500)}…` : message;
 };
 
 export const displayValue = (value, emptyText = '無資料') => (

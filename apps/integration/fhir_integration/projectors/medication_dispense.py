@@ -1,18 +1,18 @@
-"""
-MedicationDispense Projector — Maps ``patients.PatientMedication`` → FHIR MedicationDispense.
-
-Uses the same PatientMedication model but filters by dispense_status == 'completed'.
-"""
+"""Project persisted medication dispense state without guessed fulfillment data."""
 from __future__ import annotations
-from typing import Any, Dict, TYPE_CHECKING
+
+from typing import TYPE_CHECKING
+
+from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
-from ..uscore_templates import ORGANIZATION_ID, encounter_ref_for_patient
 
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
+
+
+STATUS_MAP = {"active": "in-progress", "completed": "completed", "stopped": "stopped"}
 
 
 @ProjectorRegistry.register("MedicationDispense")
@@ -22,69 +22,47 @@ class MedicationDispenseProjector(BaseProjector):
 
     def query(self, patient_id, search_params, context):
         from apps.clinical.patients.models import PatientMedication
-        qs = PatientMedication.objects.filter(is_active=True)
+
+        qs = PatientMedication.objects.filter(is_active=True).select_related("patient")
         if search_params.get("_id"):
-            raw_id = str(search_params["_id"])
-            if raw_id.startswith("mdisp-"):
-                raw_id = raw_id[6:]
-            qs = qs.filter(id=raw_id)
-        if patient_id:
-            qs = qs.filter(patient_id=patient_id)
-        if search_params.get("patient"):
-            qs = qs.filter(patient_id=search_params["patient"])
-        if search_params.get("status"):
-            qs = qs.filter(dispense_status__in=search_params["status"].split(","))
-        if search_params.get("type"):
-            token = str(search_params["type"]).split("|")[-1].upper()
-            if token != "FFP":
+            raw_id = str(search_params["_id"]).rstrip("/").split("/")[-1]
+            if not raw_id.startswith("mdisp-"):
                 return qs.none()
+            qs = qs.filter(id=raw_id[6:])
+        patient_scope = patient_id or search_params.get("patient")
+        if patient_scope:
+            resolved = identity.resolve_patient_db_id(str(patient_scope))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_id=resolved)
+        if search_params.get("status"):
+            requested = {value.strip().casefold() for value in str(search_params["status"]).split(",") if value.strip()}
+            source_statuses = [source for source, target in STATUS_MAP.items() if target in requested]
+            qs = qs.filter(dispense_status__in=source_statuses)
+        if search_params.get("type"):
+            return qs.none()
         return qs
 
-    def optimize_queryset(self, qs):
-        return qs.select_related("patient")
+    def project(self, medication, context: "FHIRContext") -> dict | None:
+        name = (medication.medication or "").strip()
+        status = STATUS_MAP.get((medication.dispense_status or "").strip().casefold())
+        if not name or name.casefold() == "unknown" or status is None:
+            return None
 
-    def project(self, med, context: "FHIRContext") -> dict:
-        did = identity.medication_dispense_id(med)
-        mid = identity.medication_id(med)
-        mrid = identity.medication_request_id(med)
         ref = context.reference_builder
-        ts = context.terminology
-        pid = identity.patient_id(med.patient)
-        status_map = {
-            "active": "in-progress",
-            "completed": "completed",
-            "stopped": "stopped",
-        }
-        fhir_status = status_map.get((med.dispense_status or "").lower(), "completed")
-
-        context.include_tracker.add("Medication", mid)
-        encounter_ref = encounter_ref_for_patient(str(med.patient_id), ref, identity)
-
-        return {
+        medication_id = identity.medication_id(medication)
+        context.include_tracker.add("Medication", medication_id)
+        resource = {
             "resourceType": "MedicationDispense",
-            "id": did,
+            "id": identity.medication_dispense_id(medication),
             "meta": MetaBuilder.build(self.profile_key),
-            "status": fhir_status,
-            "medicationReference": ref.medication(mid),
-            "subject": ref.patient(pid),
-            "context": encounter_ref,
-            "performer": [
-                {"actor": ref.organization(ORGANIZATION_ID)},
-            ],
-            "authorizingPrescription": [ref.medication_request(mrid)],
-            "type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "FFP"}]},
-            "whenHandedOver": med.end_date.isoformat() if med.end_date else med.created_at.isoformat(),
-            "quantity": {"value": 30, "unit": "tab"},
-            "dosageInstruction": [{
-                "text": med.medication_instructions or f"Take {med.medication} as directed",
-                "timing": {"repeat": {"frequency": 1, "period": 1, "periodUnit": "d"}},
-                "doseAndRate": [{"doseQuantity": {
-                    "value": 1, "unit": "tablet",
-                    "system": ts.resolve("unit_tablet").system,
-                    "code": ts.resolve("unit_tablet").code,
-                }}],
-            }],
+            "status": status,
+            "medicationReference": ref.medication(medication_id),
+            "subject": ref.patient(identity.patient_id(medication.patient)),
         }
+        if _usable_text(medication.medication_instructions):
+            resource["dosageInstruction"] = [{"text": medication.medication_instructions.strip()}]
+        return resource
 
     def supported_search_params(self):
         return {"patient": "reference", "status": "token", "type": "token", "_id": "token"}
@@ -94,3 +72,7 @@ class MedicationDispenseProjector(BaseProjector):
 
     def supported_rev_includes(self):
         return ["Provenance:target"]
+
+
+def _usable_text(value) -> bool:
+    return bool(value and str(value).strip() and str(value).strip().casefold() != "unknown")

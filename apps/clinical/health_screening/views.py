@@ -8,8 +8,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from services.disease_risk_engine import DiseaseRiskAssessmentService
+from services.disease_risk_engine.algorithm_registry import public_algorithm_catalog
 from apps.core.authentication.permissions import HasResearchAccess, HasResearchApprovalAccess
+from apps.clinical.patients.access_policy import patient_risk_access_policy
 from apps.integration.fhir_integration.models import AuditLog
+from apps.clinical.patients.clinical_scope import clinical_patients
 
 from .cohort_service import CohortSummaryService
 from .data_quality_service import DataQualitySummaryService
@@ -34,6 +37,7 @@ class HealthScreeningViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = (
             HealthScreening.objects.select_related("patient")
+            .filter(patient__in=clinical_patients())
             .prefetch_related("lab_results")
             .order_by("-screening_date", "-created_at")
         )
@@ -56,6 +60,7 @@ class HealthScreeningViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get", "post"], url_path="calculate_comprehensive_risk")
     def calculate_comprehensive_risk(self, request, pk=None):
         screening = self.get_object()
+        patient_risk_access_policy.require_access(request.user, screening.patient)
         result = DiseaseRiskAssessmentService().calculate_dynamic_risk(
             str(screening.patient_id),
             actor_user=request.user,
@@ -66,6 +71,7 @@ class HealthScreeningViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"], url_path="risk-analysis")
     def risk_analysis(self, request, pk=None):
         screening = self.get_object()
+        patient_risk_access_policy.require_access(request.user, screening.patient)
         result = DiseaseRiskAssessmentService().calculate_dynamic_risk(
             str(screening.patient_id),
             actor_user=request.user,
@@ -144,6 +150,20 @@ def fhir_import(request):
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser])
 def risk_analysis(request):
+    return _risk_analysis_response(request)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def risk_algorithm_catalog(request):
+    """Expose every non-conflicted model without exposing candidate formulas."""
+
+    return Response(public_algorithm_catalog())
+
+
+def _risk_analysis_response(request):
+    """Run the shared risk workflow from an already initialized DRF request."""
+
     patient_id = (
         request.query_params.get("patient")
         or request.query_params.get("patient_id")
@@ -153,8 +173,10 @@ def risk_analysis(request):
     if not patient_id:
         return Response({"detail": "patient or patient_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
+    patient = patient_risk_access_policy.resolve_patient(patient_id)
+    patient_risk_access_policy.require_access(request.user, patient)
     result = DiseaseRiskAssessmentService().calculate_dynamic_risk(
-        str(patient_id),
+        str(patient.id),
         actor_user=request.user,
     )
     response_status = status.HTTP_400_BAD_REQUEST if result.get("error") else status.HTTP_200_OK
@@ -165,7 +187,7 @@ def risk_analysis(request):
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser])
 def disease_risk_assessment(request):
-    return risk_analysis(request)
+    return _risk_analysis_response(request)
 
 
 @api_view(["GET"])

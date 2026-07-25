@@ -1,8 +1,121 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid
+
+
+class SmartLaunchContext(models.Model):
+    """Short-lived, single-use context created by an authenticated EHR launch."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    token_digest = models.CharField(max_length=64, unique=True, editable=False)
+    patient = models.ForeignKey(
+        'patients.Patient',
+        on_delete=models.PROTECT,
+        related_name='smart_launch_contexts',
+    )
+    encounter = models.ForeignKey(
+        'health_screening.HealthScreening',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='smart_launch_contexts',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='smart_launch_contexts',
+    )
+    target_launch_uri = models.URLField(max_length=1000, blank=True, default='')
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'smart_launch_contexts'
+        indexes = [models.Index(fields=['expires_at', 'consumed_at'])]
+
+
+class SmartAuthorizationContext(models.Model):
+    """Patient context bound to one OAuth authorization code, never to a session default."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    authorization_code_digest = models.CharField(max_length=64, unique=True, editable=False)
+    launch_context = models.OneToOneField(
+        SmartLaunchContext,
+        on_delete=models.PROTECT,
+        related_name='authorization_context',
+    )
+    patient = models.ForeignKey(
+        'patients.Patient',
+        on_delete=models.PROTECT,
+        related_name='smart_authorization_contexts',
+    )
+    encounter = models.ForeignKey(
+        'health_screening.HealthScreening',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='smart_authorization_contexts',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='smart_authorization_contexts',
+    )
+    application = models.ForeignKey(
+        'oauth2_provider.Application',
+        on_delete=models.PROTECT,
+        related_name='smart_authorization_contexts',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    exchanged_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'smart_authorization_contexts'
+        indexes = [models.Index(fields=['patient', 'application'])]
+
+
+class SmartAccessTokenContext(models.Model):
+    """Exact patient context for an issued OAuth access token."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    access_token = models.OneToOneField(
+        'oauth2_provider.AccessToken',
+        on_delete=models.CASCADE,
+        related_name='smart_patient_context',
+    )
+    authorization_context = models.ForeignKey(
+        SmartAuthorizationContext,
+        on_delete=models.PROTECT,
+        related_name='access_token_contexts',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'smart_access_token_contexts'
+
+
+class SmartRefreshTokenContext(models.Model):
+    """Refresh-token link that carries the original patient context forward."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    refresh_token = models.OneToOneField(
+        'oauth2_provider.RefreshToken',
+        on_delete=models.CASCADE,
+        related_name='smart_patient_context',
+    )
+    authorization_context = models.ForeignKey(
+        SmartAuthorizationContext,
+        on_delete=models.PROTECT,
+        related_name='refresh_token_contexts',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'smart_refresh_token_contexts'
 
 
 class ProductUser(models.Model):

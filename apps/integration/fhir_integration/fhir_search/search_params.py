@@ -159,6 +159,11 @@ FHIR_SEARCH_PARAMETERS: dict[str, dict[str, dict]] = {
         "_id":    {"orm_path": "id",      "type": "token"},
         "target": {"orm_path": "target",  "type": "reference"},
     },
+    "RiskAssessment": {
+        "_id":     {"orm_path": "resource_id", "type": "token"},
+        "patient": {"orm_path": "local_mappings__patient_id", "type": "reference"},
+        "subject": {"orm_path": "local_mappings__patient_id", "type": "reference"},
+    },
     "RelatedPerson": {
         "_id":     {"orm_path": "id",  "type": "token"},
         "patient": {"orm_path": "id",  "type": "reference"},

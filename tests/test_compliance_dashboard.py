@@ -4,6 +4,7 @@ Run this to verify the compliance checker is working correctly
 """
 import os
 import django
+import pytest
 
 # Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'medical_system.settings')
@@ -11,6 +12,7 @@ django.setup()
 
 from apps.integration.fhir_integration.compliance_checker import USCDIComplianceChecker
 
+@pytest.mark.django_db
 def test_compliance_checker():
     """Test the USCDI v6 compliance checker"""
     print("=" * 60)

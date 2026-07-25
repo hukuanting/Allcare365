@@ -99,6 +99,10 @@ class BaseProjector(ABC):
         for instance in optimized:
             normalized = self.normalize(instance)
             resource = self.project(normalized, context)
+            # ``None`` is the projector's fail-closed signal when a required
+            # FHIR element has no trustworthy persisted source.
+            if resource is None:
+                continue
             resource = self.apply_extensions(resource, normalized, context)
             if contract is not None:
                 try:

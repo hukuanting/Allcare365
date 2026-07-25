@@ -10,48 +10,49 @@ import django
 
 django.setup()
 
+from apps.clinical.health_screening.golden_patient import GOLDEN_PATIENT_MRN
 from apps.clinical.health_screening.models import Observation
 from apps.clinical.patients.models import Patient
 from apps.integration.fhir_integration.models import AuditLog, FHIRResourceMapping
 from services.disease_risk_engine import DiseaseRiskAssessmentService
+from services.disease_risk_engine.algorithm_registry import RUNTIME_ALGORITHMS
 from services.disease_risk_engine.repository import DiseaseRiskInputRepository
 
 
 def verify_system():
-    patient = Patient.objects.filter(medical_record_number="AC365-SEED-001").first()
+    patient = Patient.objects.filter(medical_record_number=GOLDEN_PATIENT_MRN).first()
     if not patient:
-        raise SystemExit("Seed patient AC365-SEED-001 not found. Run manage.py seed_product_schema_v1 first.")
+        raise SystemExit("Golden Patient not found. Run manage.py seed_golden_patient --verify first.")
 
     result = DiseaseRiskAssessmentService().calculate_dynamic_risk(str(patient.id))
     if result.get("error"):
         raise SystemExit(result["error"])
 
     disease_results = result.get("disease_risk_results", [])
-    expected_algorithms = {
-        "framingham_diabetes",
-        "chinese_diabetes",
-        "metabolic_syndrome",
-        "nafld_fibrosis",
-        "framingham_fatty_liver",
-        "ausdrisk_diabetes",
-        "vascular_caide",
-    }
+    expected_algorithms = {item.algorithm_id for item in RUNTIME_ALGORITHMS}
     actual_algorithms = {item.get("algorithm") for item in disease_results}
     missing_algorithms = expected_algorithms - actual_algorithms
     if missing_algorithms:
         raise SystemExit(f"Missing disease risk algorithms: {sorted(missing_algorithms)}")
 
-    missing = result.get("data_summary", {}).get("missing_data", [])
-    if missing:
-        raise SystemExit(f"Risk input missing data: {missing}")
+    summary = result.get("execution_summary", {})
+    if summary.get("resolved_models") != len(expected_algorithms):
+        raise SystemExit(f"Golden Patient did not resolve every model: {summary}")
+    if not summary.get("all_executable_models_resolved"):
+        raise SystemExit(f"Golden Patient conformance gate failed: {summary}")
 
+    result_ids = [item["id"] for item in disease_results]
     mappings = FHIRResourceMapping.objects.filter(
         patient=patient,
         local_table="ai_analysis_results",
-        fhir_resource_type="RiskAssessment",
+        local_id__in=result_ids,
     )
-    if not mappings.exists():
-        raise SystemExit("FHIR RiskAssessment mapping was not created.")
+    clinical_outputs = mappings.filter(fhir_resource_type__in=("Observation", "RiskAssessment"))
+    provenance = mappings.filter(fhir_resource_type="Provenance")
+    if clinical_outputs.count() != len(expected_algorithms):
+        raise SystemExit("A FHIR Observation/RiskAssessment was not created for every result.")
+    if provenance.count() != len(expected_algorithms):
+        raise SystemExit("A FHIR Provenance resource was not created for every result.")
 
     audits = AuditLog.objects.filter(patient=patient, action="disease_risk_assess")
     if not audits.exists():
@@ -65,7 +66,9 @@ def verify_system():
     print("Disease risk engine verification passed.")
     print(f"Patient: {patient.id}")
     print(f"Results: {[(item['algorithm'], item['risk_percentage']) for item in disease_results]}")
-    print(f"RiskAssessment mappings: {mappings.count()}")
+    print(f"Calculated models: {summary['calculated_models']}")
+    print(f"FHIR clinical outputs: {clinical_outputs.count()}")
+    print(f"FHIR Provenance mappings: {provenance.count()}")
     print(f"UACR observations: {uacr_count}")
 
 

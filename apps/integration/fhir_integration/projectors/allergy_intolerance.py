@@ -1,11 +1,11 @@
-"""
-AllergyIntolerance Projector — Maps ``patients.PatientAllergy`` → FHIR AllergyIntolerance.
-"""
+"""Project persisted allergy facts without guessed codes or reactions."""
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
+from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
 
 if TYPE_CHECKING:
@@ -19,43 +19,46 @@ class AllergyIntoleranceProjector(BaseProjector):
 
     def query(self, patient_id, search_params, context):
         from apps.clinical.patients.models import PatientAllergy
-        qs = PatientAllergy.objects.filter(is_active=True)
+
+        qs = PatientAllergy.objects.filter(is_active=True).select_related("patient")
         if search_params.get("_id"):
-            raw_id = str(search_params["_id"])
-            if raw_id.startswith("alg-"):
-                raw_id = raw_id[4:]
-            qs = qs.filter(id=raw_id)
-        if patient_id:
-            qs = qs.filter(patient_id=patient_id)
-        if search_params.get("patient"):
-            qs = qs.filter(patient_id=search_params["patient"])
+            raw_id = str(search_params["_id"]).rstrip("/").split("/")[-1]
+            if not raw_id.startswith("alg-"):
+                return qs.none()
+            qs = qs.filter(id=raw_id[4:])
+        patient_scope = patient_id or search_params.get("patient")
+        if patient_scope:
+            resolved = identity.resolve_patient_db_id(str(patient_scope))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_id=resolved)
         if search_params.get("clinical-status"):
-            pass  # We always report "active"
+            requested = {value.strip().split("|")[-1].casefold() for value in str(search_params["clinical-status"]).split(",") if value.strip()}
+            if requested and "active" not in requested:
+                return qs.none()
         return qs
 
-    def optimize_queryset(self, qs):
-        return qs.select_related("patient")
-
-    def project(self, allergy, context: "FHIRContext") -> dict:
-        aid = identity.allergy_id(allergy)
-        ref = context.reference_builder
-        pid = identity.patient_id(allergy.patient)
-
+    def project(self, allergy, context: "FHIRContext") -> dict | None:
+        substance = (allergy.substance or "").strip()
+        if not substance or substance.casefold() == "unknown":
+            return None
         resource = {
             "resourceType": "AllergyIntolerance",
-            "id": aid,
+            "id": identity.allergy_id(allergy),
             "meta": MetaBuilder.build(self.profile_key),
-            "clinicalStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", "code": "active"}]},
-            "verificationStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification", "code": "confirmed"}]},
-            "patient": ref.patient(pid),
-            "code": {"coding": [{"system": "http://snomed.info/sct", "code": "764146007", "display": allergy.substance}], "text": allergy.substance},
-            # Always provide reaction for MustSupport
-            "reaction": [{
-                "manifestation": [{"coding": [{"system": "http://snomed.info/sct", "code": "39579001", "display": getattr(allergy, 'reaction', 'Hives') or 'Hives'}], "text": getattr(allergy, 'reaction', 'Hives') or 'Hives'}]
-            }]
+            "clinicalStatus": {"coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+                "code": "active",
+            }]},
+            "patient": context.reference_builder.patient(identity.patient_id(allergy.patient)),
+            "code": {"text": substance},
         }
-        if allergy.severity:
-            resource["reaction"][0]["severity"] = allergy.severity.lower() if allergy.severity.lower() in ("mild", "moderate", "severe") else "moderate"
+        if (allergy.reaction or "").strip():
+            reaction = {"manifestation": [{"text": allergy.reaction.strip()}]}
+            severity = (allergy.severity or "").strip().casefold()
+            if severity in {"mild", "moderate", "severe"}:
+                reaction["severity"] = severity
+            resource["reaction"] = [reaction]
         return resource
 
     def supported_search_params(self):

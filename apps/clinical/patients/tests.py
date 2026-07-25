@@ -1,112 +1,115 @@
-from django.test import TestCase
+from datetime import date
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "medical_system.settings")
+
+import django
+
+django.setup()
+
 from django.contrib.auth.models import User
-from rest_framework.test import APITestCase
+from django.test import TestCase
 from rest_framework import status
-from datetime import date, datetime, timedelta
-from .models import (
-    Patient, PatientAllergy, PatientMedication, PatientVitals,
-    PatientNote, EmergencyContact
-)
-from administration.models import Provider
+from rest_framework.test import APITestCase
+
+from .models import Patient, PatientAllergy, PatientDocument, PatientMedication
 
 
 class PatientModelTest(TestCase):
-    """測試患者模型"""
-    
     def setUp(self):
-        """設置測試數據"""
         self.patient = Patient.objects.create(
             first_name="John",
             last_name="Doe",
             date_of_birth=date(1985, 5, 15),
-            gender="M",
-            phone_home="1234567890",
-            email="john@example.com"
+            sex="M",
+            phone_number="1234567890",
+            email_address="john@example.com",
         )
-    
+
     def test_patient_creation(self):
-        """測試患者創建"""
         self.assertEqual(self.patient.first_name, "John")
         self.assertEqual(self.patient.last_name, "Doe")
-        self.assertEqual(self.patient.full_name, "John Doe")
-        self.assertEqual(self.patient.get_full_name(), "John Doe")
-    
+        self.assertEqual(self.patient.full_name, "DoeJohn")
+        self.assertEqual(self.patient.get_full_name(), "DoeJohn")
+
     def test_patient_str_representation(self):
-        """測試患者字符串表示"""
-        self.assertEqual(str(self.patient), "Doe, John")
+        self.assertEqual(str(self.patient), "DoeJohn")
 
 
-class EmergencyContactTest(TestCase):
-    """測試緊急聯絡人模型"""
-    
+class PatientRelatedDataTest(TestCase):
     def setUp(self):
-        """設置測試數據"""
         self.patient = Patient.objects.create(
             first_name="John",
             last_name="Doe",
             date_of_birth=date(1985, 5, 15),
-            gender="M"
+            sex="M",
         )
-        self.emergency_contact = EmergencyContact.objects.create(
+
+    def test_patient_allergy_creation(self):
+        allergy = PatientAllergy.objects.create(
             patient=self.patient,
-            name="Jane Doe",
-            relationship="Wife",
-            phone="1234567890",
-            is_primary=True
+            allergy_type="non_medication",
+            substance="Peanut",
+            reaction="Rash",
+            severity="mild",
         )
-    
-    def test_emergency_contact_creation(self):
-        """測試緊急聯絡人創建"""
-        self.assertEqual(self.emergency_contact.name, "Jane Doe")
-        self.assertEqual(self.emergency_contact.relationship, "Wife")
-        self.assertTrue(self.emergency_contact.is_primary)
-    
-    def test_emergency_contact_str_representation(self):
-        """測試緊急聯絡人字符串表示"""
-        expected = "John Doe - Jane Doe (Wife)"
-        self.assertEqual(str(self.emergency_contact), expected)
+
+        self.assertEqual(allergy.substance, "Peanut")
+        self.assertEqual(self.patient.allergies.count(), 1)
+
+    def test_patient_medication_and_note_creation(self):
+        PatientMedication.objects.create(
+            patient=self.patient,
+            medication="Vitamin D",
+            dose_unit_of_measure="1000 IU",
+            dispense_status="active",
+        )
+        PatientDocument.objects.create(
+            patient=self.patient,
+            note_type="progress",
+            content="Routine follow-up note.",
+        )
+
+        self.assertEqual(self.patient.medications.count(), 1)
+        self.assertEqual(self.patient.clinical_notes.count(), 1)
 
 
 class PatientAPITest(APITestCase):
-    """測試患者 API"""
-    
     def setUp(self):
-        """設置測試數據"""
         self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
+            username="testuser",
+            email="test@example.com",
+            password="testpass123",
         )
         self.client.force_authenticate(user=self.user)
-        
+
         self.patient = Patient.objects.create(
             first_name="John",
             last_name="Doe",
             date_of_birth=date(1985, 5, 15),
-            gender="M",
-            phone_home="1234567890",
-            email="john@example.com"
+            sex="M",
+            phone_number="1234567890",
+            email_address="john@example.com",
         )
-    
+
     def test_get_patient_list(self):
-        """測試獲取患者列表"""
-        response = self.client.get('/api/v1/patients/patients/')
+        response = self.client.get("/api/patients/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
+
     def test_get_patient_detail(self):
-        """測試獲取患者詳情"""
-        response = self.client.get(f'/api/v1/patients/patients/{self.patient.id}/')
+        response = self.client.get(f"/api/patients/{self.patient.id}/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
+
     def test_create_patient(self):
-        """測試創建患者"""
         data = {
-            'first_name': 'Jane',
-            'last_name': 'Smith',
-            'date_of_birth': '1990-01-01',
-            'gender': 'F',
-            'phone_home': '0987654321',
-            'email': 'jane@example.com'
+            "first_name": "Jane",
+            "last_name": "Smith",
+            "date_of_birth": "1990-01-01",
+            "sex": "F",
+            "phone_number": "0987654321",
+            "email_address": "jane@example.com",
         }
-        response = self.client.post('/api/v1/patients/patients/', data)
+        response = self.client.post("/api/patients/", data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

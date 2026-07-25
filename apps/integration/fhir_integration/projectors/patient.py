@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from django.db.models import QuerySet
 from django.db.models import Q
+from django.conf import settings
 
 from ..fhir_search.query_translator import date_to_q
 from ..projectors.base import BaseProjector
@@ -22,14 +22,15 @@ if TYPE_CHECKING:
 class PatientProjector(BaseProjector):
     resource_type = "Patient"
     profile_key = "us-core-patient"
-    IDENTIFIER_SYSTEM = "http://hospital.smarthealthit.org"
-
     # ── Query ────────────────────────────────────────────────
 
     def query(self, patient_id, search_params, context):
         from apps.clinical.patients.models import Patient
+        from apps.clinical.patients.clinical_scope import clinical_patients
 
         qs = Patient.objects.filter(is_active=True)
+        if not getattr(settings, "FHIR_INCLUDE_CONFORMANCE_FIXTURES", False):
+            qs = clinical_patients(qs)
         if patient_id:
             resolved_patient_id = identity.resolve_patient_db_id(patient_id)
             if not resolved_patient_id:
@@ -70,9 +71,9 @@ class PatientProjector(BaseProjector):
                 value = value.strip()
                 if not value:
                     return qs.none()
-                if system and system != self.IDENTIFIER_SYSTEM:
-                    return qs.none()
                 qs = qs.filter(medical_record_number=value)
+                if system:
+                    qs = qs.filter(metadata_json__fhir_mrn_system=system)
             else:
                 value = token.strip()
                 if not value:
@@ -80,10 +81,6 @@ class PatientProjector(BaseProjector):
                 qs = qs.filter(medical_record_number=value)
         if search_params.get("death-date"):
             qs = qs.filter(date_to_q("date_of_death", str(search_params["death-date"])))
-        # Golden Patient contract: deterministic single-patient result for identifier lookup.
-        if search_params.get("identifier"):
-            first = qs.order_by("created_at").first()
-            return qs.filter(id=first.id) if first else qs.none()
         return qs
 
     def optimize_queryset(self, qs):
@@ -93,56 +90,62 @@ class PatientProjector(BaseProjector):
 
     def project(self, patient, context: "FHIRContext") -> dict:
         pid = identity.patient_id(patient)
-        ref = context.reference_builder
-
-        gender_map = {"M": "male", "F": "female", "Male": "male", "Female": "female", "male": "male", "female": "female"}
-        fhir_gender = gender_map.get(patient.sex, "unknown")
-        birthsex = "M" if fhir_gender == "male" else ("F" if fhir_gender == "female" else "UNK")
-        sex_code = "M" if fhir_gender == "male" else ("F" if fhir_gender == "female" else "U")
-
         resource = {
             "resourceType": "Patient",
             "id": pid,
             "meta": MetaBuilder.build(self.profile_key),
-            "active": True,
-            "identifier": [
-                {
-                    "system": self.IDENTIFIER_SYSTEM,
-                    "value": patient.medical_record_number or pid,
-                },
-            ],
-            "name": self._build_names(patient),
-            "telecom": self._build_telecom(patient),
-            "gender": fhir_gender,
-            "birthDate": patient.date_of_birth.isoformat() if patient.date_of_birth else "1980-01-01",
-            "address": self._build_addresses(patient),
-            "communication": [
-                {
-                    "language": {
-                        "coding": [{"system": "urn:ietf:bcp:47", "code": patient.preferred_language or "en-US"}]
-                    },
-                    "preferred": True,
-                }
-            ],
-            "extension": self._build_extensions(patient, fhir_gender, birthsex, sex_code),
-            "_multipleBirthBoolean": {
-                "extension": [{
-                    "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
-                    "valueCode": "unknown",
-                }]
-            },
-            "link": [{
-                "other": {"reference": f"Patient/{pid}"},
-                "type": "seealso",
-            }],
+            "active": self._is_active(patient),
         }
 
-        # Inferno Must Support checks look for deceasedDateTime presence.
-        resource["deceasedDateTime"] = (
-            patient.date_of_death.isoformat() + "T00:00:00Z"
-            if patient.date_of_death
-            else "1970-01-01T00:00:00Z"
-        )
+        if patient.medical_record_number:
+            identifier = {"value": str(patient.medical_record_number)}
+            identifier_system = str(
+                (patient.metadata_json or {}).get("fhir_mrn_system") or ""
+            ).strip()
+            if identifier_system:
+                identifier["system"] = identifier_system
+            resource["identifier"] = [identifier]
+
+        names = self._build_names(patient)
+        if names:
+            resource["name"] = names
+
+        telecom = self._build_telecom(patient)
+        if telecom:
+            resource["telecom"] = telecom
+
+        fhir_gender = self._normalize_gender(patient.sex)
+        if fhir_gender:
+            resource["gender"] = fhir_gender
+        else:
+            resource["_gender"] = self._data_absent_primitive()
+
+        if patient.date_of_birth:
+            resource["birthDate"] = self._date_value(patient.date_of_birth)
+        else:
+            resource["_birthDate"] = self._data_absent_primitive()
+
+        addresses = self._build_addresses(patient)
+        if addresses:
+            resource["address"] = addresses
+
+        if patient.preferred_language:
+            resource["communication"] = [{
+                "language": {
+                    "coding": [{
+                        "system": "urn:ietf:bcp:47",
+                        "code": str(patient.preferred_language),
+                    }]
+                },
+                "preferred": True,
+            }]
+
+        extensions = self._build_extensions(patient)
+        if extensions:
+            resource["extension"] = extensions
+
+        if patient.date_of_death:
+            resource["deceasedDateTime"] = self._date_value(patient.date_of_death)
 
         return resource
 
@@ -150,86 +153,117 @@ class PatientProjector(BaseProjector):
 
     @staticmethod
     def _build_names(patient) -> list:
-        names = [{
-            "use": "official",
-            "family": patient.last_name or "Unknown",
-            "given": [g for g in [patient.first_name, patient.middle_name] if g] or ["Unknown"],
-            "suffix": [patient.name_suffix or "UNK"],
-        }]
-        names.append({
-            "use": "old",
-            "family": patient.previous_name or patient.last_name or "Unknown",
-            "period": {"end": "2020-01-01T00:00:00Z"},
-        })
+        names = []
+        official = {"use": "official"}
+        if patient.last_name:
+            official["family"] = str(patient.last_name)
+        given = [str(value) for value in (patient.first_name, patient.middle_name) if value]
+        if given:
+            official["given"] = given
+        if patient.name_suffix:
+            official["suffix"] = [str(patient.name_suffix)]
+        if len(official) > 1:
+            names.append(official)
+        if patient.previous_name:
+            names.append({"use": "old", "text": str(patient.previous_name)})
         return names
 
     @staticmethod
     def _build_telecom(patient) -> list:
         entries = []
         if patient.phone_number:
-            entries.append({"system": "phone", "value": patient.phone_number, "use": "home"})
+            phone = {"system": "phone", "value": str(patient.phone_number)}
+            phone_use = str(patient.phone_number_type or "").strip().lower()
+            if phone_use in {"home", "work", "temp", "old", "mobile"}:
+                phone["use"] = phone_use
+            entries.append(phone)
         if patient.email_address:
-            entries.append({"system": "email", "value": patient.email_address})
-        return entries or [{"system": "phone", "value": "555-555-5555", "use": "home"}]
+            entries.append({"system": "email", "value": str(patient.email_address)})
+        return entries
 
     @staticmethod
     def _build_addresses(patient) -> list:
-        home = {
-            "use": "home",
-            "line": [patient.current_address_line1 or "123 Main St"],
-            "city": patient.city or "Anytown",
-            "state": patient.state or "CA",
-            "postalCode": patient.postal_code or "12345",
-            "country": patient.country or "US",
-        }
-        if patient.current_address_line2:
-            home["line"].append(patient.current_address_line2)
-
-        old = {
-            "use": "old",
-            "line": [patient.previous_address or "456 Old Ave"],
-            "city": patient.city or "Anytown",
-            "state": patient.state or "CA",
-            "postalCode": patient.postal_code or "12345",
-            "country": patient.country or "US",
-            "period": {"end": "2020-01-01T00:00:00Z"},
-        }
-        return [home, old]
+        addresses = []
+        current_lines = [
+            str(value)
+            for value in (patient.current_address_line1, patient.current_address_line2)
+            if value
+        ]
+        if current_lines or patient.city or patient.state or patient.postal_code:
+            home = {"use": "home"}
+            if current_lines:
+                home["line"] = current_lines
+            if patient.city:
+                home["city"] = str(patient.city)
+            if patient.state:
+                home["state"] = str(patient.state)
+            if patient.postal_code:
+                home["postalCode"] = str(patient.postal_code)
+            if patient.country:
+                home["country"] = str(patient.country)
+            addresses.append(home)
+        if patient.previous_address:
+            addresses.append({
+                "use": "old",
+                "line": [str(patient.previous_address)],
+            })
+        return addresses
 
     @staticmethod
-    def _build_extensions(patient, fhir_gender, birthsex, sex_code) -> list:
-        race_code = patient.race or "2106-3"
-        ethnicity_code = patient.ethnicity or "2186-5"
-
-        return [
-            {
+    def _build_extensions(patient) -> list:
+        extensions = []
+        if patient.race:
+            extensions.append({
                 "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
-                "extension": [
-                    {"url": "ombCategory", "valueCoding": {"system": "urn:oid:2.16.840.1.113883.6.238", "code": "2106-3", "display": "White"}},
-                    {"url": "text", "valueString": race_code},
-                ],
-            },
-            {
+                "extension": [{"url": "text", "valueString": str(patient.race)}],
+            })
+        if patient.ethnicity:
+            extensions.append({
                 "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
-                "extension": [
-                    {"url": "ombCategory", "valueCoding": {"system": "urn:oid:2.16.840.1.113883.6.238", "code": "2186-5", "display": "Not Hispanic or Latino"}},
-                    {"url": "text", "valueString": ethnicity_code},
-                ],
-            },
-            {"url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex", "valueCode": birthsex},
-            {"url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex", "valueCode": sex_code},
-            {
+                "extension": [{"url": "text", "valueString": str(patient.ethnicity)}],
+            })
+        if patient.tribal_affiliation:
+            extensions.append({
                 "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-tribal-affiliation",
-                "extension": [
-                    {"url": "tribalAffiliation", "valueCodeableConcept": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-TribalEntityUS", "code": "1.1", "display": "Apache"}]}},
-                    {"url": "isEnrolled", "valueBoolean": True},
-                ],
-            },
-            {
-                "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-genderIdentity",
-                "valueCodeableConcept": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-AdministrativeGender", "code": sex_code}]},
-            },
-        ]
+                "extension": [{
+                    "url": "tribalAffiliation",
+                    "valueCodeableConcept": {"text": str(patient.tribal_affiliation)},
+                }],
+            })
+        return extensions
+
+    @staticmethod
+    def _normalize_gender(value) -> Optional[str]:
+        normalized = str(value or "").strip().lower()
+        return {
+            "m": "male",
+            "male": "male",
+            "f": "female",
+            "female": "female",
+            "o": "other",
+            "other": "other",
+            "u": "unknown",
+            "unk": "unknown",
+            "unknown": "unknown",
+        }.get(normalized)
+
+    @staticmethod
+    def _data_absent_primitive() -> dict:
+        return {
+            "extension": [{
+                "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+                "valueCode": "unknown",
+            }]
+        }
+
+    @staticmethod
+    def _date_value(value) -> str:
+        return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+    @staticmethod
+    def _is_active(patient) -> bool:
+        inactive_statuses = {"inactive", "entered-in-error"}
+        return bool(patient.is_active) and str(patient.status or "").strip().lower() not in inactive_statuses
 
     # ── Metadata ─────────────────────────────────────────────
 

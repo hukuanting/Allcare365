@@ -10,13 +10,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from django.db.models import QuerySet
-from django.db.models import Q
 from ..fhir_search.query_translator import date_to_q
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
 from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
-from ..uscore_templates import encounter_ref_for_patient
 
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
@@ -35,10 +33,12 @@ class ConditionProjector(BaseProjector):
         from apps.clinical.health_screening.models import Problem
 
         qs = Problem.objects.filter(is_active=True)
-        if patient_id:
-            qs = qs.filter(patient_id=patient_id)
-        if search_params.get("patient"):
-            qs = qs.filter(patient_id=search_params["patient"])
+        patient_scope = patient_id or search_params.get("patient")
+        if patient_scope:
+            resolved = identity.resolve_patient_db_id(str(patient_scope))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_id=resolved)
         if search_params.get("_id"):
             fhir_id = search_params["_id"]
             if fhir_id.startswith("con-"):
@@ -48,7 +48,9 @@ class ConditionProjector(BaseProjector):
         if search_params.get("category"):
             cat = str(search_params["category"]).lower()
             if "encounter-diagnosis" in cat:
-                qs = qs.filter(Q(date_of_resolution__isnull=False) | Q(status__iexact="resolved"))
+                # Problem has no persisted Encounter relationship, so it cannot
+                # truthfully be projected as an encounter diagnosis.
+                return qs.none()
             elif "problem-list-item" in cat or "health-concern" in cat:
                 # Keep resolved rows in category-only searches so Inferno can
                 # observe valid abatementDateTime examples for this profile.
@@ -72,11 +74,7 @@ class ConditionProjector(BaseProjector):
             # assertedDate extension is projected from onset; align search behavior.
             qs = qs.filter(date_to_q("date_of_onset", str(search_params["asserted-date"])))
         if search_params.get("encounter"):
-            # Relational model does not store direct encounter FK; keep results if patient has encounter.
-            from apps.clinical.health_screening.models import HealthScreening
-            enc_id = str(search_params["encounter"]).split("/")[-1].replace("enc-", "")
-            if not HealthScreening.objects.filter(id=enc_id).exists():
-                return qs.none()
+            return qs.none()
         return qs
 
     def optimize_queryset(self, qs):
@@ -88,81 +86,45 @@ class ConditionProjector(BaseProjector):
         ts = context.terminology
         pid = identity.patient_id(problem.patient)
 
-        # Determine profile based on whether it's resolved (encounter-dx) or active (problem-list)
-        is_encounter_dx = (problem.date_of_resolution is not None) or (str(problem.status).lower() == "resolved")
-        categories = []
-
-        if is_encounter_dx:
-            profile = "us-core-condition-problems-health-concerns"
-            categories.append(ts.to_codeable_concept("category_problem_list"))
-            categories.append(ts.to_codeable_concept("category_health_concern"))
-            categories.append(ts.to_codeable_concept("category_encounter_dx"))
-        else:
-            profile = "us-core-condition-problems-health-concerns"
-            categories.append(ts.to_codeable_concept("category_problem_list"))
-            categories.append(ts.to_codeable_concept("category_health_concern"))
-            categories.append(ts.to_codeable_concept("category_screening_functional_status"))
-        # Ensure screening-assessment category is present for Must Support checks.
-        if not any(
-            any(
-                c.get("system") == "http://hl7.org/fhir/us/core/CodeSystem/us-core-category"
-                and c.get("code") in {"sdoh", "functional-status", "disability-status", "cognitive-status"}
-                for c in cc.get("coding", [])
-            )
-            for cc in categories
-        ):
-            categories.append({
-                "coding": [ts.to_fhir_coding("category_screening_sdoh")]
-            })
+        # Resolution does not imply an encounter diagnosis.  Problem has no
+        # encounter FK, so every row remains a problem-list/health-concern.
+        is_resolved = (problem.date_of_resolution is not None) or (str(problem.status).lower() == "resolved")
+        profile = "us-core-condition-problems-health-concerns"
+        categories = [
+            ts.to_codeable_concept("category_problem_list"),
+            ts.to_codeable_concept("category_health_concern"),
+        ]
+        if problem.sdoh_problem:
+            categories.append({"coding": [ts.to_fhir_coding("category_screening_sdoh")]})
 
         # Keep clinical graph semantically coherent: unresolved = active, resolved = resolved.
-        clinical_status = "resolved" if is_encounter_dx else "active"
-
-        # US Core MustSupport Dates
-        onset = problem.date_of_onset or problem.created_at.date()
-        recorded = getattr(problem, 'date_of_diagnosis', None) or problem.created_at.date()
+        clinical_status = "resolved" if is_resolved else "active"
 
         resource = {
             "resourceType": "Condition",
             "id": cid,
-            "meta": self._meta_for_condition(profile, is_encounter_dx),
-            "extension": [
-                {
-                    "url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
-                    "valueDateTime": onset.isoformat() + "T00:00:00Z"
-                }
-            ],
+            "meta": MetaBuilder.build(profile),
             "clinicalStatus": {
                 "coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": clinical_status}]
-            },
-            "verificationStatus": {
-                "coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-ver-status", "code": "confirmed"}]
             },
             "category": categories,
             "code": self._resolve_code(problem, ts),
             "subject": ref.patient(pid),
-            "onsetDateTime": onset.isoformat() + "T00:00:00Z",
-            "recordedDate": recorded.isoformat() + "T00:00:00Z",
         }
 
-        resource["encounter"] = encounter_ref_for_patient(str(problem.patient_id), ref, identity)
+        if problem.date_of_onset:
+            onset = problem.date_of_onset.isoformat() + "T00:00:00Z"
+            resource["onsetDateTime"] = onset
+            resource["extension"] = [{
+                "url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+                "valueDateTime": onset,
+            }]
+        if problem.date_of_diagnosis:
+            resource["recordedDate"] = problem.date_of_diagnosis.isoformat() + "T00:00:00Z"
         if problem.date_of_resolution:
             resource["abatementDateTime"] = problem.date_of_resolution.isoformat() + "T00:00:00Z"
-        elif is_encounter_dx:
-            resource["abatementDateTime"] = recorded.isoformat() + "T00:00:00Z"
 
         return resource
-
-    @staticmethod
-    def _meta_for_condition(profile: str, is_encounter_dx: bool) -> dict:
-        if not is_encounter_dx:
-            return MetaBuilder.build(profile)
-
-        encounter_profile = MetaBuilder.profile_url("us-core-condition-encounter-diagnosis")
-        return MetaBuilder.build(
-            profile,
-            extra_profiles=[encounter_profile, f"{encounter_profile}|7.0.0"],
-        )
 
     @staticmethod
     def _resolve_code(problem, ts) -> dict:
@@ -176,10 +138,7 @@ class ConditionProjector(BaseProjector):
         if "hypertension" in name_lower or "blood pressure" in name_lower:
             return ts.to_codeable_concept("hypertension")
         # Fallback: text-only CodeableConcept
-        return {
-            "coding": [{"system": "http://snomed.info/sct", "code": "55607006", "display": problem.problem_name}],
-            "text": problem.problem_name,
-        }
+        return {"text": problem.problem_name}
 
     def supported_search_params(self):
         return {

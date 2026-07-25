@@ -1,0 +1,59 @@
+[
+  {
+    "formula_fingerprint_sha256": "bb162b926df4cfbe22485b8899f1ccb22d4db8869240070ce3fd882a5f1633ad",
+    "formula_count": 107,
+    "files": [
+      "FHSBMICVD10.xls",
+      "gencardio_bmi-3.xls",
+      "gencardio_bmi.xls"
+    ],
+    "meaning": "Formula topology is exactly equal after normalizing spaces and external absolute path prefixes. Values and formatting may still differ."
+  },
+  {
+    "formula_fingerprint_sha256": "11b195eccd480b337d1569b84519e3d655f747ca635625ff618d16bd92826e40",
+    "formula_count": 24,
+    "files": [
+      "Fatty-Liver-Risk-Score-Calculator-Excel-2.xls",
+      "Fatty-Liver-Risk-Score-Calculator-Excel-3.xls",
+      "Fatty-Liver-Risk-Score-Calculator-Excel-6.xls"
+    ],
+    "meaning": "Formula topology is exactly equal after normalizing spaces and external absolute path prefixes. Values and formatting may still differ."
+  },
+  {
+    "formula_fingerprint_sha256": "f7eb6bb48315bff0006fceda6289c7c2839b23e79e65dc4ccb1b28d179fb29e3",
+    "formula_count": 4,
+    "files": [
+      "data input.xlsx",
+      "data output.xlsx",
+      "ＲＥＦ.xlsx"
+    ],
+    "meaning": "Formula topology is exactly equal after normalizing spaces and external absolute path prefixes. Values and formatting may still differ."
+  },
+  {
+    "formula_fingerprint_sha256": "fcf68afeb9eb08e844898fdb1ff068e7eaef19d98807f8a1aadffeca913f32a4",
+    "formula_count": 111,
+    "files": [
+      "FHSCVD10 year-3.xls",
+      "gencardio_lipids-3.xls"
+    ],
+    "meaning": "Formula topology is exactly equal after normalizing spaces and external absolute path prefixes. Values and formatting may still differ."
+  },
+  {
+    "formula_fingerprint_sha256": "1012460c3355e4ae13750364ae5de0ef22da2dd8d4ce5e74b7d59256eeb49511",
+    "formula_count": 112,
+    "files": [
+      "UKPDS DM STROKE Version 1.xlsx",
+      "UKPDS DM STROKE Version 2.xlsx"
+    ],
+    "meaning": "Formula topology is exactly equal after normalizing spaces and external absolute path prefixes. Values and formatting may still differ."
+  },
+  {
+    "formula_fingerprint_sha256": "fde0e11e0ef6a9da5aa660767bafca24f0495c338631660dfd87ba8511719cb0",
+    "formula_count": 31,
+    "files": [
+      "hypertensioncalc-4.xls",
+      "hypertensioncalc.xls"
+    ],
+    "meaning": "Formula topology is exactly equal after normalizing spaces and external absolute path prefixes. Values and formatting may still differ."
+  }
+]

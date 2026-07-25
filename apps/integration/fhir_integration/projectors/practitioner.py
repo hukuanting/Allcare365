@@ -1,48 +1,21 @@
-"""Practitioner + PractitionerRole projectors for reference resolution."""
+"""Project persisted practitioner master data and patient-practitioner roles."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from django.db.models import Q
+
 from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..uscore_templates import (
-    LOCATION_ID,
-    ORGANIZATION_ID,
-    PRACTITIONER_ID,
-    PRACTITIONER_ROLE_ID,
-)
+from ..resource_identity import identity
 
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
 
 
-def _practitioner():
-    return {
-        "resourceType": "Practitioner",
-        "id": PRACTITIONER_ID,
-        "meta": MetaBuilder.build("us-core-practitioner"),
-        "identifier": [{"system": "http://hl7.org/fhir/sid/us-npi", "value": "1234567893"}],
-        "active": True,
-        "name": [{"family": "Careful", "given": ["Adam"], "prefix": ["Dr."]}],
-        "telecom": [{"system": "phone", "value": "555-555-1234"}],
-        "address": [{
-            "line": ["123 Practitioner Way"],
-            "city": "Boston",
-            "state": "MA",
-            "postalCode": "02134",
-            "country": "US",
-        }],
-        "qualification": [{
-            "code": {
-                "coding": [{
-                    "system": "http://terminology.hl7.org/CodeSystem/v2-0360",
-                    "code": "MD",
-                    "display": "Doctor of Medicine",
-                }]
-            }
-        }],
-    }
+def practitioner_role_id(link) -> str:
+    return identity.practitioner_role_id(link)
 
 
 @ProjectorRegistry.register("Practitioner")
@@ -51,27 +24,77 @@ class PractitionerProjector(BaseProjector):
     profile_key = "us-core-practitioner"
 
     def query(self, patient_id, search_params, context):
-        row = _practitioner()
-        if search_params.get("_id") and str(search_params["_id"]) != row["id"]:
-            return []
+        from apps.clinical.patients.models import Practitioner
+
+        qs = Practitioner.objects.filter(is_active=True).exclude(
+            Q(first_name="") & Q(last_name="")
+        )
+        if patient_id:
+            resolved = identity.resolve_patient_db_id(str(patient_id))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_links__patient_id=resolved, patient_links__is_active=True).distinct()
+        if search_params.get("_id"):
+            raw_id = str(search_params["_id"])
+            if raw_id.startswith("pract-"):
+                raw_id = raw_id[6:]
+            qs = qs.filter(id=raw_id)
         if search_params.get("identifier"):
-            token = str(search_params["identifier"])
-            if "|" in token:
-                system, value = token.split("|", 1)
-                if system != row["identifier"][0]["system"] or value != row["identifier"][0]["value"]:
-                    return []
-            elif token != row["identifier"][0]["value"]:
-                return []
+            value = str(search_params["identifier"]).split("|", 1)[-1]
+            qs = qs.filter(
+                Q(identifier=value) | Q(npi=value) | Q(license_number=value)
+            )
         if search_params.get("name"):
-            if str(search_params["name"]).lower() not in " ".join(row["name"][0]["given"] + [row["name"][0]["family"]]).lower():
-                return []
-        return [row]
+            value = str(search_params["name"])
+            qs = qs.filter(Q(first_name__icontains=value) | Q(last_name__icontains=value))
+        return qs.select_related("organization")
 
-    def project_batch(self, queryset_or_list, context):
-        return list(queryset_or_list)
+    def project(self, practitioner, context: "FHIRContext") -> dict:
+        first_name = str(practitioner.first_name or "").strip()
+        last_name = str(practitioner.last_name or "").strip()
+        if not first_name and not last_name:
+            return None
 
-    def project(self, instance, context: "FHIRContext") -> dict:
-        return instance
+        name = {}
+        if last_name:
+            name["family"] = last_name
+        if first_name:
+            name["given"] = [first_name]
+        resource = {
+            "resourceType": "Practitioner",
+            "id": identity.practitioner_id(practitioner),
+            "meta": MetaBuilder.build(self.profile_key),
+            "active": bool(
+                practitioner.is_active
+                and str(practitioner.status or "").strip().lower() == "active"
+            ),
+            "name": [name],
+        }
+
+        identifiers = []
+        if practitioner.npi:
+            identifiers.append({
+                "system": "http://hl7.org/fhir/sid/us-npi",
+                "value": str(practitioner.npi),
+            })
+        if practitioner.identifier:
+            identifiers.append({"value": str(practitioner.identifier)})
+        if practitioner.license_number:
+            identifiers.append({
+                "type": {"text": "Professional license"},
+                "value": str(practitioner.license_number),
+            })
+        if identifiers:
+            resource["identifier"] = identifiers
+
+        telecom = []
+        if practitioner.phone:
+            telecom.append({"system": "phone", "value": str(practitioner.phone)})
+        if practitioner.email:
+            telecom.append({"system": "email", "value": str(practitioner.email)})
+        if telecom:
+            resource["telecom"] = telecom
+        return resource
 
     def supported_search_params(self):
         return {"_id": "token", "name": "string", "identifier": "token"}
@@ -83,30 +106,96 @@ class PractitionerRoleProjector(BaseProjector):
     profile_key = "us-core-practitionerrole"
 
     def query(self, patient_id, search_params, context):
+        from apps.clinical.patients.models import PatientPractitionerLink
+
+        qs = PatientPractitionerLink.objects.filter(
+            is_active=True,
+            status__iexact="active",
+            practitioner__is_active=True,
+            practitioner__status__iexact="active",
+        ).select_related("patient", "practitioner", "practitioner__organization")
+        if patient_id:
+            resolved = identity.resolve_patient_db_id(str(patient_id))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_id=resolved)
+        if search_params.get("_id"):
+            raw_id = str(search_params["_id"])
+            if raw_id.startswith("prrole-"):
+                raw_id = raw_id[7:]
+            qs = qs.filter(id=raw_id)
+        if search_params.get("practitioner"):
+            raw_id = str(search_params["practitioner"]).rstrip("/").split("/")[-1]
+            if raw_id.startswith("pract-"):
+                raw_id = raw_id[6:]
+            qs = qs.filter(practitioner_id=raw_id)
+        if search_params.get("organization"):
+            raw_id = str(search_params["organization"]).rstrip("/").split("/")[-1]
+            if raw_id.startswith("org-"):
+                raw_id = raw_id[4:]
+            qs = qs.filter(practitioner__organization_id=raw_id)
+        if search_params.get("specialty"):
+            value = str(search_params["specialty"]).split("|", 1)[-1]
+            qs = qs.filter(
+                Q(practitioner__specialty__icontains=value) | Q(role__icontains=value)
+            )
+        return qs
+
+    def project(self, link, context: "FHIRContext") -> dict:
+        practitioner = link.practitioner
+        if (
+            not link.is_active
+            or str(link.status or "").strip().casefold() != "active"
+            or not practitioner.is_active
+            or str(practitioner.status or "").strip().casefold() != "active"
+            or not (str(practitioner.first_name or "").strip() or str(practitioner.last_name or "").strip())
+        ):
+            return None
         ref = context.reference_builder
-        row = {
+        resource = {
             "resourceType": "PractitionerRole",
-            "id": PRACTITIONER_ROLE_ID,
-            "meta": MetaBuilder.build("us-core-practitionerrole"),
-            "active": True,
-            "practitioner": ref.practitioner(PRACTITIONER_ID),
-            "organization": ref.organization(ORGANIZATION_ID),
-            "code": [{"coding": [{"system": "http://nucc.org/provider-taxonomy", "code": "208D00000X", "display": "General Practice"}]}],
-            "specialty": [{"coding": [{"system": "http://nucc.org/provider-taxonomy", "code": "208D00000X", "display": "General Practice"}]}],
-            "location": [ref.location(LOCATION_ID)],
-            "telecom": [{"system": "phone", "value": "555-555-1234"}],
+            "id": practitioner_role_id(link),
+            "meta": MetaBuilder.build(self.profile_key),
+            "active": bool(
+                link.is_active
+                and str(link.status or "").strip().lower() == "active"
+                and practitioner.is_active
+            ),
+            "practitioner": ref.practitioner(identity.practitioner_id(practitioner)),
+            "period": {"start": link.start_at.isoformat()},
         }
-        if search_params.get("_id") and str(search_params["_id"]) != row["id"]:
-            return []
-        if search_params.get("practitioner") and PRACTITIONER_ID not in str(search_params["practitioner"]):
-            return []
-        return [row]
+        if link.end_at:
+            resource["period"]["end"] = link.end_at.isoformat()
+        if (
+            practitioner.organization_id
+            and practitioner.organization.is_active
+            and str(practitioner.organization.name or "").strip()
+            and str(practitioner.organization.name).strip().casefold() != "unknown"
+        ):
+            resource["organization"] = ref.organization(
+                identity.organization_id(practitioner.organization)
+            )
 
-    def project_batch(self, queryset_or_list, context):
-        return list(queryset_or_list)
+        role = str(link.role or link.link_type or "").strip()
+        if role:
+            resource["code"] = [{"text": role}]
+        specialty = str(practitioner.specialty or "").strip()
+        if specialty:
+            resource["specialty"] = [{"text": specialty}]
 
-    def project(self, instance, context: "FHIRContext") -> dict:
-        return instance
+        telecom = []
+        if practitioner.phone:
+            telecom.append({"system": "phone", "value": str(practitioner.phone)})
+        if practitioner.email:
+            telecom.append({"system": "email", "value": str(practitioner.email)})
+        if telecom:
+            resource["telecom"] = telecom
+        return resource
 
     def supported_search_params(self):
-        return {"_id": "token", "practitioner": "reference", "specialty": "token"}
+        return {
+            "_id": "token",
+            "practitioner": "reference",
+            "organization": "reference",
+            "specialty": "token",
+        }

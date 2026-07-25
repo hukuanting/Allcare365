@@ -26,6 +26,7 @@ class FHIRUtils:
         'organization': 'Organization',
         'procedure': 'Procedure',
         'provenance': 'Provenance',
+        'riskassessment': 'RiskAssessment',
         'practitionerrole': 'PractitionerRole',
         'servicerequest': 'ServiceRequest',
         'coverage': 'Coverage',

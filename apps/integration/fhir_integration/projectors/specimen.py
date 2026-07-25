@@ -1,10 +1,15 @@
-"""Specimen Projector — Maps ``health_screening.LaboratoryResults`` → FHIR Specimen."""
+"""Project only specimen facts explicitly stored with a lab result."""
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
+from django.db.models import Q
+
+from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
+
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
 
@@ -16,55 +21,59 @@ class SpecimenProjector(BaseProjector):
 
     def query(self, patient_id, search_params, context):
         from apps.clinical.health_screening.models import LaboratoryResults
-        qs = LaboratoryResults.objects.filter(is_active=True)
+
+        qs = LaboratoryResults.objects.filter(is_active=True).filter(
+            Q(specimen_type__gt="")
+            | Q(specimen_source_site__gt="")
+            | Q(specimen_identifier__gt="")
+            | Q(specimen_condition__gt="")
+        ).select_related("health_screening", "health_screening__patient")
         if search_params.get("_id"):
-            raw_id = str(search_params["_id"])
-            if raw_id.startswith("spm-"):
-                raw_id = raw_id[4:]
-            qs = qs.filter(id=raw_id)
-        if patient_id:
-            qs = qs.filter(health_screening__patient_id=patient_id)
-        if search_params.get("patient"):
-            qs = qs.filter(health_screening__patient_id=search_params["patient"])
+            raw_id = str(search_params["_id"]).rstrip("/").split("/")[-1]
+            if not raw_id.startswith("spm-"):
+                return qs.none()
+            qs = qs.filter(id=raw_id[4:])
+        patient_scope = patient_id or search_params.get("patient")
+        if patient_scope:
+            resolved = identity.resolve_patient_db_id(str(patient_scope))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(health_screening__patient_id=resolved)
         return qs
 
-    def optimize_queryset(self, qs):
-        return qs.select_related("health_screening", "health_screening__patient")
-
-    def project(self, lab, context: "FHIRContext") -> dict:
-        sid = identity.specimen_id(lab)
-        pid = identity.patient_id(lab.health_screening.patient)
-        ref = context.reference_builder
-        dt = lab.health_screening.screening_date.isoformat() if lab.health_screening.screening_date else "2025-01-01"
-        specimen_identifier = lab.specimen_identifier or f"SP-{lab.id}"
-        body_site_text = lab.specimen_source_site or "venous blood"
-        return {
+    def project(self, lab, context: "FHIRContext") -> dict | None:
+        if not any(_usable_text(value) for value in (
+            lab.specimen_type,
+            lab.specimen_source_site,
+            lab.specimen_identifier,
+            lab.specimen_condition,
+        )):
+            return None
+        resource = {
             "resourceType": "Specimen",
-            "id": sid,
+            "id": identity.specimen_id(lab),
             "meta": MetaBuilder.build(self.profile_key),
-            "identifier": [{
-                "system": "http://allcare365.example/specimen",
-                "value": specimen_identifier,
-            }],
-            "accessionIdentifier": {
-                "system": "http://allcare365.example/specimen-accession",
-                "value": f"ACC-{specimen_identifier}",
-            },
-            "status": "available",
-            "type": {"coding": [{"system": "http://snomed.info/sct", "code": "119297000", "display": lab.specimen_type or "Blood specimen"}]},
-            "subject": ref.patient(pid),
-            "collection": {
-                "collectedDateTime": dt,
-                "bodySite": {
-                    "coding": [{"system": "http://snomed.info/sct", "code": "49852007", "display": "Structure of vein"}],
-                    "text": body_site_text,
-                },
-            },
-            "condition": [{
-                "coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0493", "code": "A", "display": "Accepted"}],
-                "text": lab.specimen_condition or "acceptable",
-            }],
+            "subject": context.reference_builder.patient(identity.patient_id(lab.health_screening.patient)),
         }
+        if _usable_text(lab.specimen_identifier):
+            resource["identifier"] = [{"value": lab.specimen_identifier.strip()}]
+        if _usable_text(lab.specimen_type):
+            resource["type"] = {"text": lab.specimen_type.strip()}
+
+        collection = {}
+        if lab.health_screening.screening_date:
+            collection["collectedDateTime"] = lab.health_screening.screening_date.isoformat()
+        if _usable_text(lab.specimen_source_site):
+            collection["bodySite"] = {"text": lab.specimen_source_site.strip()}
+        if collection:
+            resource["collection"] = collection
+        if _usable_text(lab.specimen_condition):
+            resource["condition"] = [{"text": lab.specimen_condition.strip()}]
+        return resource
 
     def supported_search_params(self):
         return {"patient": "reference", "_id": "token"}
+
+
+def _usable_text(value) -> bool:
+    return bool(value and str(value).strip() and str(value).strip().casefold() != "unknown")

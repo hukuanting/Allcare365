@@ -1,13 +1,14 @@
 import React, { useEffect } from "react";
 import FHIR from "fhirclient";
+import API_CONFIG from "../config/api";
 
 export default function Launch() {
   useEffect(() => {
     FHIR.oauth2.authorize({
       "clientId": "my_web_app",
       "scope": "launch patient/*.read openid fhirUser",
-      "redirectUri": "http://localhost:3000/dashboard",
-      "iss": "http://localhost:8000/fhir" // Pointing to our Django FHIR server
+      "redirectUri": `${window.location.origin}/dashboard`,
+      "iss": `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.FHIR_BASE}`,
     });
   }, []);
 

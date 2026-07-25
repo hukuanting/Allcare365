@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://allcare365.example/schemas/risk-algorithm-catalog.schema.json",
+  "title": "Disease risk algorithm catalog",
+  "type": "object",
+  "required": ["schema_version", "algorithms"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "generated_from": { "type": "string" },
+    "algorithms": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/algorithm" }
+    }
+  },
+  "$defs": {
+    "algorithm": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "category",
+        "implementation_status",
+        "formula",
+        "inputs",
+        "source_locations"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "target": { "type": "string" },
+        "time_horizon": { "type": ["string", "null"] },
+        "population": { "type": ["string", "null"] },
+        "implementation_status": {
+          "enum": [
+            "candidate_after_clinical_validation",
+            "blocked_source_conflict",
+            "reference_only"
+          ]
+        },
+        "formula": { "type": ["string", "null"] },
+        "source_formula": { "type": ["string", "null"] },
+        "output": { "type": "string" },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type"],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "enum": ["number", "integer", "boolean", "enum"] },
+              "unit": { "type": ["string", "null"] },
+              "encoding": { "type": ["string", "null"] },
+              "constraints": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "thresholds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "source_locations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "literature": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "issues": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "fhir_output": {
+          "enum": ["RiskAssessment", "Observation"]
+        }
+      }
+    }
+  }
+}

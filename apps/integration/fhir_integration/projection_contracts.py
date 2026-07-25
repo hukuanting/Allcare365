@@ -53,7 +53,17 @@ TERMINOLOGY_BINDING_RULES: Dict[str, Dict[str, List[str]]] = {
     },
 }
 
-SEARCH_PARAM_PRIORITY = ("patient", "category", "code", "status", "date", "authored", "identifier", "_id")
+SEARCH_PARAM_PRIORITY = (
+    "patient",
+    "subject",
+    "category",
+    "code",
+    "status",
+    "date",
+    "authored",
+    "identifier",
+    "_id",
+)
 
 MANDATORY_TOP_LEVEL_ELEMENTS: Dict[str, List[str]] = {
     "Patient": ["active", "identifier", "name", "gender", "birthDate", "address", "communication", "extension"],
@@ -64,6 +74,7 @@ MANDATORY_TOP_LEVEL_ELEMENTS: Dict[str, List[str]] = {
     "MedicationRequest": ["status", "intent", "category", "reportedBoolean", "medicationReference", "subject", "encounter", "authoredOn", "requester", "dosageInstruction", "dispenseRequest"],
     "Encounter": ["identifier", "status", "class", "type", "subject", "participant", "period", "reasonReference", "location", "serviceProvider", "hospitalization"],
     "DocumentReference": ["identifier", "status", "type", "category", "subject", "date", "author", "content", "context"],
+    "RiskAssessment": ["status", "subject", "prediction"],
 }
 
 MANDATORY_REFERENCE_TARGETS: Dict[str, List[str]] = {
@@ -74,6 +85,7 @@ MANDATORY_REFERENCE_TARGETS: Dict[str, List[str]] = {
     "MedicationRequest": ["Encounter", "Patient", "Practitioner"],
     "Encounter": ["Condition", "Location", "Organization", "Patient", "Practitioner"],
     "DocumentReference": ["Encounter", "Patient", "Practitioner"],
+    "RiskAssessment": ["Patient"],
 }
 
 
@@ -139,6 +151,24 @@ def build_projection_contracts(selected_resources: Optional[List[str]] = None) -
                 edge
                 for edge in extracted.must_support_references.get(resource_type, [])
                 if edge["target"] in enforced_targets
+            ],
+        )
+
+    # RiskAssessment is a core FHIR R4 resource used for our derived disease
+    # risk outputs, but it is outside the US Core STU7 resource list from
+    # which the other contracts are extracted.
+    if selected_resources is None or "RiskAssessment" in resource_types:
+        contracts["RiskAssessment"] = ProjectionContract(
+            resource_type="RiskAssessment",
+            required_profiles=[],
+            required_searches=["_id", "patient", "subject"],
+            must_support_elements=["status", "subject", "prediction"],
+            must_support_references=[
+                {"paths": ["subject"], "target": "Patient"},
+            ],
+            enforced_elements=MANDATORY_TOP_LEVEL_ELEMENTS["RiskAssessment"],
+            enforced_references=[
+                {"paths": ["subject"], "target": "Patient"},
             ],
         )
     return contracts

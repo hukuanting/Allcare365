@@ -29,5 +29,6 @@ from . import organization        # noqa: F401
 from . import practitioner        # noqa: F401  (includes PractitionerRole)
 from . import related_person      # noqa: F401
 from . import provenance          # noqa: F401
+from . import risk_assessment     # noqa: F401
 from . import media               # noqa: F401
 # fmt: on

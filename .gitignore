@@ -1,13 +1,22 @@
-# Allcare365 - Git 忽略檔案
+# Allcare 365 git ignore rules
 
-# 環境變數和機密資料
+# Secrets and local environment
+.agents/
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
 *.key
 *.pem
+local_settings.py
+
+# Cloudflare tunnel runtime files
 cloudflared-quick-tunnel.log
 cloudflare-current-url.env
 
@@ -15,8 +24,9 @@ cloudflare-current-url.env
 H2U_cvd_input_update.csv
 CORE.xlsx
 ONC_CERTIFICATION.pdf
-.agents/
+ONC_CERTIFICATION*.pdf
 anon/*.db
+example/raw/
 
 # Python
 __pycache__/
@@ -44,14 +54,15 @@ MANIFEST
 
 # Django
 *.log
-local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*.sqlite3
 media/
 staticfiles/
 
-# Virtual Environment
+# Virtual environments
 venv/
+.venv/
 env/
 ENV/
 env.bak/
@@ -65,11 +76,11 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# React Build
+# React build output
 frontend/build/
 frontend/dist/
 
-# Testing
+# Testing and coverage
 .coverage
 htmlcov/
 .tox/
@@ -83,15 +94,23 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+coverage/
+*.lcov
+.nyc_output
 
-# IDEs
+# IDEs and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# OS
+# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -100,62 +119,32 @@ cover/
 ehthumbs.db
 Thumbs.db
 
-# Logs
+# Logs and runtime data
 logs/
-*.log
-
-# Runtime data
 pids
 *.pid
 *.seed
 *.pid.lock
+celerybeat-schedule
+celerybeat.pid
+dump.rdb
 
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
+# JavaScript package/tool caches
 jspm_packages/
-
-# Optional npm cache directory
 .npm
-
-# Optional eslint cache
 .eslintcache
-
-# Optional stylelint cache
 .stylelintcache
-
-# Microbundle cache
 .rpt2_cache/
 .rts2_cache_cjs/
 .rts2_cache_es/
 .rts2_cache_umd/
-
-# Optional REPL history
 .node_repl_history
-
-# Output of 'npm pack'
 *.tgz
-
-# Yarn Integrity file
 .yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
 .parcel-cache
-
-# Next.js build output
 .next
-
-# Nuxt.js build / generate output
 .nuxt
-dist
-
-# Storybook build outputs
+dist/
 .out
 .storybook-out
 
@@ -163,80 +152,39 @@ dist
 tmp/
 temp/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Medical data and backups
+/patient_data/
+/medical_records/
+/backup_data/
+/database_backups/
 
-# Medical data (HIPAA compliance)
-patient_data/
-medical_records/
-backup_data/
-database_backups/
-
-# Development files
+# Development scratch files
 *.tmp
 *.temp
 *.bak
 *.backup
 
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Redis
-dump.rdb
-
-# Docker
+# Docker files are local deployment artifacts in this repo
 .dockerignore
 Dockerfile
 docker-compose.yml
 docker-compose.override.yml
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
+# Notebook/tooling caches
+.ipynb_checkpoints/
 profile_default/
 ipython_config.py
-
-# pyenv
 .python-version
-
-# pipenv
 Pipfile.lock
-
-# poetry
 poetry.lock
-
-# PEP 582
 __pypackages__/
-
-# SageMath parsed files
 *.sage.py
-
-# Spyder project settings
 .spyderproject
 .spyproject
-
-# Rope project settings
 .ropeproject
-
-# mkdocs documentation
 /site
-
-# mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Pyre type checker
 .pyre/
-
-# pytype static type analyzer
 .pytype/

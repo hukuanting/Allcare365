@@ -9,8 +9,12 @@ FHIR ID ≠ DB PK — this indirection is critical for:
   - Logical deletes
 """
 from __future__ import annotations
+import hashlib
+import re
 import uuid
 from typing import TYPE_CHECKING
+
+from django.db import DatabaseError
 
 if TYPE_CHECKING:
     from django.db import models as django_models
@@ -27,13 +31,40 @@ class ResourceIdentityService:
     # ── Patient ──────────────────────────────────────────────
 
     SINGLE_PATIENT_FHIR_ID = "00000000-0000-4000-a000-000000000001"
+    PATIENT_FHIR_ID_METADATA_KEY = "fhir_patient_id"
+    _FHIR_ID_PATTERN = re.compile(r"^[A-Za-z0-9\-.]{1,64}$")
 
-    @staticmethod
-    def patient_id(patient) -> str:
-        return ResourceIdentityService.SINGLE_PATIENT_FHIR_ID
+    @classmethod
+    def patient_id(cls, patient) -> str:
+        """Return the patient's stable, collision-free FHIR logical id.
 
-    @staticmethod
-    def resolve_patient_db_id(token: str | None) -> str | None:
+        A source FHIR id is used only when it was explicitly persisted on the
+        patient and can be proven unique.  The relational UUID is the safe
+        fallback and preserves the ONC fixture because that fixture's primary
+        key is already the canonical certification UUID.
+        """
+        database_id = str(patient.id)
+        metadata = getattr(patient, "metadata_json", None)
+        explicit_id = (
+            metadata.get(cls.PATIENT_FHIR_ID_METADATA_KEY)
+            if isinstance(metadata, dict)
+            else None
+        )
+        explicit_id = str(explicit_id).strip() if explicit_id else ""
+        if not cls._is_valid_fhir_id(explicit_id):
+            return database_id
+
+        try:
+            if cls._explicit_patient_id_is_unique(patient, explicit_id):
+                return explicit_id
+        except DatabaseError:
+            # If uniqueness cannot be established, the database UUID is the
+            # only identity that is safe to expose.
+            return database_id
+        return database_id
+
+    @classmethod
+    def resolve_patient_db_id(cls, token: str | None) -> str | None:
         """
         Resolve an incoming FHIR patient token (logical id/reference) to
         a relational Patient.id for query filtering.
@@ -41,26 +72,54 @@ class ResourceIdentityService:
         if not token:
             return None
 
-        raw = str(token).split("/")[-1].strip()
-        if not raw:
+        raw = str(token).rstrip("/").split("/")[-1].strip()
+        if not cls._is_valid_fhir_id(raw):
             return None
 
         from apps.clinical.patients.models import Patient
 
-        if raw in {ResourceIdentityService.SINGLE_PATIENT_FHIR_ID, "onc-patient-1", "1"}:
-            p = Patient.objects.filter(is_active=True).order_by("created_at", "id").first()
-            return str(p.id) if p else None
-
         try:
             uuid.UUID(raw)
         except (TypeError, ValueError):
-            p = Patient.objects.filter(is_active=True).order_by("created_at", "id").first()
-            return str(p.id) if p else None
+            pass
+        else:
+            patient = Patient.objects.filter(id=raw, is_active=True).only("id").first()
+            if patient is not None:
+                return str(patient.id)
 
-        p = Patient.objects.filter(id=raw, is_active=True).only("id").first()
-        if p:
-            return str(p.id)
+        matches = list(
+            Patient.objects.filter(
+                is_active=True,
+                metadata_json__fhir_patient_id=raw,
+            ).only("id", "metadata_json")[:2]
+        )
+        if len(matches) == 1 and cls._explicit_patient_id_is_unique(matches[0], raw):
+            return str(matches[0].id)
         return None
+
+    @classmethod
+    def _explicit_patient_id_is_unique(cls, patient, explicit_id: str) -> bool:
+        from apps.clinical.patients.models import Patient
+
+        patient_id = str(patient.id)
+        persisted_matches = {
+            str(value)
+            for value in Patient.objects.filter(
+                metadata_json__fhir_patient_id=explicit_id,
+            ).values_list("id", flat=True)[:2]
+        }
+        if persisted_matches != {patient_id}:
+            return False
+
+        try:
+            explicit_uuid = uuid.UUID(explicit_id)
+        except (TypeError, ValueError):
+            return True
+        return not Patient.objects.filter(id=explicit_uuid).exclude(id=patient.id).exists()
+
+    @classmethod
+    def _is_valid_fhir_id(cls, value: str) -> bool:
+        return bool(value and cls._FHIR_ID_PATTERN.fullmatch(value))
 
     @staticmethod
     def canonical_patient_id() -> str:
@@ -185,14 +244,21 @@ class ResourceIdentityService:
 
     @staticmethod
     def location_id(loc_name: str) -> str:
-        slug = loc_name.lower().replace(" ", "-")[:32]
-        return f"loc-{slug}"
+        normalized = str(loc_name).strip().casefold()
+        slug = re.sub(r"[^a-z0-9.-]+", "-", normalized).strip(".-")[:32]
+        slug = slug or "location"
+        digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
+        return f"loc-{slug}-{digest}"
 
     # ── Practitioner ─────────────────────────────────────────
 
     @staticmethod
     def practitioner_id(user) -> str:
         return f"pract-{user.id}"
+
+    @staticmethod
+    def practitioner_role_id(link) -> str:
+        return f"prrole-{link.id}"
 
     # ── RelatedPerson ────────────────────────────────────────
 

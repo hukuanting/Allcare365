@@ -1,17 +1,19 @@
-"""
-MedicationRequest Projector — Maps ``patients.PatientMedication`` → FHIR MedicationRequest.
-"""
+"""Project persisted PatientMedication rows as minimal MedicationRequest."""
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+from typing import TYPE_CHECKING
+
 from ..fhir_search.query_translator import date_to_q
+from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
-from ..uscore_templates import PRACTITIONER_ID, encounter_ref_for_patient
 
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
+
+
+STATUS_MAP = {"active": "active", "completed": "completed", "stopped": "stopped"}
 
 
 @ProjectorRegistry.register("MedicationRequest")
@@ -21,98 +23,65 @@ class MedicationRequestProjector(BaseProjector):
 
     def query(self, patient_id, search_params, context):
         from apps.clinical.patients.models import PatientMedication
-        qs = PatientMedication.objects.filter(is_active=True)
+
+        qs = PatientMedication.objects.filter(is_active=True).select_related("patient")
         if search_params.get("_id"):
-            raw_id = str(search_params["_id"])
-            if raw_id.startswith("mreq-"):
-                raw_id = raw_id[5:]
-            qs = qs.filter(id=raw_id)
-        if patient_id:
-            qs = qs.filter(patient_id=patient_id)
-        if search_params.get("patient"):
-            qs = qs.filter(patient_id=search_params["patient"])
+            raw_id = str(search_params["_id"]).rstrip("/").split("/")[-1]
+            if not raw_id.startswith("mreq-"):
+                return qs.none()
+            qs = qs.filter(id=raw_id[5:])
+        patient_scope = patient_id or search_params.get("patient")
+        if patient_scope:
+            resolved = identity.resolve_patient_db_id(str(patient_scope))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_id=resolved)
         if search_params.get("intent"):
-            requested = {s.strip().lower() for s in str(search_params["intent"]).split(",") if s.strip()}
-            if requested and "proposal" not in requested:
+            requested = {value.strip().casefold() for value in str(search_params["intent"]).split(",") if value.strip()}
+            if requested and "order" not in requested:
                 return qs.none()
         if search_params.get("encounter"):
-            from apps.clinical.health_screening.models import HealthScreening
-            enc_id = str(search_params["encounter"]).split("/")[-1].replace("enc-", "")
-            if not HealthScreening.objects.filter(id=enc_id).exists():
-                return qs.none()
+            return qs.none()
         if search_params.get("authoredon"):
-            qs = qs.filter(date_to_q("start_date", str(search_params["authoredon"])))
+            qs = qs.filter(date_to_q("created_at__date", str(search_params["authoredon"])))
         if search_params.get("status"):
-            status_map = {"active": "active", "completed": "completed", "stopped": "stopped"}
-            qs = qs.filter(dispense_status__in=[status_map.get(s, s) for s in search_params["status"].split(",")])
+            source_statuses = [
+                source
+                for source, fhir_status in STATUS_MAP.items()
+                if fhir_status in {value.strip().casefold() for value in str(search_params["status"]).split(",")}
+            ]
+            qs = qs.filter(dispense_status__in=source_statuses)
         return qs
 
-    def optimize_queryset(self, qs):
-        return qs.select_related("patient")
+    def project(self, medication, context: "FHIRContext") -> dict | None:
+        name = (medication.medication or "").strip()
+        status = STATUS_MAP.get((medication.dispense_status or "").strip().casefold())
+        if not name or name.casefold() == "unknown" or status is None:
+            return None
 
-    def project(self, med, context: "FHIRContext") -> dict:
-        mrid = identity.medication_request_id(med)
-        mid = identity.medication_id(med)
         ref = context.reference_builder
-        ts = context.terminology
-        pid = identity.patient_id(med.patient)
-
-        # Track the referenced Medication for _include
-        context.include_tracker.add("Medication", mid)
-        encounter_ref = encounter_ref_for_patient(str(med.patient_id), ref, identity)
-
+        medication_id = identity.medication_id(medication)
+        context.include_tracker.add("Medication", medication_id)
         resource = {
             "resourceType": "MedicationRequest",
-            "id": mrid,
+            "id": identity.medication_request_id(medication),
             "meta": MetaBuilder.build(self.profile_key),
-            "status": "active" if med.dispense_status == "active" else med.dispense_status,
-            "intent": "proposal",
-            "category": [
-                ts.to_codeable_concept("medreq_outpatient"),
-                ts.to_codeable_concept("medreq_discharge"),
-            ],
-            "reportedBoolean": False,
-            "medicationReference": ref.medication(mid),
-            "subject": ref.patient(pid),
-            "encounter": encounter_ref,
-            "authoredOn": med.start_date.isoformat() if med.start_date else med.created_at.isoformat(),
-            "requester": ref.practitioner(PRACTITIONER_ID),
-            "dosageInstruction": [{
-                "text": med.medication_instructions or f"Take {med.medication} as directed",
-                "timing": {"repeat": {"frequency": 1, "period": 1, "periodUnit": "d"}},
-                "doseAndRate": [{"doseQuantity": {
-                    "value": 1, "unit": "tablet",
-                    "system": ts.resolve("unit_tablet").system,
-                    "code": ts.resolve("unit_tablet").code,
-                }}],
-            }],
-            "dispenseRequest": {
-                "numberOfRepeatsAllowed": 3,
-                "quantity": {"value": 30, "unit": "tab"},
-            },
+            "status": status,
+            "intent": "order",
+            "medicationReference": ref.medication(medication_id),
+            "subject": ref.patient(identity.patient_id(medication.patient)),
+            "authoredOn": medication.created_at.isoformat(),
         }
 
-        if med.indication:
-            resource["reasonCode"] = [{"text": med.indication}]
-
-        return resource
-
-    def apply_extensions(self, resource, med, context):
-        ts = context.terminology
-        asserted_date = med.start_date.isoformat() if med.start_date else med.created_at.date().isoformat()
-        resource.setdefault("extension", []).append({
-            "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medication-adherence",
-            "extension": [
-                {
-                    "url": "medicationAdherence",
-                    "valueCodeableConcept": ts.to_codeable_concept("treatment_compliant"),
-                },
-                {
-                    "url": "dateAsserted",
-                    "valueDateTime": asserted_date + "T00:00:00Z",
-                },
-            ],
-        })
+        dosage = {}
+        if _usable_text(medication.medication_instructions):
+            dosage["text"] = medication.medication_instructions.strip()
+        if _usable_text(medication.route_of_administration):
+            dosage["route"] = {"text": medication.route_of_administration.strip()}
+        if dosage:
+            resource["dosageInstruction"] = [dosage]
+        if _usable_text(medication.indication):
+            resource["reasonCode"] = [{"text": medication.indication.strip()}]
         return resource
 
     def supported_search_params(self):
@@ -123,3 +92,7 @@ class MedicationRequestProjector(BaseProjector):
 
     def supported_rev_includes(self):
         return ["Provenance:target"]
+
+
+def _usable_text(value) -> bool:
+    return bool(value and str(value).strip() and str(value).strip().casefold() != "unknown")

@@ -129,7 +129,7 @@ Each risk sheet becomes a model definition:
 | `NAFLD` | `nafld_fibrosis` |
 | `FHSFLD` | `framingham_fatty_liver` |
 | `AusDM` | `ausdrisk_diabetes` |
-| `GVR CAIDE` | `vascular_caide` |
+| `GVR CAIDE` | `caide_dementia_20y` (`vascular_caide` retired as an ambiguous legacy ID) |
 
 ## 6. Old Module Retirement
 

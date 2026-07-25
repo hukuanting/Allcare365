@@ -1,7 +1,6 @@
 import os
 import sys
 import unittest
-import uuid
 
 import django
 from django.conf import settings
@@ -30,7 +29,6 @@ import apps.integration.fhir_integration.projectors  # noqa: F401
 from apps.integration.fhir_integration.capability_statement import generate_capability_statement
 from apps.integration.fhir_integration.fhir_context import FHIRContext
 from apps.integration.fhir_integration.g10_testkit import build_g10_single_patient_contract
-from apps.integration.fhir_integration.projectors.document_reference import DocumentReferenceProjector
 from apps.integration.fhir_integration.projectors.observation import ObservationProjector, _ObservationRow
 from apps.integration.fhir_integration.projectors.registry import ProjectorRegistry
 from apps.integration.fhir_integration.projection_contracts import all_projection_contracts
@@ -130,7 +128,7 @@ class USCoreProjectionContractTests(unittest.TestCase):
         self.assertEqual(resource["valueQuantity"]["system"], "http://unitsofmeasure.org")
         self.assertEqual(resource["valueQuantity"]["code"], "%")
 
-    def test_smoking_status_quantity_projection_has_value_quantity_slice(self):
+    def test_unpersisted_smoking_quantity_is_not_projected(self):
         patient = type("PatientStub", (), {"id": "00000000-0000-4000-a000-000000000001"})()
         assessment = type("AssessmentStub", (), {"id": "65adb19d-982d-473a-ab3e-444b4a997c0c"})()
         row = _ObservationRow(
@@ -144,42 +142,27 @@ class USCoreProjectionContractTests(unittest.TestCase):
 
         resource = ObservationProjector().project(row, FHIRContext(patient_id=str(patient.id)))
 
-        self.assertIn("http://hl7.org/fhir/us/core/StructureDefinition/us-core-smokingstatus", resource["meta"]["profile"])
-        self.assertEqual(resource["code"]["coding"][0]["code"], "401201003")
-        self.assertEqual(resource["valueQuantity"]["value"], 20.0)
-        self.assertEqual(resource["valueQuantity"]["system"], "http://unitsofmeasure.org")
-        self.assertEqual(resource["valueQuantity"]["code"], "{pack-years}")
+        self.assertIsNone(resource)
 
-    def test_provenance_projection_includes_author_and_transmitter_agents(self):
-        target = {
-            "resourceType": "ServiceRequest",
-            "id": "sreq-test",
-            "meta": {"lastUpdated": "2026-04-08T10:00:00Z"},
+    def test_provenance_projection_preserves_persisted_payload(self):
+        persisted_payload = {
+            "resourceType": "Provenance",
+            "id": "prov-persisted",
+            "target": [{"reference": "ServiceRequest/sreq-test"}],
+            "recorded": "2026-04-08T10:00:00Z",
+            "agent": [{"who": {"reference": "Practitioner/pract-persisted"}}],
         }
+        persisted = type(
+            "PersistedFHIRResource",
+            (),
+            {"resource_id": "prov-persisted", "resource_data": persisted_payload},
+        )()
 
-        resource = ProjectorRegistry.get("Provenance").project(target, FHIRContext())
-        agent_codes = {
-            coding["code"]
-            for agent in resource["agent"]
-            for coding in agent["type"]["coding"]
-        }
+        resource = ProjectorRegistry.get("Provenance").project(persisted, FHIRContext())
 
+        self.assertEqual(resource, persisted_payload)
         self.assertEqual(resource["target"][0]["reference"], "ServiceRequest/sreq-test")
         self.assertLessEqual(len(resource["id"]), 64)
-        self.assertIn("author", agent_codes)
-        self.assertIn("transmitter", agent_codes)
-        self.assertTrue(all("onBehalfOf" in agent for agent in resource["agent"]))
-        self.assertEqual(resource["entity"][0]["role"], "source")
-
-    def test_document_reference_attachment_url_uses_valid_uuid_uri(self):
-        doc = type("DocStub", (), {"id": "reqdoc-11502-2"})()
-
-        url = DocumentReferenceProjector._attachment_url(doc)
-        prefix, value = url.rsplit(":", 1)
-
-        self.assertEqual(prefix, "urn:uuid")
-        self.assertEqual(str(uuid.UUID(value)), value)
-
 
 if __name__ == "__main__":
     unittest.main()

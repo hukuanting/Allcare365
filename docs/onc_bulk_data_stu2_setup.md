@@ -17,8 +17,19 @@ Run these before Inferno:
 
 ```powershell
 .\venv\Scripts\python.exe manage.py setup_bulk_inferno_client
-.\venv\Scripts\python.exe manage.py seed_bulk_group
+.\venv\Scripts\python.exe manage.py seed_onc_patient --patient-id 10000000-0000-4000-a000-000000000001
+.\venv\Scripts\python.exe manage.py seed_onc_patient --patient-id 10000000-0000-4000-a000-000000000002
+.\venv\Scripts\python.exe manage.py seed_onc_patient --patient-id 10000000-0000-4000-a000-000000000003
+.\venv\Scripts\python.exe manage.py seed_bulk_group `
+  --patient-id 10000000-0000-4000-a000-000000000001 `
+  --patient-id 10000000-0000-4000-a000-000000000002 `
+  --patient-id 10000000-0000-4000-a000-000000000003
 ```
+
+`seed_bulk_group` never creates a patient. It accepts only existing records
+explicitly marked synthetic, certification/conformance, and
+`clinical_use_prohibited=true`, then persists their exact membership as a FHIR
+Group. Do not run these fixture commands against a clinical production tenant.
 
 Optional local guard:
 
@@ -80,12 +91,13 @@ Recommended algorithm: `ES384` with blank `kid`, because Inferno can select its 
 
 ## Maintenance Rules
 
-- Keep `Group/example-group` members identical to exported Patient NDJSON resources.
+- Keep `Group/example-group` members identical to exported Patient NDJSON resources; membership must never be inferred from an MRN prefix.
 - Keep status/download URLs under the same FHIR base path used by Inferno, especially `/fhir/R4`.
 - Leave `PUBLIC_BASE_URL` empty for Cloudflare/ngrok test runs unless a stable public host is intentionally configured; endpoint URLs should derive from the incoming request.
 - Keep `requiresAccessToken` as `true`; Inferno downloads NDJSON with the Backend Services access token.
 - Preserve `system/*.read` support in discovery, token issuance, and FHIR scope checks.
 - Bulk endpoints must reject anonymous requests even if `FHIR_ALLOW_ANONYMOUS_READ=true`.
+- Bulk endpoints must reject `patient/*` and `user/*` scopes, enforce every requested `_type` resource scope, and bind status/download/cancel to the creating OAuth client.
 - Do not log full `client_assertion` JWT values.
 - Keep `Group` `$export` declared in `/fhir/R4/metadata`.
 - Keep the bundled Inferno public JWKS fallback public-only; never commit Inferno private JWKS.

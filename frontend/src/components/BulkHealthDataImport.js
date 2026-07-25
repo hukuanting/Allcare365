@@ -19,6 +19,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import { useNavigate } from 'react-router-dom';
 import API_CONFIG, { api, parseApiResponse } from '../config/api';
 import { apiErrorMessage } from '../utils/apiData';
 
@@ -41,6 +43,7 @@ const parseFhirSummary = (raw) => {
 };
 
 function BulkHealthDataImport() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState('file');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -51,6 +54,8 @@ function BulkHealthDataImport() {
   const [message, setMessage] = useState(null);
 
   const previewRows = useMemo(() => preview?.sample_data || [], [preview]);
+  const analysisPatientId = result?.primary_patient_id
+    || (result?.patient_ids?.length === 1 ? result.patient_ids[0] : '');
 
   const reset = () => {
     setFile(null);
@@ -135,7 +140,10 @@ function BulkHealthDataImport() {
       const data = await parseApiResponse(response);
       if (!response.ok && response.status !== 207) throw new Error(apiErrorMessage(data, 'FHIR 匯入失敗'));
       setResult(data);
-      setMessage({ type: data.error_count ? 'warning' : 'success', text: 'FHIR 匯入流程已完成' });
+      setMessage({
+        type: data.error_count ? 'warning' : 'success',
+        text: data.error_count ? 'FHIR 匯入完成，但部分資源需要檢查' : 'FHIR 匯入完成，可直接進行風險分析',
+      });
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -285,6 +293,16 @@ function BulkHealthDataImport() {
                 ))}
               </Alert>
             )}
+            <Button
+              variant="contained"
+              startIcon={<AnalyticsIcon />}
+              sx={{ alignSelf: 'flex-start' }}
+              onClick={() => navigate(analysisPatientId
+                ? `/risk-analysis?patient_id=${encodeURIComponent(analysisPatientId)}`
+                : '/risk-analysis')}
+            >
+              {analysisPatientId ? '分析這位病患的風險' : '前往風險分析'}
+            </Button>
           </Stack>
         </Paper>
       )}

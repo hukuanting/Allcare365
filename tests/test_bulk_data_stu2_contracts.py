@@ -14,16 +14,32 @@ from django.apps import apps
 if not apps.ready:
     django.setup()
 
-from django.test import override_settings
+from django.test import TestCase, override_settings
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from apps.integration.fhir_integration.capability_statement import generate_capability_statement
+from apps.integration.fhir_integration.projectors.registry import ProjectorRegistry
+from apps.integration.fhir_integration.models import FHIRResource
 from apps.integration.fhir_integration.public_url import get_public_base_url
 from apps.integration.fhir_integration.views import BulkExportViewSet, SMARTv2Validator
 
 
-class BulkDataSTU2ContractTests(unittest.TestCase):
+class BulkDataSTU2ContractTests(TestCase):
+    def setUp(self):
+        FHIRResource.objects.create(
+            resource_type="Group",
+            resource_id="example-group",
+            resource_data={
+                "resourceType": "Group",
+                "id": "example-group",
+                "type": "person",
+                "actual": True,
+                "quantity": 0,
+                "member": [],
+            },
+        )
+
     def _request(self, path, query=None):
         factory = APIRequestFactory()
         request = factory.get(
@@ -60,10 +76,25 @@ class BulkDataSTU2ContractTests(unittest.TestCase):
         self.assertEqual(resource_types, ["Patient", "Observation"])
         self.assertEqual(unsupported, [])
 
+    def test_type_parameter_rejects_non_persisted_fixture_resources(self):
+        request = self._request(
+            "/fhir/R4/Group/example-group/$export",
+            {"_type": "Endpoint,Organization"},
+        )
+
+        resource_types, unsupported = BulkExportViewSet()._requested_resource_types(request)
+
+        self.assertEqual(resource_types, [])
+        self.assertEqual(unsupported, ["Endpoint", "Organization"])
+
     @override_settings(PUBLIC_BASE_URL="https://example.org", ALLOWED_HOSTS=["example.org"])
     def test_group_export_kickoff_and_status_manifest(self):
         factory = APIRequestFactory()
-        token = SimpleNamespace(scope="system/*.read")
+        token = SimpleNamespace(
+            scope="system/*.read",
+            application_id="bulk-contract-client",
+            user_id=None,
+        )
         kickoff_request = factory.get(
             "/fhir/R4/Group/example-group/$export",
             {"_type": "Patient"},
@@ -114,13 +145,27 @@ class BulkDataSTU2ContractTests(unittest.TestCase):
 
         self.assertIn(response.status_code, (401, 403))
 
-    def test_bulk_exports_required_contextual_resources(self):
+    def test_bulk_advertises_only_registered_persisted_projectors(self):
         resource_types = BulkExportViewSet.SUPPORTED_RESOURCE_TYPES
 
-        for resource_type in ("Encounter", "Location", "Organization", "Practitioner"):
-            self.assertIn(resource_type, resource_types)
-        self.assertIn("Media", resource_types)
-        self.assertIn("Endpoint", resource_types)
+        self.assertIn("Patient", resource_types)
+        self.assertIn("Encounter", resource_types)
+        for resource_type in resource_types:
+            self.assertTrue(ProjectorRegistry.has(resource_type), resource_type)
+
+        # Registered singleton/template projectors and unregistered historical
+        # fixture types are not safe persisted Bulk Data sources.
+        for resource_type in (
+            "Endpoint",
+            "Location",
+            "Media",
+            "Organization",
+            "Practitioner",
+            "PractitionerRole",
+            "Provenance",
+            "QuestionnaireResponse",
+        ):
+            self.assertNotIn(resource_type, resource_types)
 
     def test_backend_services_accepts_inferno_signing_algorithms(self):
         algorithms = SMARTv2Validator.BACKEND_SERVICE_SIGNING_ALGORITHMS

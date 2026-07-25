@@ -17,7 +17,8 @@ class FHIRResource(models.Model):
     """Base model for FHIR resources"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     resource_type = models.CharField(max_length=50)
-    resource_id = models.CharField(max_length=100, unique=True)
+    resource_id = models.CharField(max_length=100)
+    origin_namespace = models.CharField(max_length=200, default="unspecified", db_index=True)
     version_id = models.CharField(max_length=50, default="1")
     last_updated = models.DateTimeField(auto_now=True)
     resource_data = models.JSONField()

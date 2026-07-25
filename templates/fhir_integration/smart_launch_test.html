@@ -187,8 +187,16 @@
 
             <form method="get" action="{% url 'smart_launch_test' %}">
                 <div class="launch-row">
-                    <label class="launch-label" for="launch_uri">Inferno Launch URI</label>
-                    <input class="launch-input" id="launch_uri" name="launch_uri" value="{{ launch_uri }}">
+                    <label class="launch-label" for="launch_uri">SMART App Launch URI</label>
+                    <input class="launch-input" id="launch_uri" name="launch_uri" type="url" required value="{{ launch_uri }}">
+                </div>
+                <div class="launch-row">
+                    <label class="launch-label" for="patient">FHIR Patient ID</label>
+                    <input class="launch-input" id="patient" name="patient" required value="{{ patient }}">
+                </div>
+                <div class="launch-row">
+                    <label class="launch-label" for="encounter">FHIR Encounter ID (optional)</label>
+                    <input class="launch-input" id="encounter" name="encounter" value="{{ encounter }}">
                 </div>
                 <div class="launch-actions">
                     <button class="launch-button launch-secondary" type="submit">

@@ -1,4 +1,6 @@
 // 會話管理工具 - 處理瀏覽器關閉時的自動登出
+import API_CONFIG from '../config/api';
+
 class SessionManager {
   constructor() {
     this.isInitialized = false;
@@ -212,7 +214,7 @@ class SessionManager {
 
     try {
       console.log('SessionManager: 嘗試刷新 token...');
-      const response = await fetch('http://localhost:8000/api/auth/token/refresh/', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TOKEN_REFRESH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

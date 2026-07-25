@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
@@ -28,13 +28,12 @@ from oauth2_provider.models import AccessToken, Application, RefreshToken as OAu
 from jwcrypto import jwk
 
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer
-from .smart_utils import SMARTContextService
+from .smart_utils import SMARTContextError, SMARTContextService
 from apps.integration.fhir_integration.fine_grained_scopes import (
     granular_scope_selection_options,
     is_granular_scope_for_resource,
 )
 from apps.integration.fhir_integration.public_url import get_public_base_url
-from apps.integration.fhir_integration.resource_identity import identity
 
 logger = logging.getLogger('medical_system')
 
@@ -150,7 +149,47 @@ class CustomAuthorizationView(AuthorizationView):
                 "Invalid aud parameter. Expected this server's FHIR base URL.",
             )
 
+        request_data = request.GET if request.method == "GET" else request.POST
+        requested_scope = SMARTContextService.normalize_scopes(request_data.get("scope", ""))
+        launch_token = request_data.get("launch", "")
+        if launch_token:
+            try:
+                SMARTContextService.resolve_launch_context(
+                    launch_token,
+                    user=request.user if request.user.is_authenticated else None,
+                )
+            except SMARTContextError as exc:
+                return _json_oauth_error("invalid_request", str(exc))
+        elif SMARTContextService.has_patient_scopes(requested_scope) or "launch" in requested_scope.split():
+            return _json_oauth_error(
+                "invalid_request",
+                "Patient-scoped authorization requires an explicit persisted EHR launch context.",
+            )
+
         return super().dispatch(request, *args, **kwargs)
+
+    def create_authorization_response(self, request, scopes, credentials, allow):
+        """Persist the launch-to-code link before returning the code to the app."""
+
+        response_data = super().create_authorization_response(
+            request=request,
+            scopes=scopes,
+            credentials=credentials,
+            allow=allow,
+        )
+        uri, _headers, _body, status_code = response_data
+        launch_token = request.POST.get("launch") or request.GET.get("launch")
+        if allow and launch_token and 300 <= status_code < 400:
+            code_values = parse_qs(urlparse(uri).query).get("code") or []
+            if not code_values:
+                raise SMARTContextError("OAuth authorization response did not contain a code.")
+            SMARTContextService.bind_authorization_code(
+                authorization_code=code_values[0],
+                launch_token=launch_token,
+                user=request.user,
+                client_id=credentials.get("client_id") or "",
+            )
+        return response_data
 
     def get_context_data(self, **kwargs):
         """
@@ -337,7 +376,7 @@ from datetime import datetime, timedelta, timezone
 import uuid
 
 
-def _build_id_token(request, token_response: dict) -> str:
+def _build_id_token(request, token_response: dict, authorization_context=None) -> str:
     scope = token_response.get("scope") or request.POST.get("scope") or request.GET.get("scope") or ""
     if "openid" not in scope.split():
         return ""
@@ -346,27 +385,30 @@ def _build_id_token(request, token_response: dict) -> str:
     now = int(time.time())
     expires_in = int(token_response.get("expires_in") or 300)
     client_id = request.POST.get("client_id") or request.GET.get("client_id") or ""
-    patient = None
-    try:
-        from apps.clinical.patients.models import Patient
+    access_token = None
+    access_value = token_response.get("access_token")
+    if access_value:
+        access_token = AccessToken.objects.select_related("user", "application").filter(
+            token=access_value
+        ).first()
+    token_user = authorization_context.user if authorization_context is not None else (
+        access_token.user if access_token is not None else None
+    )
+    if token_user is None or not client_id:
+        return ""
 
-        patient_obj = Patient.objects.first()
-        if patient_obj is not None:
-            patient = identity.patient_id(patient_obj)
-    except Exception:
-        patient_obj = None
-
-    fhir_user = f"{base_url}/fhir/R4/Practitioner/example-practitioner"
     claims = {
         "iss": f"{base_url}/o",
-        "sub": "Practitioner/example-practitioner",
+        "sub": str(token_user.pk),
         "aud": client_id,
         "iat": now,
         "exp": now + expires_in,
-        "fhirUser": fhir_user,
     }
-    if patient:
-        claims["patient"] = patient
+    smart_context = SMARTContextService.get_token_response_context(base_url, authorization_context)
+    if authorization_context is not None:
+        claims["patient"] = smart_context["patient"]
+    if "fhirUser" in scope.split() and smart_context.get("fhirUser"):
+        claims["fhirUser"] = smart_context["fhirUser"]
 
     return jwt.encode(
         claims,
@@ -434,12 +476,8 @@ class CustomTokenView(TokenView):
         if request.POST.get('grant_type') == 'client_credentials' and request.POST.get('client_assertion_type') == 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer':
             
             validator = SMARTv2Validator()
-            # We mock a request object-like structure or just pass request if strictly compatible, 
-            # but usually validator expects an oauthlib Request. 
-            # Instead, we just reuse the logic if possible, or re-implement the flow cleanly here using the validator pattern.
-            
-            # Create a simplified object to pass to authenticate_client
-            class MockRequest:
+            # Adapt Django's request fields to the oauthlib validator contract.
+            class OAuthLibRequestAdapter:
                 def __init__(self, d):
                     self.grant_type = d.get('grant_type')
                     self.client_id = d.get('client_id')
@@ -448,16 +486,23 @@ class CustomTokenView(TokenView):
                     self.uri = request.build_absolute_uri()
                     self.client = None
             
-            mock_request = MockRequest(request.POST)
+            oauth_request = OAuthLibRequestAdapter(request.POST)
             
-            if validator.authenticate_client(mock_request):
+            if validator.authenticate_client(oauth_request):
                 # Authentication Success! Issue Token manually to ensure control.
                 # This aligns with "Systematic" - we used the Validator to check, now we Use the Model to issue.
-                app = mock_request.client
+                app = oauth_request.client
                 expires = datetime.now(timezone.utc) + timedelta(seconds=300)
                 requested_scope = SMARTContextService.normalize_scopes(
                     request.POST.get('scope') or 'system/*.read'
                 )
+                if not requested_scope or any(
+                    not scope.startswith("system/") for scope in requested_scope.split()
+                ):
+                    return _json_oauth_error(
+                        "invalid_scope",
+                        "Backend-services tokens may contain only system scopes.",
+                    )
                 token = AccessToken.objects.create(
                     user=app.user,
                     application=app,
@@ -494,6 +539,7 @@ class CustomTokenView(TokenView):
 
         # 2. Standard Flow for everything else
         try:
+            authorization_context = self._preflight_authorization_context(request)
             # DOT version compatibility: create_token_response returns (url, headers, body, status) or (headers, body, status)
             response_data = self.create_token_response(request)
             if len(response_data) == 4:
@@ -506,20 +552,32 @@ class CustomTokenView(TokenView):
                 try:
                     data = json.loads(body)
                     
-                    # Get Context from Service
                     base_url = get_public_base_url(request)
-                    smart_context = SMARTContextService.get_token_response_context(base_url)
+                    authorization_context = SMARTContextService.bind_token_response(
+                        token_payload=data,
+                        authorization_context=authorization_context,
+                    )
+                    smart_context = SMARTContextService.get_token_response_context(
+                        base_url,
+                        authorization_context,
+                    )
                     data.update(smart_context)
-                    id_token = data.get("id_token") or _build_id_token(request, data)
+                    data.pop("id_token", None)
+                    id_token = _build_id_token(request, data, authorization_context)
                     if id_token:
                         data["id_token"] = id_token
                      
                     body = json.dumps(data)
                     logger.info("SMART Context injected into token response.")
                     
-                except Exception as e:
-                    logger.error(f"Failed to inject SMART context: {e}")
-                    # We continue even if injection fails, to return the valid token
+                except Exception:
+                    logger.exception("Failed to bind issued token to SMART context")
+                    self._discard_issued_tokens(locals().get("data", {}))
+                    return _json_oauth_error(
+                        "server_error",
+                        "The token could not be bound to its persisted SMART context.",
+                        status_code=500,
+                    )
             
             # 3. Construct Final Response
             response = HttpResponse(content=body, status=status, content_type='application/json')
@@ -532,15 +590,49 @@ class CustomTokenView(TokenView):
                 
             return response
             
-        except Exception as e:
-            import traceback
-            error_msg = f"Critical error in Token Exchange: {str(e)}\n{traceback.format_exc()}"
-            logger.error(error_msg)
-            return HttpResponse(
-                json.dumps({'error': 'server_error', 'error_description': error_msg}), 
-                status=500, 
-                content_type='application/json'
+        except SMARTContextError as exc:
+            logger.warning("SMART token exchange rejected: %s", exc)
+            return _json_oauth_error("invalid_grant", str(exc))
+        except Exception:
+            logger.exception("Critical error in token exchange")
+            return _json_oauth_error(
+                "server_error",
+                "Token exchange failed.",
+                status_code=500,
             )
+
+    @staticmethod
+    def _preflight_authorization_context(request):
+        grant_type = request.POST.get("grant_type")
+        if grant_type == "authorization_code":
+            code = request.POST.get("code", "")
+            context = SMARTContextService.authorization_context_for_code(code)
+            grant_scope = SMARTContextService.grant_scope_for_code(code)
+            if SMARTContextService.has_patient_scopes(grant_scope) and context is None:
+                raise SMARTContextError(
+                    "The patient-scoped authorization code has no persisted launch context."
+                )
+            return context
+        if grant_type == "refresh_token":
+            refresh_value = request.POST.get("refresh_token", "")
+            context = SMARTContextService.authorization_context_for_refresh(refresh_value)
+            original_scope = SMARTContextService.refresh_scope(refresh_value)
+            if SMARTContextService.has_patient_scopes(original_scope) and context is None:
+                raise SMARTContextError(
+                    "The patient-scoped refresh token has no persisted launch context."
+                )
+            return context
+        return None
+
+    @staticmethod
+    def _discard_issued_tokens(token_payload):
+        refresh_value = token_payload.get("refresh_token")
+        access_value = token_payload.get("access_token")
+        with transaction.atomic():
+            if refresh_value:
+                OAuthRefreshToken.objects.filter(token=refresh_value).delete()
+            if access_value:
+                AccessToken.objects.filter(token=access_value).delete()
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -577,6 +669,19 @@ class SmartIntrospectionView(View):
                 content_type="application/json",
             )
 
+        authorization_context = SMARTContextService.authorization_context_for_access_token(
+            access_token
+        )
+        if (
+            SMARTContextService.has_patient_scopes(access_token.scope)
+            and authorization_context is None
+        ):
+            return HttpResponse(
+                json.dumps({"active": False}),
+                status=200,
+                content_type="application/json",
+            )
+
         payload = {
             "active": True,
             "scope": access_token.scope,
@@ -588,8 +693,18 @@ class SmartIntrospectionView(View):
         }
         base_url = get_public_base_url(request)
         payload["iss"] = f"{base_url}/o"
-        payload.update(SMARTContextService.get_token_response_context(base_url))
-        payload["fhirUser"] = f"{base_url}/fhir/R4/Practitioner/example-practitioner"
+        if authorization_context is not None:
+            smart_context = SMARTContextService.get_token_response_context(
+                base_url,
+                authorization_context,
+            )
+            for key in ("patient", "encounter", "fhirUser"):
+                if smart_context.get(key):
+                    payload[key] = smart_context[key]
+        else:
+            fhir_user = SMARTContextService.fhir_user_reference(base_url, access_token.user)
+            if fhir_user:
+                payload["fhirUser"] = fhir_user
         payload = {key: value for key, value in payload.items() if value not in (None, "")}
         response = HttpResponse(json.dumps(payload), status=200, content_type="application/json")
         response["Cache-Control"] = "no-store"

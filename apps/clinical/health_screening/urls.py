@@ -17,6 +17,7 @@ urlpatterns = [
     path("bulk-import/", views.bulk_import, name="bulk_import"),
     path("fhir-import/", views.fhir_import, name="fhir_import"),
     path("risk-analysis/", views.risk_analysis, name="risk_analysis"),
+    path("risk-algorithms/", views.risk_algorithm_catalog, name="risk_algorithm_catalog"),
     path("disease-risk/", views.disease_risk_assessment, name="disease_risk_assessment"),
     path("cohorts/summary/", views.cohort_summary, name="cohort_summary"),
     path("cohorts/summary/fhir/", views.cohort_summary_fhir, name="cohort_summary_fhir"),

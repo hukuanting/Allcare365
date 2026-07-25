@@ -4,6 +4,7 @@ from .models import (
     PatientAllergy, CarePlan, PatientMedication, MedicalOrder,
     InsuranceData, AdvanceDirective, PatientDocument
 )
+from .clinical_scope import is_golden_demo_patient
 
 class FamilyHealthHistorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,6 +59,8 @@ class PatientDocumentSerializer(serializers.ModelSerializer):
 class PatientSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     age = serializers.SerializerMethodField()
+    is_demo_patient = serializers.SerializerMethodField()
+    demo_label = serializers.SerializerMethodField()
     
     # Nested serializers for read operations (optional, can be heavy)
     care_team = CareTeamMemberSerializer(many=True, read_only=True)
@@ -75,7 +78,8 @@ class PatientSerializer(serializers.ModelSerializer):
         model = Patient
         fields = [
             'id', 'medical_record_number', 'first_name', 'last_name', 'middle_name',
-            'full_name', 'date_of_birth', 'age', 'sex', 'status', 
+            'full_name', 'date_of_birth', 'age', 'sex', 'status',
+            'is_demo_patient', 'demo_label',
             'current_address_line1', 'city', 'state', 'phone_number', 'email_address',
             'care_team', 'allergies', 'care_plans', 'medications', 'medical_orders',
             'insurance_info', 'advance_directives', 'family_history', 'medical_devices',
@@ -91,3 +95,9 @@ class PatientSerializer(serializers.ModelSerializer):
             today = timezone.now().date()
             return today.year - obj.date_of_birth.year - ((today.month, today.day) < (obj.date_of_birth.month, obj.date_of_birth.day))
         return None
+
+    def get_is_demo_patient(self, obj):
+        return is_golden_demo_patient(obj)
+
+    def get_demo_label(self, obj):
+        return "Golden Patient（展示用合成病患）" if is_golden_demo_patient(obj) else None

@@ -1,12 +1,14 @@
-"""Immunization Projector — Maps ``health_screening.Immunization`` → FHIR Immunization."""
+"""Project persisted immunization administrations without guessed context."""
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 from ..fhir_search.query_translator import date_to_q
+from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
-from ..uscore_templates import LOCATION_ID, PRACTITIONER_ID, encounter_ref_for_patient
+
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
 
@@ -18,48 +20,46 @@ class ImmunizationProjector(BaseProjector):
 
     def query(self, patient_id, search_params, context):
         from apps.clinical.health_screening.models import Immunization
-        qs = Immunization.objects.filter(is_active=True)
+
+        qs = Immunization.objects.filter(is_active=True).select_related("patient")
         if search_params.get("_id"):
-            raw_id = str(search_params["_id"])
-            if raw_id.startswith("imm-"):
-                raw_id = raw_id[4:]
-            qs = qs.filter(id=raw_id)
-        if patient_id:
-            qs = qs.filter(patient_id=patient_id)
-        if search_params.get("patient"):
-            qs = qs.filter(patient_id=search_params["patient"])
+            raw_id = str(search_params["_id"]).rstrip("/").split("/")[-1]
+            if not raw_id.startswith("imm-"):
+                return qs.none()
+            qs = qs.filter(id=raw_id[4:])
+        patient_scope = patient_id or search_params.get("patient")
+        if patient_scope:
+            resolved = identity.resolve_patient_db_id(str(patient_scope))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_id=resolved)
         if search_params.get("status"):
-            status = str(search_params["status"]).lower()
-            if status != "completed":
+            requested = {value.strip().casefold() for value in str(search_params["status"]).split(",") if value.strip()}
+            if requested and "completed" not in requested:
                 return qs.none()
         if search_params.get("date"):
             qs = qs.filter(date_to_q("administration_date__date", str(search_params["date"])))
         return qs
 
-    def optimize_queryset(self, qs):
-        return qs.select_related("patient")
-
-    def project(self, imm, context: "FHIRContext") -> dict:
-        iid = identity.immunization_id(imm)
-        pid = identity.patient_id(imm.patient)
-        ref = context.reference_builder
-        ts = context.terminology
-        encounter_ref = encounter_ref_for_patient(str(imm.patient_id), ref, identity)
-        return {
+    def project(self, immunization, context: "FHIRContext") -> dict | None:
+        if not _usable_text(immunization.vaccine_name) or not immunization.administration_date:
+            return None
+        resource = {
             "resourceType": "Immunization",
-            "id": iid,
+            "id": identity.immunization_id(immunization),
             "meta": MetaBuilder.build(self.profile_key),
             "status": "completed",
-            "statusReason": {"coding": [ts.to_fhir_coding("immunization_status_reason_immune")]},
-            "vaccineCode": {"coding": [{"system": "http://hl7.org/fhir/sid/cvx", "code": "207", "display": imm.vaccine_name}], "text": imm.vaccine_name},
-            "patient": ref.patient(pid),
-            "encounter": encounter_ref,
-            "occurrenceDateTime": imm.administration_date.isoformat() if imm.administration_date else imm.created_at.isoformat(),
-            "primarySource": True,
-            "location": ref.location(LOCATION_ID),
-            "performer": [{"actor": ref.practitioner(PRACTITIONER_ID)}],
-            "protocolApplied": [{"doseNumberPositiveInt": 1}],
+            "vaccineCode": {"text": immunization.vaccine_name.strip()},
+            "patient": context.reference_builder.patient(identity.patient_id(immunization.patient)),
+            "occurrenceDateTime": immunization.administration_date.isoformat(),
         }
+        if _usable_text(immunization.lot_number):
+            resource["lotNumber"] = immunization.lot_number.strip()
+        return resource
 
     def supported_search_params(self):
         return {"patient": "reference", "status": "token", "date": "date", "_id": "token"}
+
+
+def _usable_text(value) -> bool:
+    return bool(value and str(value).strip() and str(value).strip().casefold() != "unknown")

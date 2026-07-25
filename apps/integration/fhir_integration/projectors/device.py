@@ -1,12 +1,18 @@
-"""Device Projector — Maps ``patients.MedicalDevice`` → FHIR Device."""
+"""Project persisted implantable-device facts without synthetic UDI details."""
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
+from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
+
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
+
+
+FHIR_DEVICE_STATUSES = {"active", "inactive", "entered-in-error", "unknown"}
 
 
 @ProjectorRegistry.register("Device")
@@ -16,43 +22,39 @@ class DeviceProjector(BaseProjector):
 
     def query(self, patient_id, search_params, context):
         from apps.clinical.patients.models import MedicalDevice
-        qs = MedicalDevice.objects.filter(is_active=True)
+
+        qs = MedicalDevice.objects.filter(is_active=True).select_related("patient")
         if search_params.get("_id"):
-            raw_id = str(search_params["_id"])
-            if raw_id.startswith("dev-"):
-                raw_id = raw_id[4:]
-            qs = qs.filter(id=raw_id)
-        if patient_id:
-            qs = qs.filter(patient_id=patient_id)
-        if search_params.get("patient"):
-            qs = qs.filter(patient_id=search_params["patient"])
+            raw_id = str(search_params["_id"]).rstrip("/").split("/")[-1]
+            if not raw_id.startswith("dev-"):
+                return qs.none()
+            qs = qs.filter(id=raw_id[4:])
+        patient_scope = patient_id or search_params.get("patient")
+        if patient_scope:
+            resolved = identity.resolve_patient_db_id(str(patient_scope))
+            if resolved is None:
+                return qs.none()
+            qs = qs.filter(patient_id=resolved)
         if search_params.get("status"):
             qs = qs.filter(status__iexact=str(search_params["status"]).split("|")[-1])
         if search_params.get("type"):
             qs = qs.filter(device_name__icontains=str(search_params["type"]).split("|")[-1])
         return qs
 
-    def optimize_queryset(self, qs):
-        return qs.select_related("patient")
-
-    def project(self, dev, context: "FHIRContext") -> dict:
-        did = identity.device_id(dev)
-        pid = identity.patient_id(dev.patient)
-        ref = context.reference_builder
+    def project(self, device, context: "FHIRContext") -> dict | None:
+        name = (device.device_name or "").strip()
+        udi = (device.udi or "").strip()
+        status = (device.status or "").strip().casefold()
+        if not name or not udi or status not in FHIR_DEVICE_STATUSES:
+            return None
         return {
             "resourceType": "Device",
-            "id": did,
+            "id": identity.device_id(device),
             "meta": MetaBuilder.build(self.profile_key),
-            "status": dev.status or "active",
-            "type": {"coding": [{"system": "http://snomed.info/sct", "code": "34370006", "display": dev.device_name}]},
-            "udiCarrier": [{"deviceIdentifier": dev.udi or "00843169102317", "carrierHRF": f"(01){dev.udi or '00843169102317'}"}],
-            "distinctIdentifier": dev.udi or "UDI-DISTINCT-001",
-            "manufactureDate": "2020-01-01T00:00:00Z",
-            "expirationDate": "2035-01-01T00:00:00Z",
-            "lotNumber": "LOT-DEVICE-001",
-            "manufacturer": "Medtronic",
-            "serialNumber": "SN987654",
-            "patient": ref.patient(pid),
+            "status": status,
+            "type": {"text": name},
+            "udiCarrier": [{"deviceIdentifier": udi}],
+            "patient": context.reference_builder.patient(identity.patient_id(device.patient)),
         }
 
     def supported_search_params(self):

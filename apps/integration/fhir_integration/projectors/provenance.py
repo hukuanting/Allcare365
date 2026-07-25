@@ -1,13 +1,12 @@
-"""Provenance Projector - auto-generates FHIR Provenance for target resources."""
+"""Expose only Provenance resources persisted in the FHIR store."""
 from __future__ import annotations
 
-import hashlib
+import copy
 from typing import TYPE_CHECKING
 
-from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..uscore_templates import ORGANIZATION_ID
+from ..resource_identity import identity
 
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
@@ -19,108 +18,89 @@ class ProvenanceProjector(BaseProjector):
     profile_key = "us-core-provenance"
 
     def query(self, patient_id, search_params, context):
+        from ..models import FHIRResource, FHIRResourceMapping
+
+        qs = FHIRResource.objects.filter(resource_type="Provenance", is_active=True)
         if search_params.get("_id"):
-            prov_id = str(search_params["_id"])
-            return self._find_targets_by_provenance_id(prov_id, context)
-        if search_params.get("target"):
-            target_id = str(search_params["target"]).split("/")[-1]
-            return self._find_targets_by_id(target_id, context)
-        return []
+            resource_id = str(search_params["_id"]).rstrip("/").split("/")[-1]
+            qs = qs.filter(resource_id=resource_id)
 
-    def project(self, target_resource: dict, context: "FHIRContext") -> dict:
-        ref = context.reference_builder
-        target_type = target_resource.get("resourceType", "Unknown")
-        target_id = target_resource.get("id", "unknown")
-        provenance_id = self._provenance_id(target_type, target_id)
-        recorded = target_resource.get("meta", {}).get(
-            "lastUpdated",
-            MetaBuilder.build(self.profile_key)["lastUpdated"],
-        )
+        allowed_resource_pks = None
+        direct_patient_reference = None
+        if patient_id:
+            resolved_patient_id = identity.resolve_patient_db_id(str(patient_id))
+            if resolved_patient_id is None:
+                return []
+            allowed_resource_pks = set(
+                FHIRResourceMapping.objects.filter(
+                    patient_id=resolved_patient_id,
+                    fhir_resource_ref__resource_type="Provenance",
+                    fhir_resource_ref__is_active=True,
+                ).values_list("fhir_resource_ref_id", flat=True)
+            )
+            from apps.clinical.patients.models import Patient
 
-        return {
-            "resourceType": "Provenance",
-            "id": provenance_id,
-            "meta": MetaBuilder.build(self.profile_key),
-            "target": [{"reference": f"{target_type}/{target_id}"}],
-            "recorded": recorded,
-            "agent": [
-                {
-                    "type": {
-                        "coding": [{
-                            "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
-                            "code": "author",
-                            "display": "Author",
-                        }]
-                    },
-                    "who": ref.organization(ORGANIZATION_ID),
-                    "onBehalfOf": ref.organization(ORGANIZATION_ID),
-                },
-                {
-                    "type": {
-                        "coding": [{
-                            "system": "http://hl7.org/fhir/us/core/CodeSystem/us-core-provenance-participant-type",
-                            "code": "transmitter",
-                            "display": "Transmitter",
-                        }]
-                    },
-                    "who": ref.organization(ORGANIZATION_ID),
-                    "onBehalfOf": ref.organization(ORGANIZATION_ID),
-                },
-            ],
-            "entity": [{
-                "role": "source",
-                "what": {"reference": f"{target_type}/{target_id}"},
-            }],
-        }
+            patient = Patient.objects.filter(id=resolved_patient_id, is_active=True).first()
+            if patient is None:
+                return []
+            direct_patient_reference = f"Patient/{identity.patient_id(patient)}"
 
-    @staticmethod
-    def for_resource(resource: dict, context: "FHIRContext") -> dict:
-        projector = ProjectorRegistry.get("Provenance")
-        return projector.project(resource, context)
-
-    @staticmethod
-    def _find_targets_by_id(target_id: str, context: "FHIRContext") -> list[dict]:
-        matches = []
-        for resource_type, projector in ProjectorRegistry.all_projectors().items():
-            if resource_type == "Provenance":
+        requested_target = str(search_params.get("target", "")).strip()
+        requested_target_tail = requested_target.rstrip("/").split("/")[-1] if requested_target else ""
+        rows = []
+        for row in qs.order_by("resource_id"):
+            targets = self._target_references(row.resource_data)
+            if requested_target and not any(
+                target == requested_target
+                or target.rstrip("/").split("/")[-1] == requested_target_tail
+                for target in targets
+            ):
                 continue
-            try:
-                items = projector.query(
-                    patient_id=None,
-                    search_params={"_id": target_id},
-                    context=context,
-                )
-                resources = projector.project_batch(items, context)
-            except Exception:
-                continue
-            matches.extend(res for res in resources if str(res.get("id")) == target_id)
-        return matches
+            if allowed_resource_pks is not None:
+                mapped = row.pk in allowed_resource_pks
+                directly_targets_patient = direct_patient_reference in targets
+                if not mapped and not directly_targets_patient:
+                    continue
+            rows.append(row)
+        return rows
+
+    def project(self, persisted, context: "FHIRContext") -> dict | None:
+        data = copy.deepcopy(getattr(persisted, "resource_data", None))
+        if not isinstance(data, dict):
+            return None
+        if data.get("resourceType") not in (None, "Provenance"):
+            return None
+
+        resource_id = str(getattr(persisted, "resource_id", "") or data.get("id", "")).strip()
+        if not resource_id:
+            return None
+        data["resourceType"] = "Provenance"
+        data["id"] = resource_id
+        if not self._target_references(data) or not data.get("recorded") or not data.get("agent"):
+            return None
+        return data
 
     @classmethod
-    def _find_targets_by_provenance_id(cls, provenance_id: str, context: "FHIRContext") -> list[dict]:
-        matches = []
-        for resource_type, projector in ProjectorRegistry.all_projectors().items():
-            if resource_type == "Provenance":
-                continue
-            try:
-                resources = projector.project_batch(
-                    projector.query(patient_id=None, search_params={}, context=context),
-                    context,
-                )
-            except Exception:
-                continue
-            matches.extend(
-                res
-                for res in resources
-                if cls._provenance_id(res.get("resourceType", ""), res.get("id", "")) == provenance_id
-            )
-        return matches
+    def for_resource(cls, resource: dict, context: "FHIRContext") -> dict | None:
+        if not isinstance(resource, dict) or not resource.get("resourceType") or not resource.get("id"):
+            return None
+        target = f"{resource['resourceType']}/{resource['id']}"
+        projector = ProjectorRegistry.get("Provenance")
+        rows = projector.query(getattr(context, "patient_id", None), {"target": target}, context)
+        projected = projector.project_batch(rows, context)
+        return projected[0] if len(projected) == 1 else None
 
     @staticmethod
-    def _provenance_id(target_type: str, target_id: str) -> str:
-        digest = hashlib.sha1(f"{target_type}/{target_id}".encode("utf-8")).hexdigest()[:24]
-        type_prefix = "".join(ch for ch in str(target_type).lower() if ch.isalnum())[:8] or "resource"
-        return f"prov-{type_prefix}-{digest}"
+    def _target_references(resource_data) -> list[str]:
+        if not isinstance(resource_data, dict):
+            return []
+        references = []
+        for target in resource_data.get("target", []):
+            if isinstance(target, dict) and isinstance(target.get("reference"), str):
+                reference = target["reference"].strip()
+                if reference:
+                    references.append(reference)
+        return references
 
     def supported_search_params(self):
         return {"_id": "token", "target": "reference"}

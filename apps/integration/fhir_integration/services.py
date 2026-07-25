@@ -1,9 +1,7 @@
-import json
 import uuid
-import copy
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 # FHIR Resources Official Library
 from fhir.resources.patient import Patient as FHIRPatient
@@ -27,7 +25,10 @@ from apps.clinical.health_screening.models import HealthScreening
 from .models import FHIRResource, USCDIDataElement
 
 from .uscdi_v6_mappings import USCDIv6Mapper
-from .uscore_mock_dataset import build_resources_for_patient, build_provenance_for_resource
+from .fhir_context import FHIRContext
+from .operation_outcome import FHIRBadRequest, FHIRNotSupported, FHIRServerError
+from .projectors.registry import ProjectorRegistry
+import apps.integration.fhir_integration.projectors  # noqa: F401 - register projectors
 import pandas as pd
 import io
 
@@ -115,222 +116,6 @@ class BulkDataProcessor:
         }
         return mapping.get(class_name)
 
-class USCore7Factory:
-    """
-    系統化工廠：生成 100% 符合 US Core 7.0.0 規範的 FHIR 資源。
-    使用 fhir.resources 庫進行自動校驗。
-    """
-    
-    @staticmethod
-    def get_timestamp():
-        return datetime.now(timezone.utc).isoformat()
-
-    @classmethod
-    def create_patient(cls, patient_model: Patient) -> FHIRPatient:
-        gender_map = {'M': 'male', 'F': 'female', 'Male': 'male', 'Female': 'female'}
-        fhir_gender = gender_map.get(patient_model.sex, 'unknown')
-        
-        # Determine birthsex and sex codes
-        birthsex_code = "M" if fhir_gender == 'male' else ("F" if fhir_gender == 'female' else "UNK")
-        sex_code = "M" if fhir_gender == 'male' else ("F" if fhir_gender == 'female' else "U")
-
-        data = {
-            "resourceType": "Patient",
-            "id": str(patient_model.id),
-            "meta": {
-                "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|7.0.0"],
-                "lastUpdated": cls.get_timestamp()
-            },
-            "active": True,
-            "identifier": [
-                {"system": "http://hospital.smarthealthit.org", "value": patient_model.medical_record_number or str(patient_model.id)},
-                {"system": "http://hl7.org/fhir/sid/us-ssn", "value": "000-00-0000"}
-            ],
-            "name": [
-                {
-                    "use": "official",
-                    "family": patient_model.last_name or "Unknown",
-                    "given": [patient_model.first_name or "Unknown"],
-                    "suffix": [patient_model.name_suffix] if patient_model.name_suffix else ["Mr."]
-                },
-                {
-                    "use": "old",
-                    "family": patient_model.previous_name or "PreviousName",
-                    "period": {"end": "2020-01-01T00:00:00Z"}
-                }
-            ],
-            "telecom": [{"system": "phone", "value": patient_model.phone_number or "555-555-5555", "use": "home"}],
-            "gender": fhir_gender,
-            "birthDate": (patient_model.date_of_birth.isoformat() if patient_model.date_of_birth else "1980-01-01"),
-            "deceasedDateTime": "2024-01-01T12:00:00Z",
-            "address": [
-                {
-                    "use": "home",
-                    "line": [patient_model.current_address_line1 or "123 Main St"],
-                    "city": patient_model.city or "Anytown",
-                    "state": patient_model.state or "CA",
-                    "postalCode": patient_model.postal_code or "12345",
-                    "country": "US"
-                },
-                {
-                    "use": "old",
-                    "line": ["456 Old Ave"],
-                    "city": "Oldtown",
-                    "state": "NY",
-                    "postalCode": "10001",
-                    "country": "US",
-                    "period": {"end": "2015-01-01T00:00:00Z"}
-                }
-            ],
-            "communication": [{"language": {"coding": [{"system": "urn:ietf:bcp:47", "code": "en-US"}]}, "preferred": True}],
-            "extension": [
-                {
-                    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
-                    "extension": [
-                        {"url": "ombCategory", "valueCoding": {"system": "urn:oid:2.16.840.1.113883.6.238", "code": "2106-3", "display": "White"}},
-                        {"url": "text", "valueString": "White"}
-                    ]
-                },
-                {
-                    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
-                    "extension": [
-                        {"url": "ombCategory", "valueCoding": {"system": "urn:oid:2.16.840.1.113883.6.238", "code": "2186-5", "display": "Not Hispanic or Latino"}},
-                        {"url": "text", "valueString": "Not Hispanic or Latino"}
-                    ]
-                },
-                {"url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex", "valueCode": birthsex_code},
-                {"url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex", "valueCode": sex_code},
-                {
-                    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-tribal-affiliation",
-                    "extension": [
-                        {"url": "tribalAffiliation", "valueCodeableConcept": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-TribalEntityUS", "code": "1.1", "display": "Apache"}]}},
-                        {"url": "isEnrolled", "valueBoolean": True}
-                    ]
-                },
-                {
-                    "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-genderIdentity",
-                    "valueCodeableConcept": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-AdministrativeGender", "code": sex_code}]}
-                }
-            ]
-        }
-        return FHIRPatient(**data)
-
-    @classmethod
-    def create_condition(cls, patient_id: str, index: int = 0, category: str = 'problem-list-item') -> FHIRCondition:
-        data = {
-            "resourceType": "Condition",
-            "id": f"m-con-{patient_id[:8]}-{index}",
-            "meta": {
-                "profile": [f"http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-{category}|7.0.0" if category != 'problem-list-item' else "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns|7.0.0"],
-                "lastUpdated": cls.get_timestamp()
-            },
-            "clinicalStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]},
-            "verificationStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-ver-status", "code": "confirmed"}]},
-            "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-category", "code": category}]}],
-            "code": {"coding": [{"system": "http://snomed.info/sct", "code": "44054006", "display": "Diabetes mellitus type 2"}]},
-            "subject": {"reference": f"Patient/{patient_id}"},
-            "onsetDateTime": "2020-01-01T00:00:00Z",
-            "abatementDateTime": "2024-01-01T00:00:00Z",
-            "recordedDate": "2020-01-01T10:00:00Z"
-        }
-        if category == 'encounter-diagnosis':
-            data["encounter"] = {"reference": "Encounter/example-encounter"}
-        return FHIRCondition(**data)
-
-    @classmethod
-    def create_careteam(cls, patient_id: str, index: int = 0, status: str = 'active') -> FHIRCareTeam:
-        data = {
-            "resourceType": "CareTeam",
-            "id": f"m-car-{patient_id[:8]}-{index}",
-            "meta": {"profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-careteam|7.0.0"], "lastUpdated": cls.get_timestamp()},
-            "status": status,
-            "subject": {"reference": f"Patient/{patient_id}"},
-            "participant": [{
-                "role": [{"coding": [{"system": "http://snomed.info/sct", "code": "158974003", "display": "Primary care physician"}]}],
-                "member": {"reference": "PractitionerRole/example-practitioner-role", "display": "Dr. Adam Careful (PCP)"}
-            }, {
-                "role": [{"coding": [{"system": "http://snomed.info/sct", "code": "133932002", "display": "Caregiver"}]}],
-                "member": {"reference": "Practitioner/example-practitioner", "display": "Dr. Adam Careful"}
-            }, {
-                "role": [{"coding": [{"system": "http://snomed.info/sct", "code": "224535009", "display": "Parent"}]}],
-                "member": {"reference": f"RelatedPerson/m-rel-{patient_id[:8]}-0", "display": "Jordan Smith"}
-            }]
-        }
-        return FHIRCareTeam(**data)
-
-    @classmethod
-    def create_coverage(cls, patient_id: str) -> FHIRCoverage:
-        data = {
-            "resourceType": "Coverage",
-            "id": f"m-cov-{patient_id[:8]}-0",
-            "meta": {"profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-coverage|7.0.0"], "lastUpdated": cls.get_timestamp()},
-            "status": "active",
-            "type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "HIP", "display": "health insurance plan"}]},
-            "subscriberId": "SUB12345",
-            "identifier": [{"type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0203", "code": "MB"}]}, "system": "http://hospital.org/coverage/memberid", "value": "MEM12345"}],
-            "beneficiary": {"reference": f"Patient/{patient_id}"},
-            "relationship": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/subscriber-relationship", "code": "self"}]},
-            "payor": [{"reference": "Organization/bulk-organization-1"}],
-            "class": [
-                {"type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/coverage-class", "code": "group"}]}, "value": "GRP123", "name": "Group Alpha"},
-                {"type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/coverage-class", "code": "plan"}]}, "value": "PLN456", "name": "Gold Plan"}
-            ]
-        }
-        return FHIRCoverage(**data)
-
-    @classmethod
-    def create_device(cls, patient_id: str) -> FHIRDevice:
-        data = {
-            "resourceType": "Device",
-            "id": f"m-dev-{patient_id[:8]}-0",
-            "meta": {"profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-implantable-device|7.0.0"], "lastUpdated": cls.get_timestamp()},
-            "status": "active",
-            "type": {"coding": [{"system": "http://snomed.info/sct", "code": "34370006", "display": "Implantable pacemaker"}]},
-            "manufacturer": "Medtronic",
-            "manufactureDate": "2023-01-01T00:00:00Z",
-            "expirationDate": "2030-01-01T00:00:00Z",
-            "lotNumber": "LOT123",
-            "serialNumber": "SN987654",
-            "udiCarrier": [{"deviceIdentifier": "00843169102317", "carrierHRF": "(01)00843169102317(17)230101(10)ABCD"}],
-            "patient": {"reference": f"Patient/{patient_id}"}
-        }
-        return FHIRDevice(**data)
-
-    @classmethod
-    def create_diagnosticreport(cls, patient_id: str, category: str = 'LAB') -> FHIRDiagnosticReport:
-        data = {
-            "resourceType": "DiagnosticReport",
-            "id": f"m-dia-{patient_id[:8]}-0",
-            "meta": {"profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab|7.0.0"], "lastUpdated": cls.get_timestamp()},
-            "status": "final",
-            "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0074", "code": category}, {"system": "http://loinc.org", "code": "LP29684-5"}, {"system": "http://loinc.org", "code": "LP29708-2"}]}],
-            "code": {"coding": [{"system": "http://loinc.org", "code": "58410-2"}]},
-            "subject": {"reference": f"Patient/{patient_id}"},
-            "encounter": {"reference": "Encounter/example-encounter"},
-            "effectiveDateTime": "2026-02-26T00:00:00Z",
-            "issued": "2026-02-26T00:00:00Z",
-            "performer": [{"reference": "Organization/bulk-organization-1"}],
-            "result": [{"reference": f"Observation/m-obs-{patient_id[:8]}-0"}],
-            "media": [{"link": {"reference": "DocumentReference/example-media"}}],
-            "presentedForm": [{"contentType": "application/pdf", "data": "SGVsbG8="}]
-        }
-        return FHIRDiagnosticReport(**data)
-
-    @classmethod
-    def create_provenance(cls, target_resource: Dict[str, Any]) -> FHIRProvenance:
-        data = {
-            "resourceType": "Provenance",
-            "id": f"prov-{uuid.uuid4().hex[:8]}",
-            "meta": {"profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-provenance|7.0.0"]},
-            "target": [{"reference": f"{target_resource['resourceType']}/{target_resource['id']}"}],
-            "recorded": cls.get_timestamp(),
-            "agent": [{
-                "type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type", "code": "author"}]},
-                "who": {"reference": "Practitioner/example-practitioner"}
-            }]
-        }
-        return FHIRProvenance(**data)
-
 class FHIRService:
     """
     符合 US Core 7.0.0 規範的通用 FHIR 服務。
@@ -349,44 +134,71 @@ class FHIRService:
         }
 
     def _create_basic_patient_resource(self, patient: Patient) -> Dict[str, Any]:
-        resources = build_resources_for_patient(patient, 'Patient', {})
-        if resources:
-            return resources[0]
-        # Safety fallback if dataset generation fails for any reason.
-        return {
-            "resourceType": "Patient",
-            "id": str(patient.id),
-            "meta": {
-                "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|7.0.0"],
-                "lastUpdated": self._get_timestamp(),
-            },
-            "name": [{"family": patient.last_name or "Unknown", "given": [patient.first_name or "Unknown"]}],
-            "gender": "unknown",
-            "birthDate": patient.date_of_birth.isoformat() if patient.date_of_birth else "1980-01-01",
-        }
+        context = self._patient_context(patient)
+        return self._project_persisted("Patient", patient, context)
 
     def create_search_bundle(self, items, resource_type: str, rev_includes: List[str] = None) -> Dict[str, Any]:
+        if not ProjectorRegistry.has(resource_type):
+            raise FHIRNotSupported(f"No persisted-data projector is registered for {resource_type}.")
+
         bundle = self.create_empty_bundle(resource_type)
         entries = []
+        primary_count = 0
         for item in items:
-            if resource_type == 'Patient':
-                patient_resources = build_resources_for_patient(item, 'Patient', {})
-                if patient_resources:
-                    res_dict = patient_resources[0]
-                else:
-                    res_dict = self._create_basic_patient_resource(item)
-                entries.append({"resource": res_dict, "search": {"mode": "match"}})
-                if rev_includes and 'Provenance:target' in rev_includes:
-                    entries.append({"resource": build_provenance_for_resource(res_dict), "search": {"mode": "include"}})
+            context = self._patient_context(item) if resource_type == "Patient" else FHIRContext()
+            resource = self._project_persisted(resource_type, item, context)
+            entries.append({"resource": resource, "search": {"mode": "match"}})
+            primary_count += 1
+            if rev_includes and "Provenance:target" in rev_includes:
+                provenance = ProjectorRegistry.get("Provenance").for_resource(resource, context)
+                if provenance is not None:
+                    entries.append({"resource": provenance, "search": {"mode": "include"}})
         bundle["entry"] = entries
-        bundle["total"] = len(entries)
+        bundle["total"] = primary_count
         return bundle
 
-    def get_mock_resources_for_patient(self, patient: Patient, resource_type: str, search_params: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        return build_resources_for_patient(patient, resource_type, search_params or {})
+    def create_provenance_for_resource(
+        self,
+        resource: Dict[str, Any],
+        *,
+        context: FHIRContext = None,
+    ) -> Dict[str, Any]:
+        if not isinstance(resource, dict) or not resource.get("resourceType") or not resource.get("id"):
+            raise FHIRBadRequest("Provenance projection requires a persisted resourceType and id.")
+        provenance = ProjectorRegistry.get("Provenance").for_resource(
+            resource,
+            context or FHIRContext(),
+        )
+        if provenance is None:
+            raise FHIRNotSupported(
+                "No unique persisted Provenance resource exists for the requested target."
+            )
+        return provenance
 
-    def get_mock_resources(self, resource_type: str, search_params: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        return build_resources_for_patient(None, resource_type, search_params or {})
+    def _project_persisted(self, resource_type: str, instance: Any, context: FHIRContext) -> Dict[str, Any]:
+        if not ProjectorRegistry.has(resource_type):
+            raise FHIRNotSupported(f"No persisted-data projector is registered for {resource_type}.")
+        try:
+            resource = ProjectorRegistry.get(resource_type).project(instance, context)
+        except Exception as exc:
+            logger.exception("FHIR projection failed for persisted %s data", resource_type)
+            raise FHIRServerError(
+                f"Unable to project persisted {resource_type} data; no synthetic fallback was used."
+            ) from exc
+        if not isinstance(resource, dict) or resource.get("resourceType") != resource_type:
+            raise FHIRServerError(
+                f"Persisted-data projector returned an invalid {resource_type} resource."
+            )
+        return resource
 
-    def create_provenance_for_resource(self, resource: Dict[str, Any]) -> Dict[str, Any]:
-        return build_provenance_for_resource(resource)
+    @staticmethod
+    def _patient_context(patient: Patient) -> FHIRContext:
+        context = FHIRContext()
+        try:
+            context.patient_id = context.identity.patient_id(patient)
+        except Exception as exc:
+            logger.exception("FHIR identity resolution failed for persisted Patient data")
+            raise FHIRServerError(
+                "Unable to resolve persisted Patient identity; no synthetic fallback was used."
+            ) from exc
+        return context

@@ -278,7 +278,7 @@ class Command(BaseCommand):
                 "encounter": encounter,
                 "job_type": "disease_risk_assessment",
                 "status": "completed",
-                "model_name": "core-xlsx-disease-risk",
+                "model_name": "allcare365-deterministic-risk-catalog",
                 "model_version": "core-xlsx-2024-12-24",
                 "input_json": {
                     "observation_ids": [str(observation.id)],

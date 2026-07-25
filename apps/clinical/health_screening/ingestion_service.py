@@ -1,13 +1,15 @@
 import json
+import uuid
 from datetime import date, datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from apps.clinical.patients.models import Patient
-from apps.integration.fhir_integration.models import FHIRResource
+from apps.integration.fhir_integration.models import FHIRResource, FHIRResourceMapping
 
 from .models import (
     DataImportBatch,
@@ -42,7 +44,22 @@ FHIR_LOINC_MAP = {
     "2089-1": ("lab", "LDL Cholesterol", "mg/dL"),
     "2571-8": ("lab", "Triglycerides", "mg/dL"),
     "2160-0": ("lab", "Creatinine", "mg/dL"),
+    "33914-3": ("lab", "eGFR", "mL/min/1.73m2"),
+    "48642-3": ("lab", "eGFR", "mL/min/1.73m2"),
+    "62238-1": ("lab", "eGFR", "mL/min/1.73m2"),
+    "98979-8": ("lab", "eGFR", "mL/min/1.73m2"),
 }
+
+
+RELATIONALLY_MAPPED_FHIR_TYPES = frozenset(
+    {
+        "Patient",
+        "Encounter",
+        "Observation",
+        "Condition",
+        "QuestionnaireResponse",
+    }
+)
 
 
 LAB_FIELD_MAP = {
@@ -63,6 +80,8 @@ LAB_FIELD_MAP = {
     "ldl": ("LDL Cholesterol", "mg/dL"),
     "serum_creatinine": ("Creatinine", "mg/dL"),
     "creatinine": ("Creatinine", "mg/dL"),
+    "egfr": ("eGFR", "mL/min/1.73m2"),
+    "estimated_glomerular_filtration_rate": ("eGFR", "mL/min/1.73m2"),
     "alt_gpt": ("ALT", "U/L"),
     "ast_got": ("AST", "U/L"),
     "ast_uln": ("AST ULN", "U/L"),
@@ -93,6 +112,8 @@ LAB_OBSERVATION_DEFINITIONS = {
     "tg": ("2571-8", "Triglyceride [Mass/volume] in Serum or Plasma", "mg/dL"),
     "creatinine": ("2160-0", "Creatinine [Mass/volume] in Serum or Plasma", "mg/dL"),
     "serum_creatinine": ("2160-0", "Creatinine [Mass/volume] in Serum or Plasma", "mg/dL"),
+    "egfr": ("33914-3", "Glomerular filtration rate/1.73 sq M.predicted", "mL/min/1.73m2"),
+    "estimated_glomerular_filtration_rate": ("33914-3", "Glomerular filtration rate/1.73 sq M.predicted", "mL/min/1.73m2"),
     "alt_gpt": ("1742-6", "Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma", "U/L"),
     "ast_got": ("1920-8", "Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma", "U/L"),
     "ast_uln": ("1916-6", "Aspartate aminotransferase upper reference limit", "U/L"),
@@ -323,49 +344,203 @@ class HealthScreeningIngestionService:
             "errors": errors,
         }
 
-    def import_fhir(self, fhir_data: Any, data_format: str = "json") -> Dict[str, Any]:
+    @transaction.atomic
+    def import_fhir(
+        self,
+        fhir_data: Any,
+        data_format: str = "json",
+        source_namespace: Optional[str] = None,
+    ) -> Dict[str, Any]:
         if isinstance(fhir_data, str) and data_format == "json":
             fhir_data = json.loads(fhir_data)
 
-        resources = self._extract_fhir_resources(fhir_data)
-        patient_map: Dict[str, Patient] = {}
+        source_namespace = self._fhir_source_namespace(fhir_data, source_namespace)
+        entries = self._extract_fhir_entries(fhir_data)
+        self._preflight_fhir_resource_collisions(entries, source_namespace)
+        resources = [entry["resource"] for entry in entries]
+        patient_map: Dict[Any, Patient] = {}
+        imported_patients: Dict[str, Patient] = {}
+        clinical_contexts: Dict[Tuple[str, str], Tuple[HealthScreening, Encounter]] = {}
+        encounter_resources = self._fhir_resource_reference_map(entries, "Encounter")
         created_patients = 0
         created_screenings = 0
+        created_observations = 0
+        created_questionnaire_responses = 0
         errors = []
 
-        for resource in resources:
+        for entry in entries:
+            resource = entry["resource"]
             if resource.get("resourceType") != "Patient":
                 continue
             try:
-                patient, created = self._upsert_patient_from_fhir(resource)
+                with transaction.atomic():
+                    patient, created = self._upsert_patient_from_fhir(
+                        resource,
+                        source_namespace,
+                    )
+                    persisted_resource = self._persist_fhir_resource(
+                        resource,
+                        patient=patient,
+                        local_object=patient,
+                        source_namespace=source_namespace,
+                    )
+                    self._sync_fhir_mapping(
+                        persisted_resource,
+                        resource,
+                        patient,
+                        patient,
+                        source_namespace,
+                    )
+                    self._register_fhir_patient_references(
+                        patient_map,
+                        patient,
+                        resource,
+                        entry.get("fullUrl"),
+                    )
                 created_patients += 1 if created else 0
-                resource_id = resource.get("id")
-                if resource_id:
-                    patient_map[resource_id] = patient
-                    patient_map[f"Patient/{resource_id}"] = patient
-                self._persist_fhir_resource(resource)
+                imported_patients[str(patient.id)] = patient
             except Exception as exc:
                 errors.append(f"Patient/{resource.get('id', 'unknown')}: {exc}")
 
-        for resource in resources:
-            if resource.get("resourceType") == "Patient":
+        for entry in entries:
+            resource = entry["resource"]
+            if resource.get("resourceType") != "Encounter":
                 continue
             try:
-                self._persist_fhir_resource(resource)
-                if resource.get("resourceType") == "Observation":
-                    if self._ingest_fhir_observation(resource, patient_map):
-                        created_screenings += 1
-                elif resource.get("resourceType") == "Condition":
-                    self._ingest_fhir_condition(resource, patient_map)
+                with transaction.atomic():
+                    context_created, patient, encounter = self._ingest_fhir_encounter(
+                        resource,
+                        entry.get("fullUrl"),
+                        patient_map,
+                        clinical_contexts,
+                        encounter_resources,
+                        source_namespace,
+                    )
+                    persisted_resource = self._persist_fhir_resource(
+                        resource,
+                        patient=patient,
+                        local_object=encounter,
+                        source_namespace=source_namespace,
+                    )
+                    self._sync_fhir_mapping(
+                        persisted_resource,
+                        resource,
+                        encounter,
+                        patient,
+                        source_namespace,
+                    )
+                imported_patients[str(patient.id)] = patient
+                if context_created:
+                    created_screenings += 1
+            except Exception as exc:
+                errors.append(f"Encounter/{resource.get('id', 'unknown')}: {exc}")
+
+        for entry in entries:
+            resource = entry["resource"]
+            if resource.get("resourceType") in {"Patient", "Encounter"}:
+                continue
+            try:
+                with transaction.atomic():
+                    if resource.get("resourceType") == "Observation":
+                        context_created, patient, observation = self._ingest_fhir_observation(
+                            resource,
+                            patient_map,
+                            clinical_contexts=clinical_contexts,
+                            encounter_resources=encounter_resources,
+                            source_namespace=source_namespace,
+                        )
+                        persisted_resource = self._persist_fhir_resource(
+                            resource,
+                            patient=patient,
+                            local_object=observation,
+                            source_namespace=source_namespace,
+                        )
+                        self._sync_fhir_mapping(
+                            persisted_resource,
+                            resource,
+                            observation,
+                            patient,
+                            source_namespace,
+                        )
+                        imported_patients[str(patient.id)] = patient
+                        created_observations += 1
+                        if context_created:
+                            created_screenings += 1
+                    elif resource.get("resourceType") == "Condition":
+                        patient, problem = self._ingest_fhir_condition(
+                            resource,
+                            patient_map,
+                            source_namespace,
+                        )
+                        persisted_resource = self._persist_fhir_resource(
+                            resource,
+                            patient=patient,
+                            local_object=problem,
+                            source_namespace=source_namespace,
+                        )
+                        self._sync_fhir_mapping(
+                            persisted_resource,
+                            resource,
+                            problem,
+                            patient,
+                            source_namespace,
+                        )
+                        imported_patients[str(patient.id)] = patient
+                    elif resource.get("resourceType") == "QuestionnaireResponse":
+                        patient, questionnaire_response = self._ingest_fhir_questionnaire_response(
+                            resource,
+                            patient_map,
+                            source_namespace,
+                        )
+                        persisted_resource = self._persist_fhir_resource(
+                            resource,
+                            patient=patient,
+                            local_object=questionnaire_response,
+                            source_namespace=source_namespace,
+                        )
+                        self._sync_fhir_mapping(
+                            persisted_resource,
+                            resource,
+                            questionnaire_response,
+                            patient,
+                            source_namespace,
+                        )
+                        imported_patients[str(patient.id)] = patient
+                        created_questionnaire_responses += 1
+                    else:
+                        self._persist_fhir_resource(
+                            resource,
+                            source_namespace=source_namespace,
+                        )
             except Exception as exc:
                 errors.append(f"{resource.get('resourceType')}/{resource.get('id', 'unknown')}: {exc}")
 
+        patient_summaries = [
+            {
+                "id": str(patient.id),
+                "medical_record_number": patient.medical_record_number,
+                "display_name": f"{patient.last_name}{patient.first_name}".strip(),
+            }
+            for patient in imported_patients.values()
+        ]
+        if errors:
+            transaction.set_rollback(True)
+            patient_summaries = []
+            created_patients = 0
+            created_screenings = 0
+            created_observations = 0
+            created_questionnaire_responses = 0
         return {
-            "success_count": len(resources) - len(errors),
+            "success_count": 0 if errors else len(resources),
             "error_count": len(errors),
             "total_count": len(resources),
             "created_patients": created_patients,
             "created_screenings": created_screenings,
+            "created_observations": created_observations,
+            "created_questionnaire_responses": created_questionnaire_responses,
+            "patient_ids": [patient["id"] for patient in patient_summaries],
+            "patients": patient_summaries,
+            "primary_patient_id": patient_summaries[0]["id"] if len(patient_summaries) == 1 else None,
             "errors": errors,
         }
 
@@ -538,15 +713,21 @@ class HealthScreeningIngestionService:
 
         if not data:
             return None
+        vital_signs, _ = VitalSigns.objects.get_or_create(health_screening=screening)
         if (
-            data.get("systolic_blood_pressure") is not None
-            and data.get("diastolic_blood_pressure") is not None
+            (data.get("systolic_blood_pressure") is not None or vital_signs.systolic_blood_pressure is not None)
+            and (data.get("diastolic_blood_pressure") is not None or vital_signs.diastolic_blood_pressure is not None)
             and data.get("average_blood_pressure") is None
         ):
+            systolic = data.get("systolic_blood_pressure", vital_signs.systolic_blood_pressure)
+            diastolic = data.get("diastolic_blood_pressure", vital_signs.diastolic_blood_pressure)
             data["average_blood_pressure"] = round(
-                (data["systolic_blood_pressure"] + 2 * data["diastolic_blood_pressure"]) / 3
+                (systolic + 2 * diastolic) / 3
             )
-        return VitalSigns.objects.create(health_screening=screening, **data)
+        for field, value in data.items():
+            setattr(vital_signs, field, value)
+        vital_signs.save()
+        return vital_signs
 
     def _create_labs(self, screening: HealthScreening, payload: Any) -> int:
         created = 0
@@ -848,171 +1029,1180 @@ class HealthScreeningIngestionService:
             metadata_json={"source_screening_id": str(screening.id), "source": "CORE.xlsx/HQ"},
         )
 
-    def _extract_fhir_resources(self, fhir_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _extract_fhir_entries(self, fhir_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not isinstance(fhir_data, dict):
             raise ValueError("FHIR data must be a JSON object")
         if fhir_data.get("resourceType") == "Bundle":
-            return [entry.get("resource") for entry in fhir_data.get("entry", []) if entry.get("resource")]
+            return [
+                {"resource": entry["resource"], "fullUrl": entry.get("fullUrl")}
+                for entry in fhir_data.get("entry", [])
+                if isinstance(entry, dict) and isinstance(entry.get("resource"), dict)
+            ]
         if fhir_data.get("resourceType"):
-            return [fhir_data]
+            return [{"resource": fhir_data, "fullUrl": None}]
         raise ValueError("FHIR resourceType is required")
 
-    def _upsert_patient_from_fhir(self, resource: Dict[str, Any]) -> Tuple[Patient, bool]:
-        identifiers = resource.get("identifier") or []
-        mrn = next((item.get("value") for item in identifiers if item.get("value")), None) or resource.get("id")
-        if not mrn:
-            raise ValueError("FHIR Patient.id or identifier is required")
+    def _extract_fhir_resources(self, fhir_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        return [entry["resource"] for entry in self._extract_fhir_entries(fhir_data)]
 
-        name = (resource.get("name") or [{}])[0]
-        given = name.get("given") or []
-        first_name = " ".join(given) if isinstance(given, list) else str(given)
-        last_name = name.get("family") or str(mrn)
-        birth_date = self._parse_date(resource.get("birthDate")) or date(1900, 1, 1)
+    @staticmethod
+    def _fhir_source_namespace(
+        fhir_data: Dict[str, Any],
+        explicit_namespace: Optional[str],
+    ) -> str:
+        namespace = str(explicit_namespace or "").strip()
+        if not namespace:
+            namespace = str(
+                getattr(settings, "FHIR_DEFAULT_ORIGIN_NAMESPACE", "") or ""
+            ).strip()
+        if not namespace:
+            raise ValueError(
+                "source_namespace is required for FHIR import; configure a stable trusted "
+                "namespace or supply it explicitly"
+            )
+        if namespace == "unspecified":
+            raise ValueError("source_namespace cannot use the reserved value 'unspecified'")
+        if len(namespace) > 200:
+            raise ValueError("source_namespace cannot exceed 200 characters")
+        return namespace
 
-        return Patient.objects.update_or_create(
-            medical_record_number=str(mrn),
-            defaults={
-                "first_name": first_name or "Unknown",
-                "last_name": last_name,
-                "date_of_birth": birth_date,
-                "sex": self._normalize_sex(resource.get("gender")),
-                "status": "active" if resource.get("active", True) else "inactive",
-            },
+    def _preflight_fhir_resource_collisions(
+        self,
+        entries: List[Dict[str, Any]],
+        source_namespace: str,
+    ) -> None:
+        seen: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        for entry in entries:
+            resource = entry["resource"]
+            resource_type = str(resource.get("resourceType") or "").strip()
+            resource_id = str(resource.get("id") or "").strip()
+            if not resource_type or not resource_id:
+                continue
+            key = (resource_type, resource_id)
+            if key in seen and seen[key] != resource:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} is duplicated with conflicting data in the bundle"
+                )
+            seen[key] = resource
+
+            persisted = FHIRResource.objects.filter(
+                resource_type=resource_type,
+                resource_id=resource_id,
+            ).first()
+            mappings = list(
+                FHIRResourceMapping.objects.filter(
+                    fhir_resource_type=resource_type,
+                    fhir_resource_id=resource_id,
+                )[:2]
+            )
+            if len(mappings) > 1:
+                raise ValueError(f"FHIR {resource_type}/{resource_id} has multiple owners")
+            if persisted is None:
+                if mappings:
+                    raise ValueError(
+                        f"FHIR {resource_type}/{resource_id} has an ownership mapping "
+                        "without a persisted resource"
+                    )
+                continue
+            existing_namespace = str(persisted.origin_namespace or "unspecified").strip()
+            if existing_namespace != source_namespace:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} belongs to source namespace "
+                    f"{existing_namespace}, not {source_namespace}"
+                )
+            if not mappings:
+                if resource_type not in RELATIONALLY_MAPPED_FHIR_TYPES:
+                    continue
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} exists without ownership mapping"
+                )
+            mapping = mappings[0]
+            mapping_namespace = str(
+                (mapping.metadata_json or {}).get("source_namespace") or ""
+            ).strip()
+            if mapping_namespace and mapping_namespace != source_namespace:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} belongs to source namespace "
+                    f"{mapping_namespace}, not {source_namespace}"
+                )
+            if mapping.patient_id is None:
+                raise ValueError(f"FHIR {resource_type}/{resource_id} has no patient owner")
+            if persisted.resource_data == resource:
+                continue
+
+            if resource_type == "Patient":
+                incoming_mrn_identity = self._fhir_patient_mrn_identity(resource)
+                mapped_patient = mapping.patient
+                if incoming_mrn_identity:
+                    incoming_mrn_system, incoming_mrn = incoming_mrn_identity
+                    mapped_mrn_system = str(
+                        (mapped_patient.metadata_json or {}).get("fhir_mrn_system") or ""
+                    ).strip()
+                    if mapped_patient.medical_record_number not in (None, incoming_mrn):
+                        raise ValueError(
+                            f"FHIR Patient/{resource_id} conflicts with its mapped patient identity"
+                        )
+                    if mapped_mrn_system and mapped_mrn_system != incoming_mrn_system:
+                        raise ValueError(
+                            f"FHIR Patient/{resource_id} conflicts with its mapped MRN system"
+                        )
+                continue
+
+            existing_reference = str(
+                ((persisted.resource_data or {}).get("subject") or {}).get("reference") or ""
+            ).strip()
+            incoming_reference = str(
+                (resource.get("subject") or {}).get("reference") or ""
+            ).strip()
+            if existing_reference == incoming_reference:
+                continue
+            incoming_owner = self._patient_from_reference(
+                incoming_reference,
+                {},
+                source_namespace,
+            )
+            if incoming_owner is None or incoming_owner.id != mapping.patient_id:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} is owned by another patient/source"
+                )
+
+    def _fhir_resource_reference_map(
+        self,
+        entries: List[Dict[str, Any]],
+        resource_type: str,
+    ) -> Dict[str, Dict[str, Any]]:
+        resource_map: Dict[str, Dict[str, Any]] = {}
+        for entry in entries:
+            resource = entry["resource"]
+            if resource.get("resourceType") != resource_type:
+                continue
+            resource_id = resource.get("id")
+            full_url = entry.get("fullUrl")
+            for key in (resource_id, f"{resource_type}/{resource_id}" if resource_id else None, full_url):
+                if key:
+                    normalized_key = str(key)
+                    existing = resource_map.get(normalized_key)
+                    if existing is not None and existing != resource:
+                        raise ValueError(
+                            f"FHIR {resource_type} reference {normalized_key} is duplicated with conflicting data"
+                        )
+                    resource_map[normalized_key] = resource
+        return resource_map
+
+    def _register_fhir_patient_references(
+        self,
+        patient_map: Dict[Any, Patient],
+        patient: Patient,
+        resource: Dict[str, Any],
+        full_url: Optional[str],
+    ) -> None:
+        resource_id = resource.get("id")
+        keys = [
+            resource_id,
+            f"Patient/{resource_id}" if resource_id else None,
+            full_url,
+        ]
+        keys.extend(
+            identifier_key
+            for identifier in resource.get("identifier") or []
+            if (identifier_key := self._fhir_patient_identifier_key(identifier))
+        )
+        conflicts = [
+            str(key)
+            for key in keys
+            if key
+            and key in patient_map
+            and patient_map[key].id != patient.id
+        ]
+        if conflicts:
+            raise ValueError(
+                f"FHIR patient reference is ambiguous: {', '.join(sorted(set(conflicts)))}"
+            )
+        for key in keys:
+            if key:
+                patient_map[key] = patient
+
+    def _upsert_patient_from_fhir(
+        self,
+        resource: Dict[str, Any],
+        source_namespace: str,
+    ) -> Tuple[Patient, bool]:
+        resource_id = str(resource.get("id") or "").strip()
+        if not resource_id:
+            raise ValueError("FHIR Patient.id is required for source identity")
+
+        mrn_identity = self._fhir_patient_mrn_identity(resource)
+        mrn_system = mrn_identity[0] if mrn_identity else ""
+        mrn = mrn_identity[1] if mrn_identity else None
+        source_mappings = list(
+            FHIRResourceMapping.objects.filter(
+                fhir_resource_type="Patient",
+                fhir_resource_id=resource_id,
+            )[:2]
+        )
+        if len(source_mappings) > 1:
+            raise ValueError(f"FHIR Patient/{resource_id} has multiple relational mappings")
+        direct_id_matches = []
+        try:
+            direct_patient_id = uuid.UUID(resource_id)
+        except (TypeError, ValueError):
+            pass
+        else:
+            direct_id_matches = list(
+                Patient.objects.filter(
+                    id=direct_patient_id,
+                    metadata_json__fhir_source_namespace=source_namespace,
+                )
+            )
+        source_candidates = {
+            str(patient.id): patient
+            for patient in [
+                *(
+                    [source_mappings[0].patient]
+                    if source_mappings and source_mappings[0].patient_id
+                    else []
+                ),
+                *direct_id_matches,
+                *Patient.objects.filter(
+                    metadata_json__fhir_patient_id=resource_id,
+                    metadata_json__fhir_source_namespace=source_namespace,
+                ),
+                *Patient.objects.filter(
+                    source_system="fhir_import",
+                    source_record_id=resource_id,
+                    metadata_json__fhir_source_namespace=source_namespace,
+                ),
+            ]
+        }
+        if len(source_candidates) > 1:
+            raise ValueError(f"FHIR Patient/{resource_id} resolves to multiple local patients")
+        source_patient = next(iter(source_candidates.values()), None)
+
+        mrn_matches = (
+            list(
+                Patient.objects.filter(
+                    medical_record_number=mrn,
+                    metadata_json__fhir_mrn_system=mrn_system,
+                    metadata_json__fhir_source_namespace=source_namespace,
+                )[:2]
+            )
+            if mrn and mrn_system
+            else []
+        )
+        if len(mrn_matches) > 1:
+            raise ValueError(f"FHIR MRN {mrn} resolves to multiple local patients")
+        mrn_patient = mrn_matches[0] if mrn_matches else None
+        if source_patient and mrn_patient and source_patient.id != mrn_patient.id:
+            raise ValueError(
+                f"FHIR Patient/{resource_id} source identity conflicts with MRN {mrn}"
+            )
+
+        patient = source_patient or mrn_patient
+        if patient is not None:
+            existing_fhir_id = str((patient.metadata_json or {}).get("fhir_patient_id") or "").strip()
+            if existing_fhir_id and existing_fhir_id != resource_id:
+                raise ValueError(
+                    f"MRN {mrn} is already bound to FHIR Patient/{existing_fhir_id}"
+                )
+            existing_namespace = str(
+                (patient.metadata_json or {}).get("fhir_source_namespace") or "unspecified"
+            )
+            if existing_fhir_id and existing_namespace != source_namespace:
+                raise ValueError(
+                    f"FHIR Patient/{resource_id} belongs to source namespace "
+                    f"{existing_namespace}, not {source_namespace}"
+                )
+            existing_mrn_system = str(
+                (patient.metadata_json or {}).get("fhir_mrn_system") or ""
+            ).strip()
+            if mrn and patient.medical_record_number not in (None, "", mrn):
+                raise ValueError(
+                    f"FHIR Patient/{resource_id} conflicts with its persisted MRN"
+                )
+            if mrn_system and existing_mrn_system and existing_mrn_system != mrn_system:
+                raise ValueError(
+                    f"FHIR Patient/{resource_id} conflicts with its persisted MRN system"
+                )
+
+        first_name, last_name = self._fhir_patient_name(resource)
+        birth_date = self._parse_date(resource.get("birthDate"))
+        gender_present = resource.get("gender") not in (None, "")
+        sex = self._normalize_sex(resource.get("gender")) if gender_present else ""
+        status = None
+        if resource.get("active") is True:
+            status = "active"
+        elif resource.get("active") is False:
+            status = "inactive"
+
+        if patient is None:
+            metadata = {
+                "fhir_patient_id": resource_id,
+                "fhir_source_namespace": source_namespace,
+            }
+            if mrn_system:
+                metadata["fhir_mrn_system"] = mrn_system
+            patient = Patient.objects.create(
+                medical_record_number=mrn,
+                first_name=first_name,
+                last_name=last_name,
+                date_of_birth=birth_date,
+                sex=sex,
+                status=status or "unknown",
+                source_system="fhir_import",
+                source_record_id=resource_id,
+                last_imported_at=timezone.now(),
+                metadata_json=metadata,
+            )
+            return patient, True
+
+        update_fields = ["source_system", "source_record_id", "last_imported_at", "metadata_json"]
+        patient.source_system = "fhir_import"
+        patient.source_record_id = resource_id
+        patient.last_imported_at = timezone.now()
+        metadata = dict(patient.metadata_json or {})
+        metadata["fhir_patient_id"] = resource_id
+        metadata["fhir_source_namespace"] = source_namespace
+        if mrn_system:
+            metadata["fhir_mrn_system"] = mrn_system
+        patient.metadata_json = metadata
+
+        supplied_values = {
+            "medical_record_number": mrn,
+            "first_name": first_name,
+            "last_name": last_name,
+            "date_of_birth": birth_date,
+            "sex": sex if gender_present else None,
+            "status": status,
+        }
+        for field, value in supplied_values.items():
+            if value in (None, ""):
+                continue
+            setattr(patient, field, value)
+            update_fields.append(field)
+        patient.save(update_fields=[*dict.fromkeys(update_fields), "updated_at"])
+        return patient, False
+
+    def _fhir_patient_mrn_identity(
+        self,
+        resource: Dict[str, Any],
+    ) -> Optional[Tuple[str, str]]:
+        identities = {
+            (
+                str(identifier.get("system") or "").strip(),
+                str(identifier.get("value")).strip(),
+            )
+            for identifier in resource.get("identifier") or []
+            if self._is_explicit_mrn_identifier(identifier) and identifier.get("value")
+        }
+        if len(identities) > 1:
+            raise ValueError("FHIR Patient has conflicting MRN identifiers")
+        return next(iter(identities), None)
+
+    def _fhir_patient_mrn(self, resource: Dict[str, Any]) -> Optional[str]:
+        identity = self._fhir_patient_mrn_identity(resource)
+        return identity[1] if identity else None
+
+    def _fhir_patient_identifier_key(
+        self,
+        identifier: Any,
+    ) -> Optional[Tuple[str, str, str]]:
+        if not self._is_explicit_mrn_identifier(identifier):
+            return None
+        system = str(identifier.get("system") or "").strip()
+        value = str(identifier.get("value") or "").strip()
+        if not system or not value:
+            return None
+        return ("identifier", system, value)
+
+    @staticmethod
+    def _is_explicit_mrn_identifier(identifier: Any) -> bool:
+        if not isinstance(identifier, dict) or not identifier.get("value"):
+            return False
+        type_codes = {
+            str(coding.get("code") or "").strip().upper()
+            for coding in (identifier.get("type") or {}).get("coding") or []
+            if isinstance(coding, dict)
+        }
+        system = str(identifier.get("system") or "").strip().lower()
+        normalized_system = system.replace("_", "-")
+        return (
+            "MR" in type_codes
+            or "mrn" in normalized_system
+            or "medical-record" in normalized_system
         )
 
-    def _ingest_fhir_observation(self, resource: Dict[str, Any], patient_map: Dict[str, Patient]) -> bool:
-        patient = self._patient_from_reference(resource.get("subject", {}).get("reference"), patient_map)
+    @staticmethod
+    def _fhir_patient_name(resource: Dict[str, Any]) -> Tuple[str, str]:
+        names = [name for name in resource.get("name") or [] if isinstance(name, dict)]
+        name = next((item for item in names if item.get("use") == "official"), None)
+        name = name or (names[0] if names else {})
+        given = name.get("given") or []
+        first_name = " ".join(str(value) for value in given if value) if isinstance(given, list) else str(given or "")
+        last_name = str(name.get("family") or name.get("text") or "")
+        return first_name.strip(), last_name.strip()
+
+    def _ingest_fhir_observation(
+        self,
+        resource: Dict[str, Any],
+        patient_map: Dict[Any, Patient],
+        *,
+        clinical_contexts: Optional[Dict[Tuple[str, str], Tuple[HealthScreening, Encounter]]] = None,
+        encounter_resources: Optional[Dict[str, Dict[str, Any]]] = None,
+        source_namespace: str,
+    ) -> Tuple[bool, Patient, Observation]:
+        patient = self._patient_from_subject(
+            resource.get("subject") or {},
+            patient_map,
+            source_namespace,
+        )
         if not patient:
             raise ValueError("Observation subject could not be resolved")
+
+        resource_id = str(resource.get("id") or "").strip()
+        if not resource_id:
+            raise ValueError("FHIR Observation.id is required")
 
         effective_value = resource.get("effectiveDateTime") or resource.get("effectivePeriod", {}).get("start")
         screening_date = self._parse_date(effective_value) or timezone.now().date()
         screening_time = self._parse_datetime(effective_value) or timezone.now()
-        screening = HealthScreening.objects.create(
-            patient=patient,
-            screening_date=screening_date,
-            encounter_type="fhir_import",
-            encounter_time=screening_time,
+        screening, encounter, context_created = self._get_or_create_fhir_clinical_context(
+            resource,
+            patient,
+            screening_date,
+            screening_time,
+            clinical_contexts if clinical_contexts is not None else {},
+            encounter_resources or {},
         )
-        encounter = Encounter.objects.create(
-            patient=patient,
-            source_screening=screening,
-            encounter_type="fhir_import",
-            status="finished",
-            reason="FHIR Observation import",
-            started_at=screening_time,
-            ended_at=screening_time,
-            source_type="fhir_import",
-            metadata_json={"fhir_observation_id": resource.get("id")},
-        )
-
-        if resource.get("component"):
-            vital_data = {}
-            components = []
-            for component in resource["component"]:
-                loinc = self._loinc_code(component.get("code", {}))
-                mapping = FHIR_LOINC_MAP.get(loinc)
-                if mapping and mapping[0] == "vital":
-                    vital_data[mapping[1]] = component.get("valueQuantity", {}).get("value")
-                coding = (component.get("code", {}).get("coding") or [{}])[0]
-                quantity = component.get("valueQuantity") or {}
-                components.append(
-                    {
-                        "code": coding.get("code") or loinc,
-                        "display": coding.get("display") or component.get("code", {}).get("text") or "",
-                        "value": quantity.get("value"),
-                        "unit": quantity.get("unit") or quantity.get("code") or "",
-                    }
-                )
-            if vital_data:
-                self._create_vital_signs(screening, vital_data)
-            loinc = self._loinc_code(resource.get("code", {}))
-            coding = (resource.get("code", {}).get("coding") or [{}])[0]
-            Observation.objects.create(
-                patient=patient,
-                encounter=encounter,
-                observation_type=self._slug(coding.get("display") or resource.get("code", {}).get("text") or loinc or "fhir_observation"),
-                category=self._fhir_category(resource) or "vital-signs",
-                source_type="fhir_import",
-                code_system=coding.get("system") or "http://loinc.org",
-                code=coding.get("code") or loinc or "",
-                display=coding.get("display") or resource.get("code", {}).get("text") or "",
-                component_json=components,
-                status=resource.get("status") or "final",
-                effective_at=screening_time,
-                source_payload_json=self._json_safe(resource),
-            )
-            return True
 
         loinc = self._loinc_code(resource.get("code", {}))
         mapping = FHIR_LOINC_MAP.get(loinc)
-        value = resource.get("valueQuantity", {}).get("value")
-        unit = resource.get("valueQuantity", {}).get("unit") or ""
-        if mapping and mapping[0] == "vital":
-            self._create_vital_signs(screening, {mapping[1]: value})
-        elif mapping and mapping[0] == "lab":
-            LaboratoryResults.objects.create(
-                health_screening=screening,
-                test_name=mapping[1],
-                value_result=str(value),
-                result_unit=unit or mapping[2],
-                result_status=resource.get("status") or "final",
-            )
         coding = (resource.get("code", {}).get("coding") or [{}])[0]
-        Observation.objects.create(
-            patient=patient,
-            encounter=encounter,
-            observation_type=mapping[1] if mapping else self._slug(coding.get("display") or resource.get("code", {}).get("text") or loinc or "fhir_observation"),
-            category=self._fhir_category(resource) or ("laboratory" if mapping and mapping[0] == "lab" else "vital-signs"),
-            source_type="fhir_import",
-            code_system=coding.get("system") or "http://loinc.org",
-            code=coding.get("code") or loinc or "",
-            display=coding.get("display") or resource.get("code", {}).get("text") or (mapping[1] if mapping else ""),
-            value_quantity=self._as_decimal(value),
-            value_unit=unit or (mapping[2] if mapping and len(mapping) > 2 else ""),
-            value_json={} if value not in [None, ""] else {"raw_value": resource.get("valueString") or resource.get("valueCodeableConcept")},
-            status=resource.get("status") or "final",
-            effective_at=screening_time,
-            source_payload_json=self._json_safe(resource),
-        )
-        return True
+        display = coding.get("display") or resource.get("code", {}).get("text") or ""
+        code = coding.get("code") or loinc or ""
+        if not code and not display:
+            raise ValueError("FHIR Observation.code is required for relational mapping")
 
-    def _ingest_fhir_condition(self, resource: Dict[str, Any], patient_map: Dict[str, Patient]) -> None:
-        patient = self._patient_from_reference(resource.get("subject", {}).get("reference"), patient_map)
+        category = self._fhir_category(resource)
+        if not category and mapping:
+            category = "laboratory" if mapping[0] == "lab" else "vital-signs"
+        category = category or "unknown"
+        observation_type = mapping[1] if mapping else self._slug(display or code)
+
+        quantity = resource.get("valueQuantity") or {}
+        components = []
+        if resource.get("component"):
+            for component in resource["component"]:
+                component_loinc = self._loinc_code(component.get("code", {}))
+                component_coding = (component.get("code", {}).get("coding") or [{}])[0]
+                component_quantity = component.get("valueQuantity") or {}
+                components.append(
+                    {
+                        "code": component_coding.get("code") or component_loinc or "",
+                        "display": component_coding.get("display") or component.get("code", {}).get("text") or "",
+                        "value": component_quantity.get("value"),
+                        "unit": component_quantity.get("unit") or "",
+                    }
+                )
+
+        value = quantity.get("value")
+        value_string = str(resource.get("valueString") or "")
+        value_boolean = resource.get("valueBoolean") if "valueBoolean" in resource else None
+        value_json = {}
+        if value in (None, "") and not value_string and value_boolean is None:
+            raw_value = resource.get("valueCodeableConcept")
+            if raw_value is not None:
+                value_json = {"raw_value": raw_value}
+
+        defaults = {
+            "encounter": encounter,
+            "observation_type": observation_type,
+            "category": category,
+            "source_type": "fhir_import",
+            "code_system": coding.get("system") or ("http://loinc.org" if loinc else ""),
+            "code": code,
+            "display": display,
+            "value_quantity": self._as_decimal(value),
+            "value_unit": quantity.get("unit") or "",
+            "value_string": value_string,
+            "value_boolean": value_boolean,
+            "value_json": value_json,
+            "component_json": components,
+            "status": resource.get("status") or "unknown",
+            "effective_at": screening_time,
+            "issued_at": self._parse_datetime(resource.get("issued")),
+            "source_payload_json": self._json_safe(resource),
+        }
+        observation = self._existing_fhir_local(Observation, "Observation", resource_id)
+        if observation is None:
+            legacy_matches = list(
+                Observation.objects.filter(
+                    source_type="fhir_import",
+                    source_payload_json__id=resource_id,
+                )[:2]
+            )
+            if len(legacy_matches) > 1:
+                raise ValueError(f"FHIR Observation/{resource_id} maps to multiple local observations")
+            observation = legacy_matches[0] if legacy_matches else None
+        if observation is not None and observation.patient_id != patient.id:
+            raise ValueError(f"FHIR Observation/{resource_id} is already bound to another patient")
+        if observation is None:
+            observation = Observation.objects.create(patient=patient, **defaults)
+        else:
+            for field, field_value in defaults.items():
+                setattr(observation, field, field_value)
+            observation.save(update_fields=[*defaults.keys(), "updated_at"])
+        return context_created, patient, observation
+
+    def _ingest_fhir_condition(
+        self,
+        resource: Dict[str, Any],
+        patient_map: Dict[Any, Patient],
+        source_namespace: str,
+    ) -> Tuple[Patient, Problem]:
+        patient = self._patient_from_subject(
+            resource.get("subject") or {},
+            patient_map,
+            source_namespace,
+        )
         if not patient:
             raise ValueError("Condition subject could not be resolved")
 
+        resource_id = str(resource.get("id") or "").strip()
+        if not resource_id:
+            raise ValueError("FHIR Condition.id is required")
         name = resource.get("code", {}).get("text")
+        codings = resource.get("code", {}).get("coding") or []
         if not name:
-            codings = resource.get("code", {}).get("coding") or []
-            name = codings[0].get("display") if codings else None
+            name = next(
+                (
+                    coding.get("display") or coding.get("code")
+                    for coding in codings
+                    if isinstance(coding, dict) and (coding.get("display") or coding.get("code"))
+                ),
+                None,
+            )
         if not name:
-            name = "FHIR Condition"
-        status_code = "active"
+            raise ValueError("FHIR Condition.code requires text, display, or code")
+        status_code = "unknown"
         status_codings = resource.get("clinicalStatus", {}).get("coding") or []
-        if status_codings:
-            status_code = status_codings[0].get("code") or "active"
-
-        Problem.objects.get_or_create(patient=patient, problem_name=name, defaults={"status": status_code})
-
-    def _persist_fhir_resource(self, resource: Dict[str, Any]) -> None:
-        resource_type = resource.get("resourceType")
-        resource_id = resource.get("id")
-        if not resource_type or not resource_id:
-            return
-        FHIRResource.objects.update_or_create(
-            resource_type=resource_type,
-            resource_id=resource_id,
-            defaults={"resource_data": resource},
+        status_code = next(
+            (
+                str(coding.get("code"))
+                for coding in status_codings
+                if isinstance(coding, dict) and coding.get("code")
+            ),
+            "unknown",
         )
 
-    def _patient_from_reference(self, reference: Optional[str], patient_map: Dict[str, Patient]) -> Optional[Patient]:
+        problem = self._existing_fhir_local(Problem, "Condition", resource_id)
+        if problem is not None and problem.patient_id != patient.id:
+            raise ValueError(f"FHIR Condition/{resource_id} is already bound to another patient")
+        if problem is None:
+            problem = Problem.objects.create(
+                patient=patient,
+                problem_name=str(name)[:200],
+                status=status_code,
+            )
+        else:
+            problem.problem_name = str(name)[:200]
+            problem.status = status_code
+            problem.save(update_fields=["problem_name", "status", "updated_at"])
+        return patient, problem
+
+    def _ingest_fhir_questionnaire_response(
+        self,
+        resource: Dict[str, Any],
+        patient_map: Dict[Any, Patient],
+        source_namespace: str,
+    ) -> Tuple[Patient, QuestionnaireResponse]:
+        patient = self._patient_from_subject(
+            resource.get("subject") or {},
+            patient_map,
+            source_namespace,
+        )
+        if not patient:
+            raise ValueError("QuestionnaireResponse subject could not be resolved")
+
+        resource_id = str(resource.get("id") or "").strip()
+        if not resource_id:
+            raise ValueError("FHIR QuestionnaireResponse.id is required")
+
+        response_json: Dict[str, Any] = {}
+        self._collect_fhir_questionnaire_items(resource.get("item") or [], response_json)
+        questionnaire_reference = str(resource.get("questionnaire") or "").strip()
+        questionnaire = None
+        if questionnaire_reference:
+            questionnaire, _ = Questionnaire.objects.get_or_create(
+                title=questionnaire_reference[:200],
+                version="FHIR-R4",
+                defaults={
+                    "status": "unknown",
+                    "code_system": "http://hl7.org/fhir/Questionnaire",
+                    "code": self._slug(questionnaire_reference)[:100],
+                    "questionnaire_json": {"reference": questionnaire_reference},
+                },
+            )
+        authored_at = self._parse_datetime(resource.get("authored")) or timezone.now()
+        defaults = {
+            "questionnaire": questionnaire,
+            "authored_at": authored_at,
+            "status": resource.get("status") or "unknown",
+            "source_type": "fhir_import",
+            "response_json": response_json,
+            "score_json": {},
+            "metadata_json": {
+                "fhir_resource_id": resource_id,
+                "questionnaire_reference": questionnaire_reference,
+            },
+        }
+        existing = self._existing_fhir_local(
+            QuestionnaireResponse,
+            "QuestionnaireResponse",
+            resource_id,
+        )
+        if existing is None and resource_id:
+            legacy_matches = list(
+                QuestionnaireResponse.objects.filter(
+                    metadata_json__fhir_resource_id=resource_id,
+                )[:2]
+            )
+            if len(legacy_matches) > 1:
+                raise ValueError(
+                    f"FHIR QuestionnaireResponse/{resource_id} maps to multiple local responses"
+                )
+            existing = legacy_matches[0] if legacy_matches else None
+        if existing is not None and existing.patient_id != patient.id:
+            raise ValueError(
+                f"FHIR QuestionnaireResponse/{resource_id} is already bound to another patient"
+            )
+        if existing:
+            for field, value in defaults.items():
+                setattr(existing, field, value)
+            existing.save(update_fields=[*defaults.keys(), "updated_at"])
+            questionnaire_response = existing
+        else:
+            questionnaire_response = QuestionnaireResponse.objects.create(patient=patient, **defaults)
+        return patient, questionnaire_response
+
+    def _collect_fhir_questionnaire_items(
+        self,
+        items: Iterable[Dict[str, Any]],
+        target: Dict[str, Any],
+    ) -> None:
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            link_id = str(item.get("linkId") or item.get("text") or "").strip()
+            answers = item.get("answer") or []
+            values = []
+            for answer in answers:
+                if not isinstance(answer, dict):
+                    continue
+                value = self._fhir_questionnaire_answer_value(answer)
+                if value is not None:
+                    values.append(value)
+                self._collect_fhir_questionnaire_items(answer.get("item") or [], target)
+            if link_id and values:
+                target[link_id] = values[0] if len(values) == 1 else values
+            self._collect_fhir_questionnaire_items(item.get("item") or [], target)
+
+    def _fhir_questionnaire_answer_value(self, answer: Dict[str, Any]) -> Any:
+        for key in (
+            "valueBoolean",
+            "valueInteger",
+            "valueDecimal",
+            "valueString",
+            "valueDate",
+            "valueDateTime",
+        ):
+            if key in answer:
+                return answer[key]
+        coding = answer.get("valueCoding")
+        if isinstance(coding, dict):
+            return coding.get("code") or coding.get("display")
+        concept = answer.get("valueCodeableConcept")
+        if isinstance(concept, dict):
+            codings = concept.get("coding") or []
+            if codings:
+                return codings[0].get("code") or codings[0].get("display")
+            return concept.get("text")
+        quantity = answer.get("valueQuantity")
+        if isinstance(quantity, dict):
+            return quantity.get("value")
+        return None
+
+    def _ingest_fhir_encounter(
+        self,
+        resource: Dict[str, Any],
+        full_url: Optional[str],
+        patient_map: Dict[Any, Patient],
+        clinical_contexts: Dict[Tuple[str, str], Tuple[HealthScreening, Encounter]],
+        encounter_resources: Dict[str, Dict[str, Any]],
+        source_namespace: str,
+    ) -> Tuple[bool, Patient, Encounter]:
+        patient = self._patient_from_subject(
+            resource.get("subject") or {},
+            patient_map,
+            source_namespace,
+        )
+        if not patient:
+            raise ValueError("Encounter subject could not be resolved")
+        resource_id = str(resource.get("id") or "").strip()
+        if not resource_id:
+            raise ValueError("FHIR Encounter.id is required")
+
+        encounter_reference = str(full_url or f"Encounter/{resource_id}")
+        period = resource.get("period") or {}
+        context_time = self._parse_datetime(period.get("start")) or timezone.now()
+        context_date = self._parse_date(period.get("start")) or context_time.date()
+        _, encounter, context_created = self._get_or_create_fhir_clinical_context(
+            {
+                "encounter": {"reference": encounter_reference},
+                "effectiveDateTime": period.get("start"),
+            },
+            patient,
+            context_date,
+            context_time,
+            clinical_contexts,
+            encounter_resources,
+        )
+        for token in {encounter_reference, resource_id, f"Encounter/{resource_id}", full_url}:
+            if token:
+                clinical_contexts[(str(patient.id), str(token))] = (
+                    encounter.source_screening,
+                    encounter,
+                )
+        return context_created, patient, encounter
+
+    def _get_or_create_fhir_clinical_context(
+        self,
+        observation: Dict[str, Any],
+        patient: Patient,
+        screening_date: date,
+        screening_time: datetime,
+        clinical_contexts: Dict[Tuple[str, str], Tuple[HealthScreening, Encounter]],
+        encounter_resources: Dict[str, Dict[str, Any]],
+    ) -> Tuple[HealthScreening, Encounter, bool]:
+        encounter_reference = str((observation.get("encounter") or {}).get("reference") or "")
+        encounter_resource = encounter_resources.get(encounter_reference)
+        if not encounter_resource and encounter_reference:
+            encounter_resource = encounter_resources.get(encounter_reference.split("/")[-1])
+
+        period = (encounter_resource or {}).get("period") or {}
+        context_time = self._parse_datetime(period.get("start")) or screening_time
+        context_date = self._parse_date(period.get("start")) or screening_date
+        encounter_resource_id = (encounter_resource or {}).get("id")
+        context_tokens = {
+            token
+            for token in (
+                encounter_reference,
+                encounter_resource_id,
+                f"Encounter/{encounter_resource_id}" if encounter_resource_id else None,
+            )
+            if token
+        }
+        if not context_tokens:
+            context_tokens = {f"date:{context_date.isoformat()}"}
+        for context_token in context_tokens:
+            context_key = (str(patient.id), str(context_token))
+            if context_key in clinical_contexts:
+                screening, encounter = clinical_contexts[context_key]
+                return screening, encounter, False
+
+        identifier_token = encounter_resource_id or (
+            encounter_reference.split("/")[-1] if encounter_reference else f"DATE-{context_date.isoformat()}"
+        )
+        encounter_identifier = f"FHIR-{identifier_token}"[:100]
+        screenings = list(
+            HealthScreening.objects.filter(
+                patient=patient,
+                encounter_identifier=encounter_identifier,
+                is_active=True,
+            )
+            .order_by("created_at")
+            [:2]
+        )
+        if len(screenings) > 1:
+            raise ValueError(f"FHIR Encounter/{identifier_token} maps to multiple screenings")
+        screening = screenings[0] if screenings else None
+        screening_created = screening is None
+        if screening is None:
+            screening = HealthScreening.objects.create(
+                patient=patient,
+                screening_date=context_date,
+                encounter_type=self._fhir_encounter_type(encounter_resource),
+                encounter_identifier=encounter_identifier,
+                encounter_time=context_time,
+            )
+        else:
+            screening.screening_date = context_date
+            screening.encounter_type = self._fhir_encounter_type(encounter_resource)
+            screening.encounter_time = context_time
+            screening.save(
+                update_fields=[
+                    "screening_date",
+                    "encounter_type",
+                    "encounter_time",
+                    "updated_at",
+                ]
+            )
+
+        encounters = list(
+            Encounter.objects.filter(
+                source_screening=screening,
+                source_type="fhir_import",
+                is_active=True,
+            ).order_by("created_at")[:2]
+        )
+        if len(encounters) > 1:
+            raise ValueError(f"FHIR Encounter/{identifier_token} maps to multiple local encounters")
+        encounter = encounters[0] if encounters else None
+        encounter_defaults = {
+            "encounter_type": self._fhir_encounter_type(encounter_resource),
+            "status": (encounter_resource or {}).get("status") or "unknown",
+            "reason": self._fhir_encounter_reason(encounter_resource),
+            "location": self._fhir_encounter_location(encounter_resource),
+            "started_at": context_time,
+            "ended_at": self._parse_datetime(period.get("end")),
+            "source_type": "fhir_import",
+            "metadata_json": {
+                "fhir_encounter_reference": encounter_reference,
+                "fhir_encounter_id": encounter_resource_id,
+            },
+        }
+        if encounter is None:
+            encounter = Encounter.objects.create(
+                patient=patient,
+                source_screening=screening,
+                **encounter_defaults,
+            )
+        else:
+            if encounter.patient_id != patient.id:
+                raise ValueError(f"FHIR Encounter/{identifier_token} is already bound to another patient")
+            for field, field_value in encounter_defaults.items():
+                setattr(encounter, field, field_value)
+            encounter.save(update_fields=[*encounter_defaults.keys(), "updated_at"])
+
+        for context_token in context_tokens:
+            clinical_contexts[(str(patient.id), str(context_token))] = (screening, encounter)
+        return screening, encounter, screening_created
+
+    def _fhir_encounter_type(self, resource: Optional[Dict[str, Any]]) -> str:
+        if not resource:
+            return "fhir_import"
+        for concept in resource.get("type") or []:
+            coding = (concept.get("coding") or [{}])[0]
+            value = coding.get("display") or coding.get("code") or concept.get("text")
+            if value:
+                return str(value)[:100]
+        encounter_class = resource.get("class") or {}
+        return str(encounter_class.get("display") or encounter_class.get("code") or "fhir_import")[:100]
+
+    def _fhir_encounter_reason(self, resource: Optional[Dict[str, Any]]) -> str:
+        if not resource:
+            return ""
+        reasons = resource.get("reasonCode") or []
+        if not reasons:
+            return ""
+        reason = reasons[0]
+        coding = (reason.get("coding") or [{}])[0]
+        return str(reason.get("text") or coding.get("display") or coding.get("code") or "")[:250]
+
+    def _fhir_encounter_location(self, resource: Optional[Dict[str, Any]]) -> str:
+        if not resource:
+            return ""
+        locations = resource.get("location") or []
+        if not locations:
+            return ""
+        location = locations[0].get("location") or {}
+        return str(location.get("display") or location.get("reference") or "")[:250]
+
+    def _persist_fhir_resource(
+        self,
+        resource: Dict[str, Any],
+        *,
+        source_namespace: str,
+        patient: Optional[Patient] = None,
+        local_object: Any = None,
+    ) -> FHIRResource:
+        resource_type = str(resource.get("resourceType") or "").strip()
+        resource_id = str(resource.get("id") or "").strip()
+        if not resource_type or not resource_id:
+            raise ValueError("FHIR resourceType and id are required for persistence")
+        existing_resource = FHIRResource.objects.filter(
+            resource_type=resource_type,
+            resource_id=resource_id,
+        ).first()
+        if existing_resource is not None:
+            existing_namespace = str(
+                existing_resource.origin_namespace or "unspecified"
+            ).strip()
+            if existing_namespace != source_namespace:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} belongs to source namespace "
+                    f"{existing_namespace}, not {source_namespace}"
+                )
+            if patient is not None:
+                self._assert_fhir_resource_ownership(
+                    existing_resource,
+                    resource,
+                    patient,
+                    local_object,
+                )
+        persisted_resource, _ = FHIRResource.objects.update_or_create(
+            resource_type=resource_type,
+            resource_id=resource_id,
+            defaults={
+                "resource_data": self._json_safe(resource),
+                "origin_namespace": source_namespace,
+                "is_active": True,
+            },
+        )
+        return persisted_resource
+
+    def _assert_fhir_resource_ownership(
+        self,
+        persisted_resource: FHIRResource,
+        incoming_resource: Dict[str, Any],
+        patient: Patient,
+        local_object: Any,
+    ) -> None:
+        resource_type = persisted_resource.resource_type
+        resource_id = persisted_resource.resource_id
+        mappings = list(
+            FHIRResourceMapping.objects.filter(
+                fhir_resource_type=resource_type,
+                fhir_resource_id=resource_id,
+            )[:2]
+        )
+        if len(mappings) > 1:
+            raise ValueError(f"FHIR {resource_type}/{resource_id} has multiple owners")
+        if mappings:
+            mapping = mappings[0]
+            if mapping.patient_id and mapping.patient_id != patient.id:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} is owned by another patient"
+                )
+            if local_object is not None:
+                local_table = local_object._meta.db_table
+                if mapping.local_table != local_table:
+                    raise ValueError(
+                        f"FHIR {resource_type}/{resource_id} is owned by {mapping.local_table}"
+                    )
+                if mapping.local_id != local_object.pk and local_object.__class__.objects.filter(
+                    pk=mapping.local_id
+                ).exists():
+                    raise ValueError(
+                        f"FHIR {resource_type}/{resource_id} is owned by another local row"
+                    )
+            return
+
+        raise ValueError(
+            f"FHIR {resource_type}/{resource_id} exists without ownership mapping"
+        )
+
+    def _sync_fhir_mapping(
+        self,
+        persisted_resource: FHIRResource,
+        resource: Dict[str, Any],
+        local_object: Any,
+        patient: Patient,
+        source_namespace: str,
+    ) -> FHIRResourceMapping:
+        resource_type = persisted_resource.resource_type
+        resource_id = persisted_resource.resource_id
+        local_table = local_object._meta.db_table
+        local_id = local_object.pk
+
+        fhir_mappings = list(
+            FHIRResourceMapping.objects.filter(
+                fhir_resource_type=resource_type,
+                fhir_resource_id=resource_id,
+            )[:2]
+        )
+        if len(fhir_mappings) > 1:
+            raise ValueError(f"FHIR {resource_type}/{resource_id} has multiple relational mappings")
+        fhir_mapping = fhir_mappings[0] if fhir_mappings else None
+        local_mapping = FHIRResourceMapping.objects.filter(
+            local_table=local_table,
+            local_id=local_id,
+            fhir_resource_type=resource_type,
+        ).first()
+        if fhir_mapping and local_mapping and fhir_mapping.id != local_mapping.id:
+            raise ValueError(
+                f"FHIR {resource_type}/{resource_id} conflicts with the existing local mapping"
+            )
+
+        mapping = fhir_mapping or local_mapping
+        if mapping is not None:
+            if mapping.local_table != local_table:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} is already mapped to {mapping.local_table}"
+                )
+            if mapping.patient_id and mapping.patient_id != patient.id:
+                raise ValueError(
+                    f"FHIR {resource_type}/{resource_id} is already mapped to another patient"
+                )
+            if local_mapping and local_mapping.fhir_resource_id != resource_id:
+                raise ValueError(
+                    f"{local_table}/{local_id} is already mapped to a different {resource_type}"
+                )
+
+        profiles = (resource.get("meta") or {}).get("profile") or []
+        if isinstance(profiles, str):
+            profiles = [profiles]
+        values = {
+            "patient": patient,
+            "fhir_resource_ref": persisted_resource,
+            "local_table": local_table,
+            "local_id": local_id,
+            "fhir_resource_type": resource_type,
+            "fhir_resource_id": resource_id,
+            "profile_url": str(profiles[0]) if profiles else "",
+            "fhir_json": self._json_safe(resource),
+            "sync_status": "synced",
+            "last_synced_at": timezone.now(),
+            "error_message": "",
+            "metadata_json": {
+                "source": "fhir_import",
+                "source_namespace": source_namespace,
+            },
+        }
+        if mapping is None:
+            mapping = FHIRResourceMapping.objects.create(**values)
+        else:
+            for field, value in values.items():
+                setattr(mapping, field, value)
+            mapping.save(update_fields=[*values.keys(), "updated_at"])
+        return mapping
+
+    def _existing_fhir_local(
+        self,
+        model,
+        resource_type: str,
+        resource_id: str,
+    ):
+        if not resource_id:
+            return None
+        mappings = list(
+            FHIRResourceMapping.objects.filter(
+                fhir_resource_type=resource_type,
+                fhir_resource_id=resource_id,
+            )[:2]
+        )
+        if len(mappings) > 1:
+            raise ValueError(f"FHIR {resource_type}/{resource_id} has multiple relational mappings")
+        if not mappings:
+            return None
+        mapping = mappings[0]
+        if mapping.local_table != model._meta.db_table:
+            raise ValueError(
+                f"FHIR {resource_type}/{resource_id} is mapped to unexpected table {mapping.local_table}"
+            )
+        return model.objects.filter(pk=mapping.local_id).first()
+
+    def _patient_from_reference(
+        self,
+        reference: Optional[str],
+        patient_map: Dict[Any, Patient],
+        source_namespace: str,
+    ) -> Optional[Patient]:
         if not reference:
             return None
+        reference = str(reference).strip()
         if reference in patient_map:
             return patient_map[reference]
-        patient_id = reference.split("/")[-1]
-        return patient_map.get(patient_id) or Patient.objects.filter(id=patient_id).first() or Patient.objects.filter(medical_record_number=patient_id).first()
+        patient_id = reference.rstrip("/").split("/")[-1]
+        mapped_patient = patient_map.get(patient_id) or patient_map.get(f"Patient/{patient_id}")
+        if mapped_patient:
+            return mapped_patient
+
+        mappings = list(
+            FHIRResourceMapping.objects.filter(
+                fhir_resource_type="Patient",
+                fhir_resource_id=patient_id,
+            ).select_related("patient", "fhir_resource_ref")[:2]
+        )
+        if len(mappings) > 1:
+            raise ValueError(f"Patient reference {reference} has multiple relational mappings")
+        if mappings:
+            mapping = mappings[0]
+            mapping_namespace = str(
+                (
+                    mapping.fhir_resource_ref.origin_namespace
+                    if mapping.fhir_resource_ref_id
+                    else (mapping.metadata_json or {}).get("source_namespace")
+                )
+                or "unspecified"
+            ).strip()
+            if mapping_namespace != source_namespace:
+                raise ValueError(
+                    f"Patient reference {reference} belongs to source namespace "
+                    f"{mapping_namespace}, not {source_namespace}"
+                )
+            if mapping.patient_id is None:
+                raise ValueError(f"Patient reference {reference} has no patient owner")
+            return mapping.patient
+
+        candidates: Dict[str, Patient] = {}
+        try:
+            direct_patient_id = uuid.UUID(patient_id)
+        except (TypeError, ValueError):
+            pass
+        else:
+            for patient in Patient.objects.filter(
+                id=direct_patient_id,
+                metadata_json__fhir_source_namespace=source_namespace,
+            ):
+                candidates[str(patient.id)] = patient
+        for patient in Patient.objects.filter(
+            metadata_json__fhir_patient_id=patient_id,
+            metadata_json__fhir_source_namespace=source_namespace,
+        )[:2]:
+            candidates[str(patient.id)] = patient
+        for patient in Patient.objects.filter(
+            source_system="fhir_import",
+            source_record_id=patient_id,
+            metadata_json__fhir_source_namespace=source_namespace,
+        )[:2]:
+            candidates[str(patient.id)] = patient
+        if len(candidates) > 1:
+            raise ValueError(f"Patient reference {reference} resolves to multiple local patients")
+        return next(iter(candidates.values()), None)
+
+    def _patient_from_subject(
+        self,
+        subject: Dict[str, Any],
+        patient_map: Dict[Any, Patient],
+        source_namespace: str,
+    ) -> Optional[Patient]:
+        patient = self._patient_from_reference(
+            subject.get("reference"),
+            patient_map,
+            source_namespace,
+        )
+        if patient:
+            return patient
+        identifier = subject.get("identifier") or {}
+        identifier_key = self._fhir_patient_identifier_key(identifier)
+        if identifier_key is None:
+            return None
+        mapped_patient = patient_map.get(identifier_key)
+        if mapped_patient:
+            return mapped_patient
+        _, identifier_system, identifier_value = identifier_key
+        matches = list(
+            Patient.objects.filter(
+                medical_record_number=identifier_value,
+                metadata_json__fhir_mrn_system=identifier_system,
+                metadata_json__fhir_source_namespace=source_namespace,
+            )[:2]
+        )
+        if len(matches) > 1:
+            raise ValueError(
+                f"Patient identifier {identifier_value} resolves to multiple local patients"
+            )
+        return matches[0] if matches else None
 
     def _loinc_code(self, code: Dict[str, Any]) -> Optional[str]:
         for coding in code.get("coding") or []:

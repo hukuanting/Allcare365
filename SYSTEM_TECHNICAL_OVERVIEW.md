@@ -87,8 +87,6 @@ openmer_python/
       authentication/
     integration/
       fhir_integration/
-  archive/
-    _archived_apps/
   docs/
   frontend/
   medical_system/
@@ -288,7 +286,6 @@ Important files and folders:
 - `terminology.py`: terminology/coding mapping.
 - `smart_config.py`: SMART discovery response.
 - `g10_testkit.py`: ONC g10 certification contract artifacts.
-- `uscore_mock_dataset.py`: deterministic certification test dataset generation.
 
 Current state:
 
@@ -318,32 +315,29 @@ Target state:
 
 ### 3.6 `services/disease_risk_engine/`
 
-CORE.xlsx-based disease risk assessment engine.
+Hospital-approved deterministic disease risk assessment engine.
 
 Main responsibilities:
 
 - Retrieve patient demographics, observations, and questionnaire responses.
 - Build CORE.xlsx-style input vectors from `A1 KEY IN` and `HQ` equivalents using latest-available field selection across multiple visits.
-- Calculate disease risk scores.
-- Save disease risk jobs/results, FHIR `RiskAssessment` mappings, and audit logs.
+- Execute the single formula source at `formula_catalog.py` through a registry-locked runtime plan.
+- Save disease risk jobs/results, FHIR `Observation` or `RiskAssessment` mappings, provenance, and audit logs.
 
 Current algorithms and outputs:
 
-- `FHS DM`: Framingham diabetes risk.
-- `CH DM`: Chinese diabetes risk.
-- `MetS`: metabolic syndrome screening.
-- `NAFLD`: fatty liver / fibrosis risk indicators.
-- `FHSFLD`: Framingham fatty liver risk.
-- `AusDM`: Australian diabetes risk score.
-- `GVR CAIDE`: vascular / dementia risk score.
+- 30 hospital-approved algorithms across cardiovascular, metabolic/endocrine, hepatic, neurocognitive, respiratory, and mental-health groups.
+- `algorithm_registry.py` owns metadata, canonical required inputs, versions, governance, and FHIR output type.
+- `formula_catalog.py` is the only executable formula source and binds every approved algorithm exactly once.
+- `runtime_calculators.py` validates the formula plan against the registry before execution.
 - Output persisted in `ai_analysis_jobs` / `ai_analysis_results` as disease-risk records until the table rename is migrated.
-- Output mapped to FHIR `RiskAssessment` through `FHIRResourceMapping`.
+- Index/survey outputs map to FHIR `Observation`; predicted-event outputs map to `RiskAssessment`; provenance retains method version and source references.
 
 Current issue:
 
 - The remaining table names still contain `ai_analysis_*`; these are now used as disease-risk job/result tables and should be renamed in a planned migration.
-- The v1 calculators mirror CORE.xlsx workbook intent, but formula-by-formula clinical validation against the source workbook remains a controlled follow-up task.
-- Prevent CVD, ASCVD, and HF 10-year risk fields exist only in historical migrations/templates/archive traces. They are not implemented in the current `services/disease_risk_engine/` path and need formula source material before reintroduction.
+- Formula changes require published/hospital verification vectors plus the Golden Patient DB-to-FHIR regression suite.
+- AHA PREVENT CVD, ASCVD, and HF 10-year base equations are active members of the 30-model runtime catalog.
 
 Target state:
 
@@ -389,15 +383,12 @@ Important files:
 - `src/config/api.js`: endpoint constants and fetch wrapper.
 - `src/utils/auth.js`: token storage and validation.
 - `src/utils/sessionManager.js`: session activity tracking.
-- `src/services/dataService.js`: dashboard data aggregation.
 
-Current issue:
+Current state:
 
-- API endpoint constants do not match the active backend root router.
-- There are multiple API wrappers: `src/utils/api.js`, `src/config/api.js`, and `src/services/dataService.js`.
-- Several components exist for archived backend modules such as appointments, laboratory, and pharmacy.
-- Token handling is distributed across utilities.
-- Frontend role model is limited to `professional` and `patient`.
+- `src/config/api.js` is the single endpoint registry and authenticated fetch client.
+- Active routes only expose backend modules that remain in the product boundary.
+- SMART launch remains separate from normal application login.
 
 Target state:
 
@@ -407,46 +398,7 @@ Target state:
 - Add a feature flag or module registry so the UI only exposes implemented capabilities.
 - Treat SMART launch separately from normal application login.
 
-### 3.8 `archive/_archived_apps/`
-
-Historical Django apps no longer installed in `INSTALLED_APPS`.
-
-Archived modules include:
-
-- administration
-- appointments
-- billing
-- clinical_decision_support
-- code_systems
-- communications
-- documents
-- encounters
-- erx
-- esign
-- forms
-- immunizations
-- laboratory
-- patient_portal
-- pharmacy
-- reports
-- therapy_groups
-- wearable_integration
-
-Current state:
-
-- This directory preserves previous work but should not be treated as active runtime code.
-- Templates for some archived modules still exist at top-level `templates/`, and frontend components still refer to similar modules.
-
-Target state:
-
-- Keep archived modules out of production import paths.
-- Decide module by module whether to:
-  - revive and refactor into active `apps/`,
-  - keep archived as reference only,
-  - delete after product decision and backup.
-- Do not let archived modules define current API contracts.
-
-### 3.9 `docs/`
+### 3.8 `docs/`
 
 Architecture, certification, US Core, and ONC g10 documentation.
 
@@ -934,19 +886,11 @@ frontend/src/
 
    `fhir_integration/views.py` handles many unrelated concerns and should be split.
 
-2. Multiple frontend API clients.
-
-   `utils/api.js`, `config/api.js`, and `services/dataService.js` duplicate fetch logic and endpoint ownership.
-
-3. Archived module leakage.
-
-   Archived app concepts still appear in top-level templates and frontend components.
-
-4. Role model too small.
+2. Role model too small.
 
    `professional` and `patient` are not enough for a commercial clinical platform.
 
-5. Risk output persistence is incomplete.
+3. Risk output persistence is incomplete.
 
    Risk results should include provenance, algorithm version, missing inputs, and source references.
 

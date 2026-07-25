@@ -16,6 +16,7 @@ const API_CONFIG = {
     BULK_IMPORT: '/api/health-screening/bulk-import/',
     FHIR_IMPORT: '/api/health-screening/fhir-import/',
     RISK_ANALYSIS: '/api/health-screening/risk-analysis/',
+    RISK_ALGORITHMS: '/api/health-screening/risk-algorithms/',
     COHORT_SUMMARY: '/api/health-screening/cohorts/summary/',
     PATIENTS_LIKE_THIS: '/api/health-screening/cohorts/patients-like-this/',
     DATA_QUALITY_SUMMARY: '/api/health-screening/data-quality/summary/',

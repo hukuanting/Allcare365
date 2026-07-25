@@ -9,20 +9,16 @@ Handles all US Core Observation profiles from a SINGLE projector:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+import math
+from typing import List, TYPE_CHECKING
 
-from django.db.models import QuerySet
 from ..fhir_search.query_translator import parse_date_param
 
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
 from ..meta_builder import MetaBuilder
 from ..resource_identity import identity
-from ..uscore_templates import (
-    backbone_practitioner_ref,
-    lab_test_name_to_loinc_key,
-)
-
+from ..uscore_templates import direct_encounter_for_source
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
 
@@ -31,16 +27,26 @@ class _ObservationRow:
     """Normalized intermediate representation for any observation source."""
     __slots__ = (
         "source", "source_type", "patient", "patient_id",
-        "effective_dt", "obs_id_suffix",
+        "effective_dt", "obs_id_suffix", "health_screening",
     )
 
-    def __init__(self, source, source_type, patient, patient_id, effective_dt, obs_id_suffix=""):
+    def __init__(
+        self,
+        source,
+        source_type,
+        patient,
+        patient_id,
+        effective_dt,
+        obs_id_suffix="",
+        health_screening=None,
+    ):
         self.source = source
         self.source_type = source_type
         self.patient = patient
         self.patient_id = patient_id
         self.effective_dt = effective_dt
         self.obs_id_suffix = obs_id_suffix
+        self.health_screening = health_screening
 
 
 @ProjectorRegistry.register("Observation")
@@ -50,14 +56,12 @@ class ObservationProjector(BaseProjector):
     supported_profile_keys = [
         "us-core-vital-signs",
         "us-core-blood-pressure",
-        "us-core-bmi",
         "us-core-body-height",
         "us-core-body-weight",
         "us-core-body-temperature",
         "us-core-heart-rate",
         "us-core-respiratory-rate",
         "us-core-pulse-oximetry",
-        "us-core-head-circumference",
         "us-core-pediatric-bmi-for-age",
         "us-core-pediatric-weight-for-height",
         "us-core-head-circumference-percentile",
@@ -65,10 +69,8 @@ class ObservationProjector(BaseProjector):
         "us-core-smokingstatus",
         "us-core-observation-clinical-result",
         "us-core-observation-occupation",
-        "us-core-observation-pregnancyintent",
         "us-core-observation-pregnancystatus",
         "us-core-observation-screening-assessment",
-        "us-core-average-blood-pressure",
         "us-core-care-experience-preference",
         "us-core-treatment-intervention-preference",
     ]
@@ -135,16 +137,19 @@ class ObservationProjector(BaseProjector):
         """
         from apps.clinical.health_screening.models import (
             VitalSigns, LaboratoryResults, HealthStatusAssessment,
-            ClinicalTestResult, Procedure,
+            ClinicalTestResult,
         )
         from apps.clinical.patients.models import AdvanceDirective
 
         rows: List[_ObservationRow] = []
         screening_filter = {}
-        if patient_id:
-            screening_filter["health_screening__patient_id"] = patient_id
-        if search_params.get("patient"):
-            screening_filter["health_screening__patient_id"] = search_params["patient"]
+        query_patient_id = patient_id
+        if not query_patient_id and search_params.get("patient"):
+            query_patient_id = identity.resolve_patient_db_id(search_params["patient"])
+            if query_patient_id is None:
+                return []
+        if query_patient_id:
+            screening_filter["health_screening__patient_id"] = query_patient_id
 
         # Vital Signs
         vs_qs = VitalSigns.objects.filter(**screening_filter).select_related(
@@ -158,6 +163,11 @@ class ObservationProjector(BaseProjector):
             "health_screening", "health_screening__patient"
         )
         for lab in lab_qs:
+            if (
+                not self._has_persisted_test_name(lab.test_name)
+                or not self._has_persisted_result(lab.value_result)
+            ):
+                continue
             rows.append(_ObservationRow(
                 source=lab, source_type="lab",
                 patient=lab.health_screening.patient,
@@ -183,13 +193,6 @@ class ObservationProjector(BaseProjector):
                     effective_dt=effective_dt,
                     obs_id_suffix="smoking",
                 ))
-                rows.append(_ObservationRow(
-                    source=a, source_type="smoking_quantity",
-                    patient=patient,
-                    patient_id=patient_id_value,
-                    effective_dt=effective_dt,
-                    obs_id_suffix="smoking-pack-years",
-                ))
             if a.pregnancy_status:
                 rows.append(_ObservationRow(
                     source=a, source_type="pregnancy_status",
@@ -197,13 +200,6 @@ class ObservationProjector(BaseProjector):
                     patient_id=patient_id_value,
                     effective_dt=effective_dt,
                     obs_id_suffix="pregnancy-status",
-                ))
-                rows.append(_ObservationRow(
-                    source=a, source_type="pregnancy_intent",
-                    patient=patient,
-                    patient_id=patient_id_value,
-                    effective_dt=effective_dt,
-                    obs_id_suffix="pregnancy-intent",
                 ))
             if getattr(patient, "occupation", ""):
                 rows.append(_ObservationRow(
@@ -232,12 +228,16 @@ class ObservationProjector(BaseProjector):
                         obs_id_suffix=suffix,
                     ))
 
-        # Clinical result observations. Prefer actual clinical tests; fall back to
-        # ECG procedure data present in the certification fixture.
+        # Clinical result observations require an actual persisted result.
         clinical_qs = ClinicalTestResult.objects.filter(**screening_filter).select_related(
             "health_screening", "health_screening__patient"
         )
         for test in clinical_qs:
+            if (
+                not self._has_persisted_test_name(test.test_name)
+                or not self._has_persisted_result(test.result_value)
+            ):
+                continue
             rows.append(_ObservationRow(
                 source=test, source_type="clinical_result",
                 patient=test.health_screening.patient,
@@ -246,42 +246,22 @@ class ObservationProjector(BaseProjector):
                 obs_id_suffix="clinical-result",
             ))
 
-        procedure_filter = {"is_active": True}
-        if patient_id:
-            procedure_filter["patient_id"] = patient_id
-        if search_params.get("patient"):
-            procedure_filter["patient_id"] = search_params["patient"]
-        procedure_qs = Procedure.objects.filter(**procedure_filter).select_related("patient")
-        for proc in procedure_qs:
-            if "electrocardiogram" not in (proc.procedure_name or "").lower():
-                continue
-            rows.append(_ObservationRow(
-                source=proc, source_type="clinical_result_procedure",
-                patient=proc.patient,
-                patient_id=str(proc.patient_id),
-                effective_dt=proc.performance_time.isoformat() if proc.performance_time else None,
-                obs_id_suffix="clinical-result-ecg",
-            ))
-
         # Preference profiles sourced from AdvanceDirective.
         directive_filter = {"is_active": True}
-        if patient_id:
-            directive_filter["patient_id"] = patient_id
-        if search_params.get("patient"):
-            directive_filter["patient_id"] = search_params["patient"]
+        if query_patient_id:
+            directive_filter["patient_id"] = query_patient_id
         for directive in AdvanceDirective.objects.filter(**directive_filter).select_related("patient"):
             effective_dt = directive.created_at.isoformat() if directive.created_at else None
             for field_name, spec in self.PREFERENCE_FIELDS.items():
                 if getattr(directive, field_name, ""):
-                    for value_suffix in ("str", "cc"):
-                        rows.append(_ObservationRow(
-                            source=directive,
-                            source_type="preference",
-                            patient=directive.patient,
-                            patient_id=str(directive.patient_id),
-                            effective_dt=effective_dt,
-                            obs_id_suffix=f"{spec['suffix']}-{value_suffix}",
-                        ))
+                    rows.append(_ObservationRow(
+                        source=directive,
+                        source_type="preference",
+                        patient=directive.patient,
+                        patient_id=str(directive.patient_id),
+                        effective_dt=effective_dt,
+                        obs_id_suffix=spec["suffix"],
+                    ))
 
         category_tokens = self._token_codes(search_params.get("category"))
         if category_tokens:
@@ -295,7 +275,7 @@ class ObservationProjector(BaseProjector):
 
         if search_params.get("status"):
             status_tokens = self._token_codes(search_params.get("status"))
-            rows = [row for row in rows if "final" in status_tokens]
+            rows = [row for row in rows if self._row_status(row) in status_tokens]
 
         if search_params.get("_id"):
             rows = [row for row in rows if self._row_observation_id(row) == search_params["_id"]]
@@ -351,21 +331,15 @@ class ObservationProjector(BaseProjector):
             return self._project_lab(row, context)
         elif row.source_type == "smoking":
             return self._project_smoking(row, context)
-        elif row.source_type == "smoking_quantity":
-            return self._project_smoking_quantity(row, context)
-        elif row.source_type == "avg_bp":
-            return self._project_average_blood_pressure(row, context)
         elif row.source_type == "pregnancy_status":
             return self._project_pregnancy_status(row, context)
-        elif row.source_type == "pregnancy_intent":
-            return self._project_pregnancy_intent(row, context)
         elif row.source_type == "occupation":
             return self._project_occupation(row, context)
         elif row.source_type == "screening_panel":
             return self._project_screening_panel(row, context)
         elif row.source_type == "screening":
             return self._project_screening_assessment(row, context)
-        elif row.source_type in {"clinical_result", "clinical_result_procedure"}:
+        elif row.source_type == "clinical_result":
             return self._project_clinical_result(row, context)
         elif row.source_type == "preference":
             return self._project_preference(row, context)
@@ -380,8 +354,6 @@ class ObservationProjector(BaseProjector):
         ref = context.reference_builder
         pid = identity.patient_id(row.patient)
         unit_coding = ts.resolve(unit_key)
-        encounter_ref = self._encounter_ref_from_row(row, ref)
-
         obs_id = self._row_observation_id(row)
         codings = [ts.to_fhir_coding(code_key)]
         if code_key == "pulse_oximetry":
@@ -397,8 +369,6 @@ class ObservationProjector(BaseProjector):
             "category": [context.terminology.to_codeable_concept("category_vital_signs")],
             "code": {"coding": codings},
             "subject": ref.patient(pid),
-            "encounter": encounter_ref,
-            "effectiveDateTime": row.effective_dt,
             "valueQuantity": {
                 "value": float(value),
                 "unit": unit_coding.display,
@@ -407,18 +377,9 @@ class ObservationProjector(BaseProjector):
             },
         }
         if code_key == "pulse_oximetry":
-            oxygen_concentration = vs[4] if len(vs) > 4 and vs[4] is not None else 21.0
-            resource["component"] = [
-                {
-                    "code": ts.to_codeable_concept("inhaled_o2_flow_rate"),
-                    "valueQuantity": {
-                        "value": 0.0,
-                        "unit": ts.resolve("unit_l_min").display,
-                        "system": ts.resolve("unit_l_min").system,
-                        "code": ts.resolve("unit_l_min").code,
-                    },
-                },
-                {
+            oxygen_concentration = vs[4] if len(vs) > 4 else None
+            if oxygen_concentration is not None:
+                resource["component"] = [{
                     "code": ts.to_codeable_concept("inhaled_o2"),
                     "valueQuantity": {
                         "value": float(oxygen_concentration),
@@ -426,9 +387,8 @@ class ObservationProjector(BaseProjector):
                         "system": ts.resolve("unit_percent").system,
                         "code": ts.resolve("unit_percent").code,
                     },
-                },
-            ]
-        return resource
+                }]
+        return self._with_source_context(resource, row, ref)
 
     def _project_blood_pressure(self, row, context) -> dict:
         systolic, diastolic = row.source
@@ -436,9 +396,6 @@ class ObservationProjector(BaseProjector):
         ref = context.reference_builder
         pid = identity.patient_id(row.patient)
         obs_id = self._row_observation_id(row)
-        encounter_ref = self._encounter_ref_from_row(row, ref)
-        absent_variant = self._component_absent_reason_variant(row)
-
         resource = {
             "resourceType": "Observation",
             "id": obs_id,
@@ -449,66 +406,18 @@ class ObservationProjector(BaseProjector):
             "category": [ts.to_codeable_concept("category_vital_signs")],
             "code": ts.to_codeable_concept("blood_pressure_panel"),
             "subject": ref.patient(pid),
-            "encounter": encounter_ref,
-            "effectiveDateTime": row.effective_dt,
             "component": [
                 {
                     "code": ts.to_codeable_concept("systolic_bp"),
+                    "valueQuantity": self._mmhg_quantity(systolic, ts),
                 },
                 {
                     "code": ts.to_codeable_concept("diastolic_bp"),
+                    "valueQuantity": self._mmhg_quantity(diastolic, ts),
                 },
             ],
         }
-        if absent_variant:
-            for component in resource["component"]:
-                component["dataAbsentReason"] = self._unknown_data_absent_reason()
-        else:
-            resource["component"][0]["valueQuantity"] = self._mmhg_quantity(systolic, ts)
-            resource["component"][1]["valueQuantity"] = self._mmhg_quantity(diastolic, ts)
-        return resource
-
-    def _project_average_blood_pressure(self, row, context) -> dict:
-        vs = row.source
-        ts = context.terminology
-        ref = context.reference_builder
-        pid = identity.patient_id(row.patient)
-        obs_id = self._row_observation_id(row)
-        encounter_ref = self._encounter_ref_from_row(row, ref)
-        absent_variant = self._component_absent_reason_variant(row)
-        period = {
-            "start": row.effective_dt,
-            "end": row.effective_dt,
-        }
-
-        resource = {
-            "resourceType": "Observation",
-            "id": obs_id,
-            "meta": MetaBuilder.build("us-core-average-blood-pressure", extra_profiles=[
-                "http://hl7.org/fhir/StructureDefinition/vitalsigns"
-            ]),
-            "status": "final",
-            "category": [ts.to_codeable_concept("category_vital_signs")],
-            "code": ts.to_codeable_concept("average_blood_pressure"),
-            "subject": ref.patient(pid),
-            "encounter": encounter_ref,
-            "effectivePeriod": period,
-            "component": [
-                {
-                    "code": ts.to_codeable_concept("average_systolic_bp"),
-                },
-                {
-                    "code": ts.to_codeable_concept("average_diastolic_bp"),
-                },
-            ],
-        }
-        if absent_variant:
-            for component in resource["component"]:
-                component["dataAbsentReason"] = self._unknown_data_absent_reason()
-        else:
-            resource["component"][0]["valueQuantity"] = self._mmhg_quantity(vs.systolic_blood_pressure, ts)
-            resource["component"][1]["valueQuantity"] = self._mmhg_quantity(vs.diastolic_blood_pressure, ts)
-        return resource
+        return self._with_source_context(resource, row, ref)
 
     def _project_lab(self, row, context) -> dict:
         lab = row.source
@@ -517,58 +426,63 @@ class ObservationProjector(BaseProjector):
         pid = identity.patient_id(row.patient)
         obs_id = identity.observation_id(lab, "lab")
         lab_code = self._lab_loinc_from_name(lab.test_name)
-        encounter_ref = (
-            ref.encounter(identity.encounter_id(lab.health_screening))
-            if getattr(lab, "health_screening", None)
-            else ref.encounter("enc-placeholder")
-        )
+        status = self._lab_status(lab.result_status)
+        if (
+            status is None
+            or not self._has_persisted_test_name(lab.test_name)
+            or not self._has_persisted_result(lab.value_result)
+        ):
+            return None
+
+        code = {"text": str(lab.test_name).strip()}
+        if lab_code is not None:
+            code["coding"] = [ts.to_fhir_coding(lab_code)]
 
         resource = {
             "resourceType": "Observation",
             "id": obs_id,
             "meta": MetaBuilder.build("us-core-observation-lab"),
-            "status": "final",
+            "status": status,
             "category": [ts.to_codeable_concept("category_laboratory")],
-            "code": {
-                "coding": [ts.to_fhir_coding(lab_code)],
-                "text": lab.test_name,
-            },
+            "code": code,
             "subject": ref.patient(pid),
-            "encounter": encounter_ref,
-            "effectiveDateTime": row.effective_dt,
-            "interpretation": [{"coding": [ts.to_fhir_coding("obs_interpretation_normal")]}],
-            "specimen": ref.specimen(identity.specimen_id(lab)),
-            "note": [{"text": f"{lab.test_name} result imported from the laboratory feed."}],
         }
 
-        value_kind = self._lab_value_kind(lab.test_name)
-        if value_kind == "quantity":
-            try:
-                resource["valueQuantity"] = {
-                    "value": float(lab.value_result),
-                    "unit": lab.result_unit or "",
-                    "system": "http://unitsofmeasure.org",
-                    "code": lab.result_unit or "",
-                }
-            except (ValueError, TypeError):
-                resource["valueString"] = str(lab.value_result or "")
-        elif value_kind == "codeable":
-            resource["valueCodeableConcept"] = {
-                "coding": [{"system": "http://snomed.info/sct", "code": "281300000", "display": "Above reference range"}],
-                "text": str(lab.value_result or "Above reference range"),
-            }
+        value_text = str(lab.value_result).strip()
+        try:
+            numeric_value = float(value_text)
+        except (ValueError, TypeError):
+            resource["valueString"] = value_text
         else:
-            resource["valueString"] = str(lab.value_result or "")
+            if not math.isfinite(numeric_value):
+                resource["valueString"] = value_text
+            else:
+                quantity = {"value": numeric_value}
+                unit = str(lab.result_unit or "").strip()
+                if unit:
+                    quantity.update({
+                        "unit": unit,
+                        "system": "http://unitsofmeasure.org",
+                        "code": unit,
+                    })
+                resource["valueQuantity"] = quantity
 
         if lab.result_reference_range:
             resource["referenceRange"] = [{"text": lab.result_reference_range}]
+        if lab.result_interpretation:
+            resource["interpretation"] = [{"text": lab.result_interpretation}]
 
         if lab.specimen_source_site:
             resource["bodySite"] = {"text": lab.specimen_source_site}
-        if lab.specimen_type:
-            resource["method"] = {"text": f"{lab.specimen_type} specimen laboratory analysis"}
+        if any((
+            lab.specimen_type,
+            lab.specimen_source_site,
+            lab.specimen_identifier,
+            lab.specimen_condition,
+        )):
+            resource["specimen"] = ref.specimen(identity.specimen_id(lab))
 
-        return resource
+        return self._with_source_context(resource, row, ref)
 
     def _project_smoking(self, row, context) -> dict:
         assess = row.source
@@ -576,24 +490,35 @@ class ObservationProjector(BaseProjector):
         ref = context.reference_builder
         pid = identity.patient_id(row.patient)
         obs_id = self._row_observation_id(row)
-        encounter_ref = self._encounter_ref_from_row(row, ref)
 
         smoking_codes = {
             "current": ("449868002", "Current every day smoker"),
             "former": ("8517006", "Former smoker"),
             "never": ("266919005", "Never smoker"),
         }
-        status_lower = assess.smoking_status.lower() if assess.smoking_status else "unknown"
-        if "former" in status_lower or "quit" in status_lower:
-            code, display = smoking_codes["former"]
-        elif "never" in status_lower or "denies" in status_lower:
-            code, display = smoking_codes["never"]
-        elif "current" in status_lower:
-            code, display = smoking_codes["current"]
-        else:
-            code, display = ("266927001", "Tobacco smoking consumption unknown")
+        persisted_status = str(assess.smoking_status or "").strip()
+        if not persisted_status:
+            return None
 
-        return {
+        status_lower = persisted_status.lower()
+        coding = None
+        if "former" in status_lower or "quit" in status_lower:
+            coding = smoking_codes["former"]
+        elif "never" in status_lower or "denies" in status_lower:
+            coding = smoking_codes["never"]
+        elif "current" in status_lower:
+            coding = smoking_codes["current"]
+
+        value = {"text": persisted_status}
+        if coding is not None:
+            code, display = coding
+            value["coding"] = [{
+                "system": "http://snomed.info/sct",
+                "code": code,
+                "display": display,
+            }]
+
+        resource = {
             "resourceType": "Observation",
             "id": obs_id,
             "meta": MetaBuilder.build("us-core-smokingstatus"),
@@ -601,38 +526,11 @@ class ObservationProjector(BaseProjector):
             "category": [ts.to_codeable_concept("category_social_history")],
             "code": ts.to_codeable_concept("smoking_status"),
             "subject": ref.patient(pid),
-            "encounter": encounter_ref,
-            "effectiveDateTime": row.effective_dt,
-            "valueCodeableConcept": {
-                "coding": [{"system": "http://snomed.info/sct", "code": code, "display": display}]
-            },
+            "valueCodeableConcept": value,
         }
+        return self._with_source_context(resource, row, ref)
 
     # ── Helpers ───────────────────────────────────────────────
-
-    def _project_smoking_quantity(self, row, context) -> dict:
-        ts = context.terminology
-        ref = context.reference_builder
-        pid = identity.patient_id(row.patient)
-        unit_coding = ts.resolve("unit_pack_years")
-
-        return {
-            "resourceType": "Observation",
-            "id": self._row_observation_id(row),
-            "meta": MetaBuilder.build("us-core-smokingstatus"),
-            "status": "final",
-            "category": [ts.to_codeable_concept("category_social_history")],
-            "code": ts.to_codeable_concept("smoking_pack_years"),
-            "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectiveDateTime": row.effective_dt,
-            "valueQuantity": {
-                "value": 20.0,
-                "unit": unit_coding.display,
-                "system": unit_coding.system,
-                "code": unit_coding.code,
-            },
-        }
 
     def _project_pregnancy_status(self, row, context) -> dict:
         assess = row.source
@@ -640,15 +538,26 @@ class ObservationProjector(BaseProjector):
         ref = context.reference_builder
         pid = identity.patient_id(row.patient)
         obs_id = identity.observation_id(assess, "pregnancy-status")
-        status_text = (assess.pregnancy_status or "").lower()
-        if "not" in status_text or "no" in status_text:
-            value = {"system": "http://snomed.info/sct", "code": "60001007", "display": "Not pregnant"}
-        elif "pregnant" in status_text:
-            value = {"system": "http://snomed.info/sct", "code": "77386006", "display": "Pregnant"}
-        else:
-            value = {"system": "http://terminology.hl7.org/CodeSystem/v3-NullFlavor", "code": "UNK", "display": "Unknown"}
+        persisted_status = str(assess.pregnancy_status or "").strip()
+        if not persisted_status:
+            return None
 
-        return {
+        status_text = persisted_status.lower()
+        value = {"text": persisted_status}
+        if "not" in status_text or "no" in status_text:
+            value["coding"] = [{
+                "system": "http://snomed.info/sct",
+                "code": "60001007",
+                "display": "Not pregnant",
+            }]
+        elif "pregnant" in status_text:
+            value["coding"] = [{
+                "system": "http://snomed.info/sct",
+                "code": "77386006",
+                "display": "Pregnant",
+            }]
+
+        resource = {
             "resourceType": "Observation",
             "id": obs_id,
             "meta": MetaBuilder.build("us-core-observation-pregnancystatus"),
@@ -656,49 +565,21 @@ class ObservationProjector(BaseProjector):
             "category": [ts.to_codeable_concept("category_social_history")],
             "code": ts.to_codeable_concept("pregnancy_status"),
             "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectiveDateTime": row.effective_dt,
-            "performer": [backbone_practitioner_ref(ref)],
-            "valueCodeableConcept": {"coding": [value], "text": assess.pregnancy_status or value["display"]},
+            "valueCodeableConcept": value,
         }
-
-    def _project_pregnancy_intent(self, row, context) -> dict:
-        assess = row.source
-        ts = context.terminology
-        ref = context.reference_builder
-        pid = identity.patient_id(row.patient)
-        obs_id = identity.observation_id(assess, "pregnancy-intent")
-
-        return {
-            "resourceType": "Observation",
-            "id": obs_id,
-            "meta": MetaBuilder.build("us-core-observation-pregnancyintent"),
-            "status": "final",
-            "category": [ts.to_codeable_concept("category_social_history")],
-            "code": ts.to_codeable_concept("pregnancy_intent"),
-            "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectiveDateTime": row.effective_dt,
-            "performer": [backbone_practitioner_ref(ref)],
-            "valueCodeableConcept": {
-                "coding": [{
-                    "system": "http://loinc.org",
-                    "code": "LA26440-0",
-                    "display": "No, I don't want to become pregnant",
-                }],
-                "text": "No, I don't want to become pregnant",
-            },
-        }
+        return self._with_source_context(resource, row, ref)
 
     def _project_occupation(self, row, context) -> dict:
-        assess = row.source
         ts = context.terminology
         ref = context.reference_builder
         pid = identity.patient_id(row.patient)
         patient = row.patient
         obs_id = self._row_observation_id(row)
+        occupation = str(patient.occupation or "").strip()
+        if not occupation:
+            return None
 
-        return {
+        resource = {
             "resourceType": "Observation",
             "id": obs_id,
             "meta": MetaBuilder.build("us-core-observation-occupation"),
@@ -706,18 +587,15 @@ class ObservationProjector(BaseProjector):
             "category": [ts.to_codeable_concept("category_social_history")],
             "code": ts.to_codeable_concept("occupation_history"),
             "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectivePeriod": {
-                "start": row.effective_dt,
-                "end": row.effective_dt,
-            },
-            "performer": [backbone_practitioner_ref(ref)],
-            "valueCodeableConcept": {"text": patient.occupation or "Unknown occupation"},
-            "component": [{
-                "code": ts.to_codeable_concept("occupation_industry"),
-                "valueCodeableConcept": {"text": patient.occupation_industry or "Unknown industry"},
-            }],
+            "valueCodeableConcept": {"text": occupation},
         }
+        industry = str(patient.occupation_industry or "").strip()
+        if industry:
+            resource["component"] = [{
+                "code": ts.to_codeable_concept("occupation_industry"),
+                "valueCodeableConcept": {"text": industry},
+            }]
+        return self._with_source_context(resource, row, ref)
 
     def _project_screening_panel(self, row, context) -> dict:
         assess = row.source
@@ -741,12 +619,9 @@ class ObservationProjector(BaseProjector):
             ],
             "code": ts.to_codeable_concept("screening_prapare_panel"),
             "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectiveDateTime": row.effective_dt,
-            "performer": [backbone_practitioner_ref(ref)],
             "hasMember": has_members,
         }
-        return resource
+        return self._with_source_context(resource, row, ref)
 
     def _project_screening_assessment(self, row, context) -> dict:
         assess = row.source
@@ -754,7 +629,9 @@ class ObservationProjector(BaseProjector):
         ref = context.reference_builder
         pid = identity.patient_id(row.patient)
         field_name, spec = self._screening_spec_from_suffix(row.obs_id_suffix)
-        value = getattr(assess, field_name, "")
+        value = str(getattr(assess, field_name, "") or "").strip()
+        if not value:
+            return None
         obs_id = self._row_observation_id(row)
 
         resource = {
@@ -768,28 +645,12 @@ class ObservationProjector(BaseProjector):
             ],
             "code": ts.to_codeable_concept(spec["code_key"]),
             "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectiveDateTime": row.effective_dt,
-            "performer": [backbone_practitioner_ref(ref)],
+            "valueString": value,
         }
         for category_key in self._screening_additional_category_keys(field_name):
             resource["category"].append(ts.to_codeable_concept(category_key))
-        if field_name == "physical_activity":
-            resource["valueQuantity"] = {
-                "value": 150,
-                "unit": "min/wk",
-                "system": "http://unitsofmeasure.org",
-                "code": "min/wk",
-            }
-        elif field_name == "disability_status":
-            resource["valueCodeableConcept"] = {
-                "coding": [{"system": "http://snomed.info/sct", "code": "260413007", "display": "None"}],
-                "text": value or "None reported",
-            }
-        else:
-            resource["valueString"] = value
         resource["derivedFrom"] = [ref.observation(self._compact_observation_id(assess, "screening-panel"))]
-        return resource
+        return self._with_source_context(resource, row, ref)
 
     def _project_clinical_result(self, row, context) -> dict:
         source = row.source
@@ -797,23 +658,33 @@ class ObservationProjector(BaseProjector):
         ref = context.reference_builder
         pid = identity.patient_id(row.patient)
         obs_id = identity.observation_id(source, row.obs_id_suffix)
-        test_name = getattr(source, "test_name", None) or getattr(source, "procedure_name", "Clinical test")
-        result_value = getattr(source, "result_value", None) or getattr(source, "reason_for_referral", "") or "No acute findings"
+        test_name = str(getattr(source, "test_name", "") or "").strip()
+        result_value = str(getattr(source, "result_value", "") or "").strip()
+        if (
+            not self._has_persisted_test_name(test_name)
+            or not self._has_persisted_result(result_value)
+        ):
+            return None
 
-        return {
+        code = {"text": test_name}
+        normalized_test_name = test_name.lower()
+        if "electrocardiogram" in normalized_test_name or "ecg" in normalized_test_name:
+            code["coding"] = [ts.to_fhir_coding("clinical_result_ecg")]
+
+        resource = {
             "resourceType": "Observation",
             "id": obs_id,
             "meta": MetaBuilder.build("us-core-observation-clinical-result"),
             "status": "final",
             "category": [ts.to_codeable_concept("category_clinical_test")],
-            "code": ts.to_codeable_concept("clinical_result_ecg"),
+            "code": code,
             "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectiveDateTime": row.effective_dt,
-            "performer": [backbone_practitioner_ref(ref)],
-            "valueString": str(result_value),
-            "note": [{"text": test_name}],
+            "valueString": result_value,
         }
+        interpretation = str(getattr(source, "interpretation", "") or "").strip()
+        if interpretation:
+            resource["interpretation"] = [{"text": interpretation}]
+        return self._with_source_context(resource, row, ref)
 
     def _project_preference(self, row, context) -> dict:
         directive = row.source
@@ -834,16 +705,12 @@ class ObservationProjector(BaseProjector):
             "category": [ts.to_codeable_concept(spec["category_key"])],
             "code": ts.to_codeable_concept(spec["code_key"]),
             "subject": ref.patient(pid),
-            "encounter": self._encounter_ref_from_row(row, ref),
-            "effectiveDateTime": row.effective_dt,
-            "performer": [ref.patient(pid)],
         }
-        value_text = getattr(directive, field_name, "")
-        if row.obs_id_suffix.endswith("-cc"):
-            resource["valueCodeableConcept"] = {"text": value_text}
-        else:
-            resource["valueString"] = value_text
-        return resource
+        value_text = str(getattr(directive, field_name, "") or "").strip()
+        if not value_text:
+            return None
+        resource["valueString"] = value_text
+        return self._with_source_context(resource, row, ref)
 
     def _vitals_to_rows(self, vs) -> List[_ObservationRow]:
         """Explode a VitalSigns ORM row into individual _ObservationRow objects."""
@@ -853,20 +720,20 @@ class ObservationProjector(BaseProjector):
         dt = vs.health_screening.screening_date.isoformat() if vs.health_screening.screening_date else None
 
         # Blood Pressure (component-based)
-        if vs.systolic_blood_pressure and vs.diastolic_blood_pressure:
+        if (
+            vs.systolic_blood_pressure is not None
+            and vs.diastolic_blood_pressure is not None
+        ):
             rows.append(_ObservationRow(
                 source=(vs.systolic_blood_pressure, vs.diastolic_blood_pressure),
                 source_type="bp", patient=patient, patient_id=patient_id,
                 effective_dt=dt, obs_id_suffix=f"bp-{vs.id}",
-            ))
-            rows.append(_ObservationRow(
-                source=vs,
-                source_type="avg_bp", patient=patient, patient_id=patient_id,
-                effective_dt=dt, obs_id_suffix=f"avg-bp-{vs.id}",
+                health_screening=vs.health_screening,
             ))
 
         # Individual vitals: (value, unit_key, code_key, profile_key)
         singles = [
+            (vs.average_blood_pressure, "unit_mmhg", "mean_bp", "us-core-vital-signs"),
             (vs.heart_rate, "unit_bpm", "heart_rate", "us-core-heart-rate"),
             (vs.respiratory_rate, "unit_breaths_min", "respiratory_rate", "us-core-respiratory-rate"),
             (vs.body_temperature, "unit_celsius", "body_temperature", "us-core-body-temperature"),
@@ -877,14 +744,6 @@ class ObservationProjector(BaseProjector):
             (vs.bmi_percentile, "unit_percent", "bmi_percentile", "us-core-pediatric-bmi-for-age"),
             (vs.weight_for_length_percentile, "unit_percent", "weight_for_length", "us-core-pediatric-weight-for-height"),
         ]
-        if vs.body_height:
-            singles.append((55.0, "unit_cm", "head_circumference", "us-core-head-circumference"))
-        if vs.head_circumference_percentile is None and vs.body_height:
-            singles.append((50.0, "unit_percent", "head_circ_percentile", "us-core-head-circumference-percentile"))
-        if vs.bmi_percentile is None and vs.body_weight and vs.body_height:
-            singles.append((72.0, "unit_percent", "bmi_percentile", "us-core-pediatric-bmi-for-age"))
-        if vs.weight_for_length_percentile is None and vs.body_weight and vs.body_height:
-            singles.append((75.0, "unit_percent", "weight_for_length", "us-core-pediatric-weight-for-height"))
         for item in singles:
             val, ukey, ckey, pkey = item[:4]
             extra = item[4:]
@@ -893,16 +752,8 @@ class ObservationProjector(BaseProjector):
                     source=(val, ukey, ckey, pkey, *extra),
                     source_type="vitals", patient=patient, patient_id=patient_id,
                     effective_dt=dt, obs_id_suffix=f"{ckey}-{vs.id}",
+                    health_screening=vs.health_screening,
                 ))
-
-        # BMI (calculated)
-        if vs.body_weight and vs.body_height and float(vs.body_height) > 0:
-            bmi = float(vs.body_weight) / ((float(vs.body_height) / 100) ** 2)
-            rows.append(_ObservationRow(
-                source=(round(bmi, 1), "unit_kg_m2", "bmi", "us-core-bmi"),
-                source_type="vitals", patient=patient, patient_id=patient_id,
-                effective_dt=dt, obs_id_suffix=f"bmi-{vs.id}",
-            ))
 
         return rows
 
@@ -911,23 +762,17 @@ class ObservationProjector(BaseProjector):
             return self._compact_observation_id(row.patient, row.obs_id_suffix or "bp")
         if row.source_type == "vitals":
             return self._compact_observation_id(row.patient, row.obs_id_suffix)
-        if row.source_type == "avg_bp":
-            return self._compact_observation_id(row.source, row.obs_id_suffix or "avg-bp")
         if row.source_type == "lab":
             return identity.observation_id(row.source, "lab")
         if row.source_type == "smoking":
             return identity.observation_id(row.source, "smoking")
-        if row.source_type == "smoking_quantity":
-            return identity.observation_id(row.source, "smoking-pack-years")
         if row.source_type == "pregnancy_status":
             return identity.observation_id(row.source, "pregnancy-status")
-        if row.source_type == "pregnancy_intent":
-            return identity.observation_id(row.source, "pregnancy-intent")
         if row.source_type == "occupation":
             return identity.observation_id(row.source, "occupation")
         if row.source_type in {"screening_panel", "screening", "preference"}:
             return self._compact_observation_id(row.source, row.obs_id_suffix)
-        if row.source_type in {"clinical_result", "clinical_result_procedure"}:
+        if row.source_type == "clinical_result":
             return identity.observation_id(row.source, row.obs_id_suffix)
         return ""
 
@@ -944,16 +789,15 @@ class ObservationProjector(BaseProjector):
                 return bool({"2708-6", "59408-5"} & code_tokens)
             return context.terminology.resolve(code_key).code in code_tokens
 
-        if row.source_type == "avg_bp":
-            return context.terminology.resolve("average_blood_pressure").code in code_tokens
-
         if row.source_type == "lab":
-            return context.terminology.resolve(self._lab_loinc_from_name(row.source.test_name)).code in code_tokens
+            code_key = self._lab_loinc_from_name(row.source.test_name)
+            return bool(
+                code_key
+                and context.terminology.resolve(code_key).code.lower() in code_tokens
+            )
 
         if row.source_type == "smoking":
             return context.terminology.resolve("smoking_status").code in code_tokens
-        if row.source_type == "smoking_quantity":
-            return context.terminology.resolve("smoking_pack_years").code.lower() in code_tokens
 
         code_key = self._row_code_key(row)
         if code_key:
@@ -967,13 +811,13 @@ class ObservationProjector(BaseProjector):
         return bool(self._row_category_codes(row) & category_tokens)
 
     def _row_category_codes(self, row: _ObservationRow) -> set[str]:
-        if row.source_type in {"bp", "vitals", "avg_bp"}:
+        if row.source_type in {"bp", "vitals"}:
             return {"vital-signs"}
         if row.source_type == "lab":
             return {"laboratory"}
-        if row.source_type in {"smoking", "smoking_quantity", "pregnancy_status", "pregnancy_intent", "occupation"}:
+        if row.source_type in {"smoking", "pregnancy_status", "occupation"}:
             return {"social-history"}
-        if row.source_type in {"clinical_result", "clinical_result_procedure"}:
+        if row.source_type == "clinical_result":
             return {"exam"}
         if row.source_type == "screening_panel":
             return {"survey", "sdoh"}
@@ -994,10 +838,6 @@ class ObservationProjector(BaseProjector):
     def _row_code_key(self, row: _ObservationRow) -> str:
         if row.source_type == "pregnancy_status":
             return "pregnancy_status"
-        if row.source_type == "smoking_quantity":
-            return "smoking_pack_years"
-        if row.source_type == "pregnancy_intent":
-            return "pregnancy_intent"
         if row.source_type == "occupation":
             return "occupation_history"
         if row.source_type == "screening_panel":
@@ -1005,8 +845,10 @@ class ObservationProjector(BaseProjector):
         if row.source_type == "screening":
             _, spec = self._screening_spec_from_suffix(row.obs_id_suffix)
             return spec["code_key"]
-        if row.source_type in {"clinical_result", "clinical_result_procedure"}:
-            return "clinical_result_ecg"
+        if row.source_type == "clinical_result":
+            test_name = str(getattr(row.source, "test_name", "") or "").lower()
+            if "electrocardiogram" in test_name or "ecg" in test_name:
+                return "clinical_result_ecg"
         if row.source_type == "preference":
             return self._preference_spec_from_suffix(row.obs_id_suffix)["code_key"]
         return ""
@@ -1053,19 +895,17 @@ class ObservationProjector(BaseProjector):
             return ""
         direct = {
             "bp": "bp",
-            "avg-bp": "avg",
+            "mean_bp": "meanbp",
             "heart_rate": "hr",
             "respiratory_rate": "rr",
             "body_temperature": "temp",
             "body_height": "height",
             "body_weight": "weight",
             "pulse_oximetry": "spo2",
-            "head_circumference": "hc",
             "head_circ_percentile": "hcpf",
             "bmi_percentile": "pbmi",
             "weight_for_length": "wfl",
             "pregnancy-status": "pregstat",
-            "pregnancy-intent": "pregintent",
             "screening-panel": "scrpanel",
             "screening-sdoh": "scrsdoh",
             "screening-functional-status": "scrfunc",
@@ -1166,23 +1006,38 @@ class ObservationProjector(BaseProjector):
         return actual == target
 
     @staticmethod
-    def _lab_value_kind(test_name: str) -> str:
-        name = (test_name or "").lower()
-        if "cholesterol" in name:
-            return "codeable"
-        if "a1c" in name:
-            return "string"
-        return "quantity"
+    def _has_persisted_result(value) -> bool:
+        if value is None:
+            return False
+        text = str(value).strip()
+        return bool(text) and text.lower() != "pending"
 
     @staticmethod
-    def _component_absent_reason_variant(row: _ObservationRow) -> bool:
-        token = "".join(ch for ch in str(row.obs_id_suffix) if ch.isalnum())
-        if not token:
+    def _has_persisted_test_name(value) -> bool:
+        if value is None:
             return False
-        try:
-            return int(token[-1], 16) % 2 == 1
-        except ValueError:
-            return False
+        text = str(value).strip()
+        return bool(text) and text.lower() != "unknown test"
+
+    def _row_status(self, row: _ObservationRow) -> str | None:
+        if row.source_type == "lab":
+            return self._lab_status(row.source.result_status)
+        return "final"
+
+    @staticmethod
+    def _lab_status(value) -> str | None:
+        status = str(value or "").strip().lower()
+        allowed = {
+            "registered",
+            "preliminary",
+            "final",
+            "amended",
+            "corrected",
+            "cancelled",
+            "entered-in-error",
+            "unknown",
+        }
+        return status if status in allowed else None
 
     @staticmethod
     def _mmhg_quantity(value, terminology) -> dict:
@@ -1193,61 +1048,22 @@ class ObservationProjector(BaseProjector):
             "code": terminology.resolve("unit_mmhg").code,
         }
 
-    @staticmethod
-    def _unknown_data_absent_reason() -> dict:
-        return {
-            "coding": [{
-                "system": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
-                "code": "unknown",
-                "display": "Unknown",
-            }]
-        }
-
-    def _derived_from_document_reference(self, row: _ObservationRow, ref):
-        try:
-            from apps.clinical.patients.models import PatientDocument
-
-            doc = (
-                PatientDocument.objects.filter(patient_id=row.patient_id, is_active=True)
-                .order_by("document_date", "created_at")
-                .first()
-            )
-            if doc is not None:
-                return ref.document_reference(identity.document_reference_id(doc))
-        except Exception:
-            pass
-        return None
+    def _with_source_context(self, resource: dict, row: _ObservationRow, ref) -> dict:
+        encounter = self._encounter_ref_from_row(row, ref)
+        if encounter is not None:
+            resource["encounter"] = encounter
+        if row.effective_dt:
+            resource["effectiveDateTime"] = row.effective_dt
+        return resource
 
     def _encounter_ref_from_row(self, row: _ObservationRow, ref):
-        screening = getattr(row.source, "health_screening", None)
-        if screening is not None:
-            return ref.encounter(identity.encounter_id(screening))
-        # Vital/blood-pressure rows are tuple-based. Resolve encounter via patient + screening date.
-        try:
-            from apps.clinical.health_screening.models import HealthScreening
-            if row.effective_dt:
-                effective_date = str(row.effective_dt).split("T")[0]
-                by_date = (
-                    HealthScreening.objects.filter(
-                        patient_id=row.patient_id,
-                        is_active=True,
-                        screening_date=effective_date,
-                    )
-                    .order_by("encounter_time", "screening_date")
-                    .first()
-                )
-                if by_date is not None:
-                    return ref.encounter(identity.encounter_id(by_date))
-            any_screening = (
-                HealthScreening.objects.filter(patient_id=row.patient_id, is_active=True)
-                .order_by("encounter_time", "screening_date")
-                .first()
-            )
-            if any_screening is not None:
-                return ref.encounter(identity.encounter_id(any_screening))
-        except Exception:
-            pass
-        return ref.encounter("enc-placeholder")
+        screening = row.health_screening or getattr(row.source, "health_screening", None)
+        if screening is None or getattr(screening, "id", None) is None:
+            return None
+        encounter = direct_encounter_for_source(row.source)
+        if encounter is None or encounter.source_screening_id != screening.id:
+            return None
+        return ref.encounter(identity.encounter_id(screening))
 
     def supported_search_params(self):
         return {
@@ -1264,5 +1080,14 @@ class ObservationProjector(BaseProjector):
         return ["Provenance:target"]
 
     @staticmethod
-    def _lab_loinc_from_name(test_name: str) -> str:
-        return lab_test_name_to_loinc_key(test_name)
+    def _lab_loinc_from_name(test_name: str) -> str | None:
+        name = str(test_name or "").strip().lower()
+        if "a1c" in name or "hemoglobin a1c" in name:
+            return "hba1c"
+        if "glucose" in name:
+            return "lab_glucose"
+        if "cholesterol" in name:
+            return "lab_total_cholesterol"
+        if name in {"hemoglobin", "haemoglobin"}:
+            return "hemoglobin"
+        return None

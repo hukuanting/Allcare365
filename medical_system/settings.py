@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import secrets
 from decouple import config
 
 from apps.integration.fhir_integration.fine_grained_scopes import fine_grained_scope_descriptions
@@ -23,8 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-)o3xb8@i@5c+vqd*i&svm@q7nas8p-4mjd$=5s$^_b1)i+-96a')
+# Local development gets an ephemeral key if no .env exists. Production uses
+# medical_system.settings_production, which requires SECRET_KEY explicitly.
+SECRET_KEY = config('SECRET_KEY', default=secrets.token_urlsafe(50))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -38,6 +40,11 @@ ALLOWED_HOSTS = config(
 # Inferno / US Core test runs may be executed without OAuth. Default to allowing anonymous read in DEBUG,
 # while keeping production defaults locked down unless explicitly enabled.
 FHIR_ALLOW_ANONYMOUS_READ = config('FHIR_ALLOW_ANONYMOUS_READ', default=False, cast=bool)
+FHIR_INCLUDE_CONFORMANCE_FIXTURES = config(
+    'FHIR_INCLUDE_CONFORMANCE_FIXTURES',
+    default=False,
+    cast=bool,
+)
 # PUBLIC_BASE_URL 優先級：環境變數 > HTTPS 預設
 PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default='').rstrip('/')
 INFERNO_BULK_JWKS_URL = config(
@@ -86,27 +93,8 @@ INSTALLED_APPS = [
     'apps.core.authentication',
     # 醫療管理模組
     'apps.clinical.patients',
-    # 'appointments',
-    # 'medical_records',
-    # 'billing',
-    # 'administration',
-    # 'reports',
-    # 'pharmacy',
-    # 'laboratory',
-    # 'documents',
-    # 'communications',
-    # 'immunizations',
-    # 'patient_portal',
-    # 'forms',
-    # 'clinical_decision_support',
-    # 'therapy_groups',
-    # 'esign',
-    # 'erx',
-    # 'code_systems',
-    # 'encounters',
     'apps.clinical.health_screening',
     'apps.integration.fhir_integration',
-    # 'wearable_integration',
     'oauth2_provider',  # SMART on FHIR OAuth2 Support
     'sslserver',        # 支援本地開發 HTTPS (ONC 認證必備)
 ]
@@ -260,7 +248,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True  # Enable for testing with Inferno
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=DEBUG, cast=bool)
 
 # Additional CORS settings for API
 CORS_ALLOW_HEADERS = [
@@ -273,15 +261,6 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-]
-
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-# Static files additional settings
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
 ]
 
 # Security settings for medical data
@@ -312,6 +291,9 @@ CSRF_COOKIE_SAMESITE = config('CSRF_COOKIE_SAMESITE', default='None')
 CSRF_TRUSTED_ORIGINS_ALLOWED_METHODS = ['POST', 'GET', 'OPTIONS']
 
 # Logging configuration
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -332,7 +314,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'medical_system.log',
+            'filename': LOG_DIR / 'medical_system.log',
             'formatter': 'verbose'
         },
     },

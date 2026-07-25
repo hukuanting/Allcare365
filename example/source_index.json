@@ -1,0 +1,690 @@
+[
+  {
+    "source_file": "additionalfile1 for CN NAFLD working.docx",
+    "extension": ".docx",
+    "bytes": 15693,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/additionalfile1 for CN NAFLD working.docx.json"
+  },
+  {
+    "source_file": "AgeCIMY table.docx",
+    "extension": ".docx",
+    "bytes": 18545,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/AgeCIMY table.docx.json"
+  },
+  {
+    "source_file": "Anxiety GAD.docx",
+    "extension": ".docx",
+    "bytes": 14389,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Anxiety GAD.docx.json"
+  },
+  {
+    "source_file": "ASCVD-Optimal.xlsx",
+    "extension": ".xlsx",
+    "bytes": 16967,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/ASCVD-Optimal.xlsx.json"
+  },
+  {
+    "source_file": "ASCVDtesting.xlsx",
+    "extension": ".xlsx",
+    "bytes": 13133,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/ASCVDtesting.xlsx.json"
+  },
+  {
+    "source_file": "Asia-Korea CVD risk.xlsx",
+    "extension": ".xlsx",
+    "bytes": 269819,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Asia-Korea CVD risk.xlsx.json"
+  },
+  {
+    "source_file": "AUSDM.docx",
+    "extension": ".docx",
+    "bytes": 19992,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/AUSDM.docx.json"
+  },
+  {
+    "source_file": "caluiiiii.docx",
+    "extension": ".docx",
+    "bytes": 13563,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/caluiiiii.docx.json"
+  },
+  {
+    "source_file": "Cambridge DM.xlsx",
+    "extension": ".xlsx",
+    "bytes": 10974,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Cambridge DM.xlsx.json"
+  },
+  {
+    "source_file": "Cardiometa LIN CK.xlsx",
+    "extension": ".xlsx",
+    "bytes": 18582,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Cardiometa LIN CK.xlsx.json"
+  },
+  {
+    "source_file": "Cardiometa.xlsx",
+    "extension": ".xlsx",
+    "bytes": 15442,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Cardiometa.xlsx.json"
+  },
+  {
+    "source_file": "CHD Risk Estimator of Christianson for a Patient with Type 2 Diabetes.docx",
+    "extension": ".docx",
+    "bytes": 17820,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CHD Risk Estimator of Christianson for a Patient with Type 2 Diabetes.docx.json"
+  },
+  {
+    "source_file": "CLIDE.xlsx",
+    "extension": ".xlsx",
+    "bytes": 15098,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CLIDE.xlsx.json"
+  },
+  {
+    "source_file": "CM faty liver.docx",
+    "extension": ".docx",
+    "bytes": 25461,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CM faty liver.docx.json"
+  },
+  {
+    "source_file": "CMI working.docx",
+    "extension": ".docx",
+    "bytes": 707318,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CMI working.docx.json"
+  },
+  {
+    "source_file": "CMI working.xlsx",
+    "extension": ".xlsx",
+    "bytes": 15907,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CMI working.xlsx.json"
+  },
+  {
+    "source_file": "CORE 20220414.xlsx",
+    "extension": ".xlsx",
+    "bytes": 987504,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CORE 20220414.xlsx.json"
+  },
+  {
+    "source_file": "CORE 20220415.xlsx",
+    "extension": ".xlsx",
+    "bytes": 985026,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CORE 20220415.xlsx.json"
+  },
+  {
+    "source_file": "CORE.xlsx",
+    "extension": ".xlsx",
+    "bytes": 72255,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CORE.xlsx.json"
+  },
+  {
+    "source_file": "CV risk in NAFLD.xlsx",
+    "extension": ".xlsx",
+    "bytes": 8843,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CV risk in NAFLD.xlsx.json"
+  },
+  {
+    "source_file": "CVD Reynolds.xlsx",
+    "extension": ".xlsx",
+    "bytes": 21815,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/CVD Reynolds.xlsx.json"
+  },
+  {
+    "source_file": "data input.xlsx",
+    "extension": ".xlsx",
+    "bytes": 29221,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/data input.xlsx.json"
+  },
+  {
+    "source_file": "data output.xlsx",
+    "extension": ".xlsx",
+    "bytes": 28066,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/data output.xlsx.json"
+  },
+  {
+    "source_file": "dementia drs2 uk.docx",
+    "extension": ".docx",
+    "bytes": 21486,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/dementia drs2 uk.docx.json"
+  },
+  {
+    "source_file": "dementia risk prediction tools.docx",
+    "extension": ".docx",
+    "bytes": 39069,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/dementia risk prediction tools.docx.json"
+  },
+  {
+    "source_file": "Dementia Risk Score (DRS) .xlsx",
+    "extension": ".xlsx",
+    "bytes": 10448,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Dementia Risk Score (DRS) .xlsx.json"
+  },
+  {
+    "source_file": "dementiarisktaiwanmedi-97-e0298-s001.doc",
+    "extension": ".doc",
+    "bytes": 82944,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/dementiarisktaiwanmedi-97-e0298-s001.doc.json"
+  },
+  {
+    "source_file": "dfca7557-3547-4757-8b81-437b1ed5fff1.pdf",
+    "extension": ".pdf",
+    "bytes": 1395465,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/dfca7557-3547-4757-8b81-437b1ed5fff1.pdf.json"
+  },
+  {
+    "source_file": "EastKorea CVD risk.xlsx",
+    "extension": ".xlsx",
+    "bytes": 264144,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/EastKorea CVD risk.xlsx.json"
+  },
+  {
+    "source_file": "ESCC CHina.pptx",
+    "extension": ".pptx",
+    "bytes": 1190792,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/ESCC CHina.pptx.json"
+  },
+  {
+    "source_file": "Fat liver DM China Japan.docx",
+    "extension": ".docx",
+    "bytes": 28945,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Fat liver DM China Japan.docx.json"
+  },
+  {
+    "source_file": "fatty liver.xlsx",
+    "extension": ".xlsx",
+    "bytes": 12249,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/fatty liver.xlsx.json"
+  },
+  {
+    "source_file": "Fatty-Liver-Risk-Score-Calculator-Excel-2.xls",
+    "extension": ".xls",
+    "bytes": 62976,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Fatty-Liver-Risk-Score-Calculator-Excel-2.xls.json"
+  },
+  {
+    "source_file": "Fatty-Liver-Risk-Score-Calculator-Excel-3.xls",
+    "extension": ".xls",
+    "bytes": 62976,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Fatty-Liver-Risk-Score-Calculator-Excel-3.xls.json"
+  },
+  {
+    "source_file": "Fatty-Liver-Risk-Score-Calculator-Excel-6.xls",
+    "extension": ".xls",
+    "bytes": 62976,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Fatty-Liver-Risk-Score-Calculator-Excel-6.xls.json"
+  },
+  {
+    "source_file": "fattyliver cancer.docx",
+    "extension": ".docx",
+    "bytes": 13811,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/fattyliver cancer.docx.json"
+  },
+  {
+    "source_file": "FCV precicted male.xlsx",
+    "extension": ".xlsx",
+    "bytes": 21216,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/FCV precicted male.xlsx.json"
+  },
+  {
+    "source_file": "FHDStrokeworking.docx",
+    "extension": ".docx",
+    "bytes": 20562,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/FHDStrokeworking.docx.json"
+  },
+  {
+    "source_file": "FHS-CVD-30.xls",
+    "extension": ".xls",
+    "bytes": 1150464,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/FHS-CVD-30.xls.json"
+  },
+  {
+    "source_file": "FHS-CVD-BMI.xls",
+    "extension": ".xls",
+    "bytes": 46592,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/FHS-CVD-BMI.xls.json"
+  },
+  {
+    "source_file": "FHSBMICVD10.xls",
+    "extension": ".xls",
+    "bytes": 44544,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/FHSBMICVD10.xls.json"
+  },
+  {
+    "source_file": "FHSCVD10 year-3.xls",
+    "extension": ".xls",
+    "bytes": 54272,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/FHSCVD10 year-3.xls.json"
+  },
+  {
+    "source_file": "FPG.docx",
+    "extension": ".docx",
+    "bytes": 16214,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/FPG.docx.json"
+  },
+  {
+    "source_file": "gencardio_bmi-3.xls",
+    "extension": ".xls",
+    "bytes": 50688,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/gencardio_bmi-3.xls.json"
+  },
+  {
+    "source_file": "gencardio_bmi.xls",
+    "extension": ".xls",
+    "bytes": 44032,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/gencardio_bmi.xls.json"
+  },
+  {
+    "source_file": "gencardio_lipids-3.xls",
+    "extension": ".xls",
+    "bytes": 53248,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/gencardio_lipids-3.xls.json"
+  },
+  {
+    "source_file": "GFR,45.docx",
+    "extension": ".docx",
+    "bytes": 14662,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/GFR,45.docx.json"
+  },
+  {
+    "source_file": "Global Vascular Risk Predictionnn.docx",
+    "extension": ".docx",
+    "bytes": 17039,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Global Vascular Risk Predictionnn.docx.json"
+  },
+  {
+    "source_file": "How does lung cancer risk calculator work.docx",
+    "extension": ".docx",
+    "bytes": 15598,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/How does lung cancer risk calculator work.docx.json"
+  },
+  {
+    "source_file": "HQQ.docx",
+    "extension": ".docx",
+    "bytes": 26692,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/HQQ.docx.json"
+  },
+  {
+    "source_file": "HRA (清單勾選).xlsx",
+    "extension": ".xlsx",
+    "bytes": 46224,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/HRA (清單勾選).xlsx.json"
+  },
+  {
+    "source_file": "HRA Dementia (Torre J.C. Canada)暫未納入.xlsx",
+    "extension": ".xlsx",
+    "bytes": 24339,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/HRA Dementia (Torre J.C. Canada)暫未納入.xlsx.json"
+  },
+  {
+    "source_file": "HRA Dementia(CAIDE20年)中年適.xlsx",
+    "extension": ".xlsx",
+    "bytes": 24249,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/HRA Dementia(CAIDE20年)中年適.xlsx.json"
+  },
+  {
+    "source_file": "HRA 慢性阻塞性肺病COPD ( 澳洲 ).xlsx",
+    "extension": ".xlsx",
+    "bytes": 27700,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/HRA 慢性阻塞性肺病COPD ( 澳洲 ).xlsx.json"
+  },
+  {
+    "source_file": "HRA 晚發型阿茲海默症(LOAD).xlsx",
+    "extension": ".xlsx",
+    "bytes": 25813,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/HRA 晚發型阿茲海默症(LOAD).xlsx.json"
+  },
+  {
+    "source_file": "HRA演算法導入自動化(肝纖維化-更新).xlsx",
+    "extension": ".xlsx",
+    "bytes": 85211,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/HRA演算法導入自動化(肝纖維化-更新).xlsx.json"
+  },
+  {
+    "source_file": "https-m.medsci.cnscale  .docx",
+    "extension": ".docx",
+    "bytes": 17873,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/https-m.medsci.cnscale  .docx.json"
+  },
+  {
+    "source_file": "hyp200043-149609_-_final_appendix_1_2_27_2010.doc",
+    "extension": ".doc",
+    "bytes": 43008,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/hyp200043-149609_-_final_appendix_1_2_27_2010.doc.json"
+  },
+  {
+    "source_file": "hypertensioncalc-4.xls",
+    "extension": ".xls",
+    "bytes": 30208,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/hypertensioncalc-4.xls.json"
+  },
+  {
+    "source_file": "hypertensioncalc.xls",
+    "extension": ".xls",
+    "bytes": 36352,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/hypertensioncalc.xls.json"
+  },
+  {
+    "source_file": "Ideal body weight.xlsx",
+    "extension": ".xlsx",
+    "bytes": 10576,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Ideal body weight.xlsx.json"
+  },
+  {
+    "source_file": "IF Function example.docx",
+    "extension": ".docx",
+    "bytes": 28562,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/IF Function example.docx.json"
+  },
+  {
+    "source_file": "IF function.docx",
+    "extension": ".docx",
+    "bytes": 51268,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/IF function.docx.json"
+  },
+  {
+    "source_file": "IFkkkkk.docx",
+    "extension": ".docx",
+    "bytes": 12491,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/IFkkkkk.docx.json"
+  },
+  {
+    "source_file": "IFmmmm.docx",
+    "extension": ".docx",
+    "bytes": 17094,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/IFmmmm.docx.json"
+  },
+  {
+    "source_file": "IFmnbvc.docx",
+    "extension": ".docx",
+    "bytes": 14533,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/IFmnbvc.docx.json"
+  },
+  {
+    "source_file": "Liver fibrosis.xlsx",
+    "extension": ".xlsx",
+    "bytes": 11123,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Liver fibrosis.xlsx.json"
+  },
+  {
+    "source_file": "MCI assess.docx",
+    "extension": ".docx",
+    "bytes": 17541,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/MCI assess.docx.json"
+  },
+  {
+    "source_file": "metabolic syndrome.xlsx",
+    "extension": ".xlsx",
+    "bytes": 14997,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/metabolic syndrome.xlsx.json"
+  },
+  {
+    "source_file": "NZ DM Heart.docx",
+    "extension": ".docx",
+    "bytes": 78468,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/NZ DM Heart.docx.json"
+  },
+  {
+    "source_file": "Probability of Stroke Within 10 Years.docx",
+    "extension": ".docx",
+    "bytes": 19139,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Probability of Stroke Within 10 Years.docx.json"
+  },
+  {
+    "source_file": "pseudocyst.pdf",
+    "extension": ".pdf",
+    "bytes": 448046,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/pseudocyst.pdf.json"
+  },
+  {
+    "source_file": "Pulmonary FCV precicted male.xlsx",
+    "extension": ".xlsx",
+    "bytes": 21358,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Pulmonary FCV precicted male.xlsx.json"
+  },
+  {
+    "source_file": "Reynolds.docx",
+    "extension": ".docx",
+    "bytes": 17988,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Reynolds.docx.json"
+  },
+  {
+    "source_file": "ScorechineseDM.docx",
+    "extension": ".docx",
+    "bytes": 305119,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/ScorechineseDM.docx.json"
+  },
+  {
+    "source_file": "Sheet1.docx",
+    "extension": ".docx",
+    "bytes": 12809,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Sheet1.docx.json"
+  },
+  {
+    "source_file": "Solitary Pulmonary Nodule.docx",
+    "extension": ".docx",
+    "bytes": 19782,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/Solitary Pulmonary Nodule.docx.json"
+  },
+  {
+    "source_file": "STROKEAHA.120.030601.pdf",
+    "extension": ".pdf",
+    "bytes": 446471,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/STROKEAHA.120.030601.pdf.json"
+  },
+  {
+    "source_file": "UKPDS DM STROKE Version 1.xlsx",
+    "extension": ".xlsx",
+    "bytes": 21401,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/UKPDS DM STROKE Version 1.xlsx.json"
+  },
+  {
+    "source_file": "UKPDS DM STROKE Version 2.xlsx",
+    "extension": ".xlsx",
+    "bytes": 21041,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/UKPDS DM STROKE Version 2.xlsx.json"
+  },
+  {
+    "source_file": "UKPDS DM STROKE.xlsx",
+    "extension": ".xlsx",
+    "bytes": 20144,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/UKPDS DM STROKE.xlsx.json"
+  },
+  {
+    "source_file": "UKPDS DM-STROKE.xlsx",
+    "extension": ".xlsx",
+    "bytes": 13646,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/UKPDS DM-STROKE.xlsx.json"
+  },
+  {
+    "source_file": "乳癌 (Gail Model).xlsx",
+    "extension": ".xlsx",
+    "bytes": 19277,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/乳癌 (Gail Model).xlsx.json"
+  },
+  {
+    "source_file": "八高.xlsx",
+    "extension": ".xlsx",
+    "bytes": 11859,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/八高.xlsx.json"
+  },
+  {
+    "source_file": "複本 台大心血管健康風險評估_問卷模板.xlsx",
+    "extension": ".xlsx",
+    "bytes": 17749,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/複本 台大心血管健康風險評估_問卷模板.xlsx.json"
+  },
+  {
+    "source_file": "ＲＥＦ.xlsx",
+    "extension": ".xlsx",
+    "bytes": 29215,
+    "status": "ok",
+    "error": null,
+    "extract": "raw/ＲＥＦ.xlsx.json"
+  }
+]

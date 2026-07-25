@@ -127,12 +127,12 @@ class BulkImportService:
                 return self._process_fhir_bundle_native(fhir_json)
             else:
                 # Wrap single resource in a Bundle logic for consistency
-                fake_bundle = {
+                single_resource_bundle = {
                     "resourceType": "Bundle",
                     "type": "transaction",
                     "entry": [{"resource": fhir_json}]
                 }
-                return self._process_fhir_bundle_native(fake_bundle)
+                return self._process_fhir_bundle_native(single_resource_bundle)
             
         except Exception as e:
             logger.error(f"FHIR import error: {str(e)}")

@@ -190,3 +190,13 @@
 - Problem: All ONC g10 certification scenarios passed; future EHR/EMR development needs a frozen baseline and product roadmap.
 - Files changed: `docs/onc_g10_final_pass_archive.md`, `docs/post_onc_ehr_emr_product_plan.md`, `verify_onc_certification_baseline.ps1`, `SYSTEM_TECHNICAL_OVERVIEW.md`.
 - Change: Archived final pass state, added full local baseline guard, and documented the post-ONC frontend/EHR/risk-engine development path.
+
+- Problem: The risk-analysis UI incorrectly required a local `HealthScreening` row even though the risk engine is patient-centric; transaction Bundles using `fullUrl`/`urn:uuid` references could also leave imported Observations unresolved or split one clinical event into many pseudo-screenings.
+- Files changed: `apps/clinical/health_screening/ingestion_service.py`, `frontend/src/components/BulkHealthDataImport.js`, `frontend/src/components/RiskAnalysis.js`, `tests/test_fhir_import_risk_workflow.py`.
+- Change: Preserved raw FHIR R4 resources, resolved standard Bundle references, grouped Observations by Encounter (or patient/date fallback), exposed imported patient targets, and changed the UI to run the audited patient-level risk API over the latest traceable clinical snapshot. Derived results continue to be persisted as FHIR `RiskAssessment` mappings; missing inputs remain explicit rather than being fabricated.
+
+## 2026-07-13
+
+- Problem: The patient-level risk endpoint did not execute or return PREVENT-CVD, PREVENT-ASCVD, or PREVENT-HF results.
+- Files changed: `services/disease_risk_engine/prevent.py`, `services/disease_risk_engine/clinical_math.py`, `services/disease_risk_engine/calculators.py`, `services/disease_risk_engine/repository.py`, `services/disease_risk_engine/service.py`, `apps/clinical/health_screening/ingestion_service.py`, `frontend/src/components/RiskAnalysis.js`, `tests/test_prevent_calculator.py`, `tests/test_fhir_import_risk_workflow.py`, `verify_disease_risk_engine.py`.
+- Change: Added the published sex-specific AHA PREVENT base equations for outcome-specific 10-year total CVD, ASCVD, and HF risk; added real FHIR QuestionnaireResponse/eGFR ingestion, unit normalization, race-free 2021 CKD-EPI eGFR derivation, validated-population handling, algorithm versions, and FHIR-valid RiskAssessment plus Provenance lineage. No synthetic values, mock calculator, proxy, or remote runtime dependency is used.

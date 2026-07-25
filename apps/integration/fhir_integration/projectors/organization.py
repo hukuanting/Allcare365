@@ -1,47 +1,17 @@
-"""Organization projector with stable US Core-compliant singleton data."""
+"""Project persisted organization master data as FHIR Organization."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from django.db.models import Q
+
 from ..meta_builder import MetaBuilder
 from ..projectors.base import BaseProjector
 from ..projectors.registry import ProjectorRegistry
-from ..uscore_templates import ORGANIZATION_ID
+from ..resource_identity import identity
 
 if TYPE_CHECKING:
     from ..fhir_context import FHIRContext
-
-
-def _default_org():
-    return {
-        "resourceType": "Organization",
-        "id": ORGANIZATION_ID,
-        "meta": MetaBuilder.build("us-core-organization"),
-        "identifier": [{
-            "system": "http://hl7.org/fhir/sid/us-npi",
-            "value": "1000000004",
-        }, {
-            "system": "urn:oid:2.16.840.1.113883.6.300",
-            "value": "12345",
-        }],
-        "active": True,
-        "type": [{
-            "coding": [{
-                "system": "http://terminology.hl7.org/CodeSystem/organization-type",
-                "code": "ins",
-                "display": "Insurance Company",
-            }]
-        }],
-        "name": "Allcare365 Health System",
-        "telecom": [{"system": "phone", "value": "555-555-2000"}],
-        "address": [{
-            "line": ["123 Main St"],
-            "city": "Anytown",
-            "state": "CA",
-            "postalCode": "12345",
-            "country": "US",
-        }],
-    }
 
 
 @ProjectorRegistry.register("Organization")
@@ -50,27 +20,80 @@ class OrganizationProjector(BaseProjector):
     profile_key = "us-core-organization"
 
     def query(self, patient_id, search_params, context):
-        org = _default_org()
-        rows = [org]
+        from apps.clinical.patients.models import Organization
 
+        qs = Organization.objects.filter(is_active=True).exclude(name="").exclude(
+            name__iexact="unknown"
+        )
         if search_params.get("_id"):
-            rid = str(search_params["_id"])
-            if rid != org["id"]:
-                return []
+            raw_id = str(search_params["_id"])
+            if raw_id.startswith("org-"):
+                raw_id = raw_id[4:]
+            qs = qs.filter(id=raw_id)
+        if search_params.get("identifier"):
+            value = str(search_params["identifier"]).split("|", 1)[-1]
+            qs = qs.filter(identifier=value)
         if search_params.get("name"):
-            if str(search_params["name"]).lower() not in org["name"].lower():
-                return []
+            qs = qs.filter(name__icontains=str(search_params["name"]))
         if search_params.get("address"):
-            address_text = " ".join(org["address"][0].values()).lower()
-            if str(search_params["address"]).lower() not in address_text:
-                return []
-        return rows
+            value = str(search_params["address"])
+            qs = qs.filter(
+                Q(address_line1__icontains=value)
+                | Q(address_line2__icontains=value)
+                | Q(city__icontains=value)
+                | Q(state__icontains=value)
+                | Q(postal_code__icontains=value)
+                | Q(country__icontains=value)
+            )
+        return qs
 
-    def project_batch(self, queryset_or_list, context):
-        return list(queryset_or_list)
+    def project(self, organization, context: "FHIRContext") -> dict:
+        name = str(organization.name or "").strip()
+        if not name or name.lower() == "unknown":
+            return None
 
-    def project(self, instance, context: "FHIRContext") -> dict:
-        return instance
+        resource = {
+            "resourceType": "Organization",
+            "id": identity.organization_id(organization),
+            "meta": MetaBuilder.build(self.profile_key),
+            "active": bool(organization.is_active),
+            "name": name,
+        }
+        identifier = str(organization.identifier or "").strip()
+        if identifier:
+            resource["identifier"] = [{"value": identifier}]
+        organization_type = str(organization.type or "").strip()
+        if organization_type:
+            resource["type"] = [{"text": organization_type}]
+
+        address = {}
+        lines = [
+            value
+            for value in (
+                str(organization.address_line1 or "").strip(),
+                str(organization.address_line2 or "").strip(),
+            )
+            if value
+        ]
+        if lines:
+            address["line"] = lines
+        for field_name, fhir_name in (
+            ("city", "city"),
+            ("state", "state"),
+            ("postal_code", "postalCode"),
+            ("country", "country"),
+        ):
+            value = str(getattr(organization, field_name, "") or "").strip()
+            if value:
+                address[fhir_name] = value
+        if address:
+            resource["address"] = [address]
+        return resource
 
     def supported_search_params(self):
-        return {"_id": "token", "name": "string", "address": "string"}
+        return {
+            "_id": "token",
+            "identifier": "token",
+            "name": "string",
+            "address": "string",
+        }

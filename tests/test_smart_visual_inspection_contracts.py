@@ -27,12 +27,15 @@ from django.utils import timezone
 from oauth2_provider.models import AccessToken, Application, RefreshToken as OAuthRefreshToken
 
 from apps.core.authentication.views import _build_id_token
-from apps.clinical.patients.models import Patient
+from apps.core.authentication.models import SmartAccessTokenContext
+from apps.core.authentication.smart_utils import SMARTContextService
+from apps.clinical.patients.models import Patient, PatientPractitionerLink, Practitioner
 from apps.integration.fhir_integration.fine_grained_scopes import (
     allowed_category_tokens,
     fine_grained_scope_descriptions,
     resource_matches_allowed_categories,
 )
+from apps.integration.fhir_integration.resource_identity import identity
 from apps.integration.fhir_integration.views import FHIRBaseMixin, FHIRScopePermission
 
 
@@ -76,7 +79,7 @@ class SmartVisualInspectionContractTests(TestCase):
                 "algorithm": "RS256",
             },
         )
-        Patient.objects.get_or_create(
+        self.patient, _ = Patient.objects.get_or_create(
             medical_record_number="ONC-TEST-001",
             defaults={
                 "first_name": "Allcare",
@@ -86,7 +89,38 @@ class SmartVisualInspectionContractTests(TestCase):
                 "is_active": True,
             },
         )
+        self.practitioner, _ = Practitioner.objects.update_or_create(
+            user=self.user,
+            defaults={
+                "first_name": "Test",
+                "last_name": "Clinician",
+                "status": "active",
+                "is_active": True,
+            },
+        )
+        PatientPractitionerLink.objects.update_or_create(
+            patient=self.patient,
+            practitioner=self.practitioner,
+            link_type="primary_care",
+            defaults={"status": "active", "is_active": True},
+        )
         AccessToken.objects.filter(token="visual-token").delete()
+
+    def _launch_token(self):
+        token, _context = SMARTContextService.create_launch_context(
+            patient_token=identity.patient_id(self.patient),
+            user=self.user,
+            target_launch_uri="https://inferno.healthit.gov/suites/custom/smart/launch",
+        )
+        return token
+
+    def _authorization_context(self, code):
+        return SMARTContextService.bind_authorization_code(
+            authorization_code=code,
+            launch_token=self._launch_token(),
+            user=self.user,
+            client_id=self.application.client_id,
+        )
 
     def _public_pkce_token_response(self):
         verifier = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~1234567890"
@@ -100,6 +134,7 @@ class SmartVisualInspectionContractTests(TestCase):
             "scope": "launch/patient openid fhirUser offline_access patient/Patient.rs",
             "state": "state",
             "aud": "https://example.org/fhir/R4",
+            "launch": self._launch_token(),
             "code_challenge": challenge,
             "code_challenge_method": "S256",
         }
@@ -139,7 +174,7 @@ class SmartVisualInspectionContractTests(TestCase):
             "scope": "launch openid fhirUser offline_access patient/Patient.rs",
             "state": "state",
             "aud": "https://example.org/fhir/R4",
-            "launch": "ehr-launch-context",
+            "launch": self._launch_token(),
             "code_challenge": challenge,
             "code_challenge_method": "S256",
         }
@@ -188,6 +223,7 @@ class SmartVisualInspectionContractTests(TestCase):
             "scope": "launch/patient openid fhirUser offline_access patient/Patient.rs patient/Condition.rs patient/Observation.rs",
             "state": "state",
             "aud": "https://example.org/fhir/R4",
+            "launch": self._launch_token(),
             "code_challenge": challenge,
             "code_challenge_method": "S256",
         }
@@ -298,6 +334,7 @@ class SmartVisualInspectionContractTests(TestCase):
                 "client_id": self.application.client_id,
                 "redirect_uri": "https://inferno.healthit.gov/suites/custom/smart/redirect",
                 "scope": f"launch/patient openid fhirUser offline_access {fine_scope}",
+                "launch": self._launch_token(),
                 "state": "state",
                 "aud": "https://example.org/fhir/R4",
                 "code_challenge": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~",
@@ -320,6 +357,7 @@ class SmartVisualInspectionContractTests(TestCase):
                 "client_id": self.application.client_id,
                 "redirect_uri": "https://inferno.healthit.gov/suites/custom/smart/redirect",
                 "scope": "launch/patient openid fhirUser offline_access patient/Patient.rs",
+                "launch": self._launch_token(),
                 "state": "state",
                 "aud": "https://example.org/fhir/R4",
                 "code_challenge": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~",
@@ -345,6 +383,7 @@ class SmartVisualInspectionContractTests(TestCase):
                     "launch/patient openid fhirUser offline_access "
                     "patient/Condition.rs patient/Observation.rs patient/Patient.rs"
                 ),
+                "launch": self._launch_token(),
                 "state": "state",
                 "aud": "https://example.org/fhir/R4",
                 "code_challenge": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~",
@@ -452,7 +491,7 @@ class SmartVisualInspectionContractTests(TestCase):
 
         request = RequestFactory().get(
             "/fhir/R4/Observation",
-            {"patient": "00000000-0000-4000-a000-000000000001"},
+            {"patient": identity.patient_id(self.patient)},
         )
         request.query_params = request.GET
         request.data = {}
@@ -536,6 +575,11 @@ class SmartVisualInspectionContractTests(TestCase):
             expires=timezone.now() + timedelta(minutes=10),
             scope="patient/Patient.rs openid fhirUser",
         )
+        authorization_context = self._authorization_context("visual-introspection-code")
+        SmartAccessTokenContext.objects.create(
+            access_token=token,
+            authorization_context=authorization_context,
+        )
 
         active_response = self.client.post("/o/introspect/", {"token": token.token})
         active_payload = json.loads(active_response.content)
@@ -544,8 +588,12 @@ class SmartVisualInspectionContractTests(TestCase):
         self.assertEqual(active_payload["client_id"], self.application.client_id)
         self.assertEqual(active_payload["sub"], str(self.user.id))
         self.assertEqual(active_payload["iss"], "http://testserver/o")
-        self.assertEqual(active_payload["patient"], "00000000-0000-4000-a000-000000000001")
-        self.assertTrue(active_payload["fhirUser"].endswith("/fhir/R4/Practitioner/example-practitioner"))
+        self.assertEqual(active_payload["patient"], identity.patient_id(self.patient))
+        self.assertTrue(
+            active_payload["fhirUser"].endswith(
+                f"/fhir/R4/Practitioner/{identity.practitioner_id(self.practitioner)}"
+            )
+        )
 
         revoke_response = self.client.post("/o/revoke/", {"token": token.token})
         self.assertEqual(revoke_response.status_code, 200)
@@ -557,6 +605,18 @@ class SmartVisualInspectionContractTests(TestCase):
 
     @override_settings(PUBLIC_BASE_URL="https://example.org", ALLOWED_HOSTS=["testserver", "example.org"])
     def test_openid_token_contains_fhir_user_claim(self):
+        access_token = AccessToken.objects.create(
+            user=self.user,
+            application=self.application,
+            token="id-token-context-access",
+            expires=timezone.now() + timedelta(minutes=10),
+            scope="openid fhirUser patient/Patient.rs",
+        )
+        authorization_context = self._authorization_context("id-token-context-code")
+        SmartAccessTokenContext.objects.create(
+            access_token=access_token,
+            authorization_context=authorization_context,
+        )
         request = RequestFactory().post(
             "/o/token/",
             {
@@ -567,7 +627,12 @@ class SmartVisualInspectionContractTests(TestCase):
         )
         id_token = _build_id_token(
             request,
-            {"scope": "openid fhirUser patient/Patient.rs", "expires_in": 300},
+            {
+                "scope": "openid fhirUser patient/Patient.rs",
+                "expires_in": 300,
+                "access_token": access_token.token,
+            },
+            authorization_context,
         )
 
         header, payload, signature = id_token.split(".")
@@ -579,7 +644,10 @@ class SmartVisualInspectionContractTests(TestCase):
         )
         self.assertEqual(body["iss"], "https://example.org/o")
         self.assertEqual(body["aud"], self.application.client_id)
-        self.assertEqual(body["fhirUser"], "https://example.org/fhir/R4/Practitioner/example-practitioner")
+        self.assertEqual(
+            body["fhirUser"],
+            f"https://example.org/fhir/R4/Practitioner/{identity.practitioner_id(self.practitioner)}",
+        )
         self.assertGreater(body["exp"], int(time.time()))
 
     @override_settings(PUBLIC_BASE_URL="https://example.org", ALLOWED_HOSTS=["testserver", "example.org"])
@@ -605,7 +673,7 @@ class SmartVisualInspectionContractTests(TestCase):
         self.assertEqual(id_token_claims["aud"], self.application.client_id)
         self.assertEqual(
             id_token_claims["fhirUser"],
-            "https://example.org/fhir/R4/Practitioner/example-practitioner",
+            f"https://example.org/fhir/R4/Practitioner/{identity.practitioner_id(self.practitioner)}",
         )
 
     @override_settings(PUBLIC_BASE_URL="https://example.org", ALLOWED_HOSTS=["testserver", "example.org"])
@@ -615,7 +683,7 @@ class SmartVisualInspectionContractTests(TestCase):
         self.assertEqual(token_response.status_code, 200, token_response.content)
         body = json.loads(token_response.content)
         self.assertEqual(body["token_type"], "Bearer")
-        self.assertEqual(body["patient"], "00000000-0000-4000-a000-000000000001")
+        self.assertEqual(body["patient"], identity.patient_id(self.patient))
         self.assertIn("patient/Patient.rs", body["scope"].split())
         self.assertIn("id_token", body)
         self.assertEqual(token_response["Cache-Control"], "no-store")
@@ -639,6 +707,33 @@ class SmartVisualInspectionContractTests(TestCase):
             "patient/Observation.rs?category=http://terminology.hl7.org/CodeSystem/observation-category|laboratory",
             received_scopes,
         )
+
+    @override_settings(PUBLIC_BASE_URL="https://example.org", ALLOWED_HOSTS=["testserver", "example.org"])
+    def test_refresh_token_preserves_exact_patient_context(self):
+        token_response = self._public_pkce_token_response()
+        self.assertEqual(token_response.status_code, 200, token_response.content)
+        token_body = json.loads(token_response.content)
+
+        refresh_response = self.client.post(
+            "/o/token/",
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": token_body["refresh_token"],
+                "client_id": self.application.client_id,
+            },
+            secure=True,
+            HTTP_HOST="example.org",
+        )
+
+        self.assertEqual(refresh_response.status_code, 200, refresh_response.content)
+        refreshed_body = json.loads(refresh_response.content)
+        refreshed_token = AccessToken.objects.get(token=refreshed_body["access_token"])
+        refreshed_context = SMARTContextService.authorization_context_for_access_token(
+            refreshed_token
+        )
+        self.assertIsNotNone(refreshed_context)
+        self.assertEqual(refreshed_context.patient_id, self.patient.id)
+        self.assertEqual(refreshed_body["patient"], identity.patient_id(self.patient))
 
     @override_settings(PUBLIC_BASE_URL="https://example.org", ALLOWED_HOSTS=["testserver", "example.org"])
     def test_access_token_revocation_blocks_refresh_token_reuse(self):

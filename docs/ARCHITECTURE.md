@@ -40,10 +40,10 @@ allcare365/
 *   **Wearable Integration:** Ingests data from external devices.
 
 ### 3. Disease Risk Engine (`services/disease_risk_engine`)
-*   A standalone service that calculates disease risk from CORE.xlsx-compatible inputs.
+*   A standalone service that calculates hospital-approved deterministic disease risks from canonical clinical inputs.
 *   **Input:** Patient, Observation, and QuestionnaireResponse source data.
-*   **Output:** Disease risk result records and FHIR RiskAssessment mappings.
-*   **Algorithms:** FHS DM, CH DM, MetS, NAFLD, FHSFLD, AusDM, and GVR CAIDE v1.
+*   **Output:** Disease risk result records plus FHIR Observation/RiskAssessment and provenance mappings.
+*   **Algorithms:** 42 approved models bound exactly once in `formula_catalog.py`; registry metadata and runtime orchestration remain separate.
 
 ## Technology Stack
 *   **Backend:** Python 3.10+, Django 5.0+
