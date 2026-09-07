@@ -1,6 +1,11 @@
+# Optional ONC/Inferno public-endpoint helper. Normal system startup does not
+# invoke this script.
 $ErrorActionPreference = "Stop"
 
-$logPath = Join-Path $PSScriptRoot "cloudflared-quick-tunnel.log"
+$runtimeDir = Join-Path $PSScriptRoot "tmp\onc-cloudflare"
+New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+
+$logPath = Join-Path $runtimeDir "cloudflared-quick-tunnel.log"
 if (Test-Path $logPath) {
     Remove-Item $logPath -Force
 }
@@ -13,7 +18,7 @@ function Show-OncUrls {
     $fhirBaseUrl = "$publicBaseUrl/fhir/R4"
     $metadataUrl = "$fhirBaseUrl/metadata"
     $smartLaunchTestUrl = "$publicBaseUrl/smart-launch-test/"
-    $envPath = Join-Path $PSScriptRoot "cloudflare-current-url.env"
+    $envPath = Join-Path $runtimeDir "cloudflare-current-url.env"
 
     @(
         "PUBLIC_BASE_URL=$publicBaseUrl"

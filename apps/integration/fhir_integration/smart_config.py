@@ -85,11 +85,16 @@ def smart_configuration(request):
 
 
 def onc_certification_api_documentation(request):
-    """Public certification documentation endpoint for ONC visual attestation."""
+    """Public documentation for certification-candidate API inspection."""
     base_url = get_public_base_url(request)
     fhir_base_url = f"{base_url}/fhir/R4"
     documentation = {
-        "name": "Allcare 365 Certified API Technology",
+        "name": "Allcare 365 Certification Candidate API Technology",
+        "certification_status": "not_certified",
+        "certification_notice": (
+            "This endpoint documents a certification candidate implementation; "
+            "it is not evidence of ONC certification."
+        ),
         "standards": {
             "fhir": "FHIR R4",
             "us_core": "US Core 7.0.0",

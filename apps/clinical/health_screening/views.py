@@ -21,6 +21,7 @@ from .ingestion_service import HealthScreeningIngestionService
 from .models import HealthScreening, Immunization, Problem, Procedure, ResearchAggregateReport
 from .patients_like_this_service import PatientsLikeThisService
 from .research_report_service import ResearchAggregateReportService
+from .sotera_report_service import SoteraResearchReportService
 from .serializers import (
     HealthScreeningSerializer,
     ImmunizationSerializer,
@@ -247,6 +248,26 @@ def data_quality_summary(request):
             "dataset": dataset,
             "readiness": result.get("readiness", {}),
             "record_counts": result.get("record_counts", {}),
+        },
+    )
+    return Response(result)
+
+
+@api_view(["GET"])
+@permission_classes([HasResearchAccess])
+def sotera_continuous_signal_report(request):
+    """Return the latest deidentified continuous-signal import report."""
+
+    result = SoteraResearchReportService().latest()
+    AuditLog.objects.create(
+        actor_user=request.user if getattr(request.user, "is_authenticated", False) else None,
+        action="continuous_signal_report_viewed",
+        target_table="ai_analysis_results",
+        metadata_json={
+            "dataset": result.get("dataset"),
+            "available": result.get("available", False),
+            "quality_status": result.get("quality", {}).get("status"),
+            "ao_status": result.get("ao_readiness", {}).get("status"),
         },
     )
     return Response(result)

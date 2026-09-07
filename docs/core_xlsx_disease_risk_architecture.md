@@ -73,7 +73,8 @@ Missing-data rule:
 - Selection is field-level, not visit-level: every required field chooses the latest available valid value for that field.
 - If one patient has an old comprehensive exam, a newer partial exam, and a newest small exam, the risk input can combine old urine data, newer blood data, and newest body measurements.
 - When two sources have the same effective date, normalized product `observations` take priority over legacy compatibility rows.
-- Every selected field records its source table, source id, effective date, and `selection_policy=latest_available_per_field`.
+- Every selected field records its source table, source id, effective date, age at evaluation, and `selection_policy=latest_valid_at_or_before_evaluation_per_field`.
+- Derived values retain the source fields plus oldest/newest input age and temporal span. Model-specific `max_age` and `max_input_span` rules must be clinically approved; the repository does not invent a global cutoff.
 - Missing values are not treated as `false` or `0`.
 - If a required element is missing, the result is returned as `資料不足`, with `missing_data` keys for auditability and `missing_data_labels` for frontend display.
 - Partial scores must not be presented as clinically valid risk values.

@@ -1407,15 +1407,16 @@ def registry_with_review_candidates(
 
 @lru_cache(maxsize=1)
 def public_algorithm_catalog() -> dict[str, Any]:
-    """Return the complete non-conflicted catalog for authenticated product UI.
+    """Return the governed runtime catalog for authenticated product clients.
 
-    Review candidates remain metadata-only: no extracted formula is exposed or
-    executed. ``blocked_source_conflict`` records were discarded by the loader
-    before this payload is built.
+    The clinical request path deliberately does not read the extraction-era
+    review catalog from disk.  That catalog is an offline governance input and
+    may be absent, archived, or temporarily invalid without making approved
+    runtime models unavailable.  Review candidates must be loaded explicitly
+    through :func:`registry_with_review_candidates` by governance tooling.
     """
 
-    return registry_with_review_candidates().to_frontend_payload(
-        include_review_candidates=True,
+    return runtime_registry().to_frontend_payload(
         include_empty_systems=True,
     )
 

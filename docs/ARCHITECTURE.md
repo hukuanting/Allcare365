@@ -1,11 +1,13 @@
 # Allcare 365 System Architecture
 
 ## Overview
-Allcare 365 is an ONC-certified, FHIR-native Electronic Health Record (EHR) system designed for scalability and interoperability.
+Allcare 365 is currently a certification-oriented EHR demonstration system. It is **not** a formally ONC-certified product and must not be represented as one without current certification evidence. The implementation is hybrid: relational clinical models, persisted FHIR payloads, and FHIR projections coexist while the canonical data boundary is being consolidated.
+
+The target architecture and migration gates are documented in [`PLATFORM_REFACTOR_PLAN_2026-08-29.md`](PLATFORM_REFACTOR_PLAN_2026-08-29.md).
 
 ## Architectural Principles
 1.  **Domain-Driven Design (DDD):** Code is organized by business domain (Clinical, Integration, Core) rather than technical layer.
-2.  **FHIR First:** All clinical data storage and exchange uses HL7 FHIR R4 standards.
+2.  **FHIR Contract First:** External exchange and canonical clinical semantics use HL7 FHIR R4. Relational read models may be used internally, but they must be derived from one versioned clinical write path and retain source references.
 3.  **Service-Oriented:** Business logic is encapsulated in services, not views or models.
 4.  **Security by Design:** SMART on FHIR scopes and OAuth2/OIDC are the primary security mechanisms.
 
@@ -52,7 +54,7 @@ allcare365/
 *   **API:** Django REST Framework, FHIR R4 (fhir.resources)
 *   **Auth:** OAuth2 (django-oauth-toolkit), OIDC
 
-## ONC Certification Strategy
-*   **g10 Standardized API:** Implemented via `fhir_integration` app.
-*   **USCDI v6:** Data models in `health_screening` are mapped to USCDI v6 classes.
-*   **SMART on FHIR:** OAuth2 scopes enforce granular access control.
+## Conformance Implementation Status
+*   **g10 Standardized API:** Certification-oriented implementation exists in `fhir_integration`; passing local tests is not certification evidence.
+*   **US Core / USCDI:** Current code contains US Core 7.0.0 projections and USCDI v6-oriented mappings. A single, explicit certification target still needs to replace these mixed claims.
+*   **SMART on FHIR:** OAuth2/OIDC and granular scope enforcement are implemented, subject to full security and Inferno validation.

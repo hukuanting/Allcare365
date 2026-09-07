@@ -5,9 +5,8 @@ logger = logging.getLogger('medical_system')
 
 class DynamicBaseURLMiddleware:
     """
-    Middleware that dynamically updates the PUBLIC_BASE_URL and 
-    OIDC_ISS_ENDPOINT settings based on the current request, 
-    particularly useful when serving via Cloudflare Tunnel.
+    Middleware that dynamically updates public URL settings when an HTTPS
+    reverse proxy provides the external host.
     """
     def __init__(self, get_response):
         self.get_response = get_response
@@ -17,7 +16,7 @@ class DynamicBaseURLMiddleware:
             host = request.get_host()
             forwarded_proto = request.META.get("HTTP_X_FORWARDED_PROTO", "").split(",")[0].strip().lower()
             
-            # If the request comes through a public tunnel or explicit HTTPS proxy
+            # If the request comes through an HTTPS reverse proxy
             if forwarded_proto == 'https':
                 base_url = f"https://{host}"
                 

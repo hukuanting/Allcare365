@@ -36,6 +36,8 @@ CORS_ALLOWED_ORIGINS = _csv("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_ALL_ORIGINS = False
 FHIR_ALLOW_ANONYMOUS_READ = False
 FHIR_INCLUDE_CONFORMANCE_FIXTURES = False
+OAUTH2_PROVIDER = dict(OAUTH2_PROVIDER)  # noqa: F405
+OAUTH2_PROVIDER["OIDC_RSA_PRIVATE_KEY"] = _required("OIDC_RSA_PRIVATE_KEY").replace("\\n", "\n")
 
 database_url = urlparse(_required("DATABASE_URL"))
 if database_url.scheme not in {"postgres", "postgresql"} or not database_url.hostname:

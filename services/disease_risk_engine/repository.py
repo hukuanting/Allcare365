@@ -3,6 +3,8 @@ from datetime import date, datetime, time, timezone as dt_timezone
 from typing import Any, Dict, Iterable, Optional
 from uuid import UUID
 
+from django.db.models import F, Q, Window
+from django.db.models.functions import RowNumber
 from django.utils import timezone
 
 from apps.clinical.health_screening.models import (
@@ -42,6 +44,13 @@ class ClinicalDataCandidate:
 
 class DiseaseRiskInputRepository:
     """Builds CORE.xlsx style input vectors from the product clinical schema."""
+
+    # Only a bounded number of recent rows per exact code/type are inspected.
+    # This keeps continuous vital-sign streams from being loaded wholesale for
+    # a point-in-time risk snapshot while still allowing recent invalid-unit
+    # rows to fall back to an older valid measurement.
+    RECENT_CANDIDATES_PER_ALIAS = 64
+    DISPLAY_FALLBACK_CANDIDATES = 512
 
     OBSERVATION_ALIASES = {
         "body_height": {"types": {"body_height", "height"}, "codes": {"8302-2"}, "text": {"height"}},
@@ -228,9 +237,9 @@ class DiseaseRiskInputRepository:
         self,
         patient: Patient,
         *,
-        evaluation_as_of: Optional[date] = None,
+        evaluation_as_of: Optional[date | datetime] = None,
     ) -> ClinicalSnapshot:
-        as_of = evaluation_as_of or timezone.localdate()
+        evaluation_at, as_of = self._evaluation_context(evaluation_as_of)
         sex = self._canonical_sex(patient.sex)
         data: Dict[str, Any] = {
             "age": self._age_on(patient.date_of_birth, as_of),
@@ -246,6 +255,11 @@ class DiseaseRiskInputRepository:
         }
         sources: Dict[str, Any] = {
             "patient_id": str(patient.id),
+            "_snapshot": {
+                "evaluation_at": evaluation_at.isoformat(),
+                "evaluation_date": as_of.isoformat(),
+                "selection_policy": "latest_valid_at_or_before_evaluation_per_field",
+            },
             "age": {
                 **patient_source,
                 "field": "date_of_birth",
@@ -259,12 +273,12 @@ class DiseaseRiskInputRepository:
             },
         }
 
-        self._add_product_observations(patient, data, sources)
-        self._add_coded_observation_flags(patient, data, sources)
-        self._add_questionnaire_flags(patient, data, sources)
-        self._add_questionnaire_scalars(patient, data, sources)
+        self._add_product_observations(patient, data, sources, evaluation_at)
+        self._add_coded_observation_flags(patient, data, sources, evaluation_at)
+        self._add_questionnaire_flags(patient, data, sources, evaluation_at)
+        self._add_questionnaire_scalars(patient, data, sources, evaluation_at)
         self._add_problem_flags(patient, data, sources)
-        self._add_legacy_screening_fallback(patient, data, sources)
+        self._add_legacy_screening_fallback(patient, data, sources, evaluation_at, as_of)
 
         if data.get("bmi") is None and data.get("body_height") and data.get("body_weight"):
             height_m = float(data["body_height"]) / 100
@@ -276,9 +290,16 @@ class DiseaseRiskInputRepository:
                         "body_height": sources.get("body_height"),
                         "body_weight": sources.get("body_weight"),
                     },
-                    "selection_policy": "latest_available_per_field",
+                    "selection_policy": (
+                        "latest_valid_at_or_before_evaluation_per_field_then_derive"
+                    ),
                     "normalized_unit": canonical_unit_for("bmi"),
                     "unit_handling": "derived_from_canonical_inputs",
+                    **self._derived_temporal_context(
+                        sources,
+                        ("body_height", "body_weight"),
+                        evaluation_at,
+                    ),
                 }
         if data.get("egfr") is None and data.get("creatinine") not in (None, ""):
             egfr = calculate_egfr_2021(data["creatinine"], data.get("age"), data.get("sex"))
@@ -296,6 +317,11 @@ class DiseaseRiskInputRepository:
                     "selection_policy": "derive_only_when_reported_egfr_is_unavailable",
                     "normalized_unit": canonical_unit_for("egfr"),
                     "unit_handling": "derived_from_canonical_inputs",
+                    **self._derived_temporal_context(
+                        sources,
+                        ("creatinine",),
+                        evaluation_at,
+                    ),
                 }
         if data.get("resting_heart_rate") is None and data.get("heart_rate") is not None:
             data["resting_heart_rate"] = data["heart_rate"]
@@ -312,7 +338,14 @@ class DiseaseRiskInputRepository:
                     "waist_circumference": sources.get("waist_circumference"),
                     "hip_circumference": sources.get("hip_circumference"),
                 },
-                "selection_policy": "latest_available_per_field",
+                "selection_policy": (
+                    "latest_valid_at_or_before_evaluation_per_field_then_derive"
+                ),
+                **self._derived_temporal_context(
+                    sources,
+                    ("waist_circumference", "hip_circumference"),
+                    evaluation_at,
+                ),
             }
 
         return ClinicalSnapshot(data=data, sources=sources)
@@ -326,6 +359,25 @@ class DiseaseRiskInputRepository:
         )
 
     @staticmethod
+    def _evaluation_context(value: Optional[date | datetime]) -> tuple[datetime, date]:
+        if value is None:
+            evaluation_at = timezone.now()
+            return evaluation_at, timezone.localtime(evaluation_at).date()
+        if isinstance(value, datetime):
+            evaluation_at = value
+            if timezone.is_naive(evaluation_at):
+                evaluation_at = timezone.make_aware(
+                    evaluation_at,
+                    timezone.get_current_timezone(),
+                )
+            return evaluation_at, timezone.localtime(evaluation_at).date()
+        evaluation_at = timezone.make_aware(
+            datetime.combine(value, time.max),
+            timezone.get_current_timezone(),
+        )
+        return evaluation_at, value
+
+    @staticmethod
     def _canonical_sex(value: Any) -> Optional[str]:
         normalized = str(value or "").strip().upper()
         if normalized in {"M", "MALE"}:
@@ -334,51 +386,117 @@ class DiseaseRiskInputRepository:
             return "F"
         return None
 
-    def _add_product_observations(self, patient: Patient, data: Dict[str, Any], sources: Dict[str, Any]) -> None:
-        observations = list(
-            Observation.objects.filter(patient=patient, is_active=True)
-            .order_by("-effective_at", "-created_at")
-            .select_related("encounter")
+    def _add_product_observations(
+        self,
+        patient: Patient,
+        data: Dict[str, Any],
+        sources: Dict[str, Any],
+        evaluation_at: datetime,
+    ) -> None:
+        base = Observation.objects.filter(
+            patient=patient,
+            is_active=True,
+            effective_at__lte=evaluation_at,
         )
-        for field in self.OBSERVATION_ALIASES:
-            candidates = []
-            for observation in observations:
-                if not self._observation_matches(observation, field):
-                    continue
-                quantity = self._observation_quantity(observation, field)
-                if quantity is None:
-                    continue
-                candidates.append(
-                    ClinicalDataCandidate(
-                        field=field,
-                        value=quantity.value,
-                        effective_at=observation.effective_at or observation.created_at,
-                        source={
-                            "table": "observations",
-                            "id": str(observation.id),
-                            "code": observation.code,
-                            "display": observation.display,
-                            "original_unit": quantity.original_unit,
-                            "source_unit_display": self._observation_unit_display(observation),
-                            "source_unit_code": self._observation_unit_code(observation),
-                            "normalized_unit": quantity.normalized_unit,
-                            "unit_conversion": quantity.conversion,
-                            "unit_handling": "explicit_observation_unit",
-                            "fhir_reference": self._fhir_reference(observation),
-                            "effective_at": self._iso_datetime(observation.effective_at or observation.created_at),
-                        },
-                        source_priority=30,
-                    )
+        code_fields: Dict[str, set[str]] = {}
+        type_fields: Dict[str, set[str]] = {}
+        for field, aliases in self.OBSERVATION_ALIASES.items():
+            for code in aliases["codes"]:
+                code_fields.setdefault(code, set()).add(field)
+            for observation_type in aliases["types"]:
+                type_fields.setdefault(observation_type, set()).add(field)
+
+        candidates_by_field: Dict[str, list[ClinicalDataCandidate]] = {
+            field: [] for field in self.OBSERVATION_ALIASES
+        }
+        seen: set[tuple[Any, str]] = set()
+        exact_fields_seen: set[str] = set()
+
+        exact_querysets = []
+        if code_fields:
+            exact_querysets.append(
+                self._recent_observations_by_alias(base, "code", tuple(code_fields))
+            )
+        if type_fields:
+            exact_querysets.append(
+                self._recent_observations_by_alias(
+                    base,
+                    "observation_type",
+                    tuple(type_fields),
                 )
-            self._apply_latest_candidate(data, sources, field, candidates)
+            )
+        for queryset in exact_querysets:
+            for observation in queryset:
+                fields = set(code_fields.get(observation.code or "", ()))
+                fields.update(
+                    type_fields.get((observation.observation_type or "").lower(), ())
+                )
+                for field in fields:
+                    exact_fields_seen.add(field)
+                    key = (observation.id, field)
+                    if key in seen or not self._observation_matches(observation, field):
+                        continue
+                    seen.add(key)
+                    candidate = self._product_observation_candidate(observation, field)
+                    if candidate is not None:
+                        candidates_by_field[field].append(candidate)
+
+        # A corrupt continuous feed can contain more than the bounded window
+        # of invalid-unit rows.  Preserve exact "latest valid" semantics by
+        # paging only the anomalous aliases that had rows but no usable value.
+        # Normal streams retain the bounded-query fast path.
+        for field in exact_fields_seen:
+            if candidates_by_field[field]:
+                continue
+            candidate = self._latest_valid_exact_candidate(base, field)
+            if candidate is not None:
+                candidates_by_field[field].append(candidate)
+
+        # Display-text aliases are compatibility-only for non-FHIR product
+        # rows. Search once for unmatched exact aliases instead of loading the
+        # patient's complete longitudinal stream into Python.
+        display_query = Q()
+        for aliases in self.OBSERVATION_ALIASES.values():
+            for token in aliases["text"]:
+                display_query |= Q(display__icontains=token)
+        if display_query:
+            display_rows = (
+                base.exclude(source_type="fhir_import")
+                .exclude(
+                    Q(code__in=tuple(code_fields))
+                    | Q(observation_type__in=tuple(type_fields))
+                )
+                .filter(display_query)
+                .order_by("-effective_at", "-created_at")
+                .select_related("encounter")[: self.DISPLAY_FALLBACK_CANDIDATES]
+            )
+            for observation in display_rows:
+                for field in self.OBSERVATION_ALIASES:
+                    key = (observation.id, field)
+                    if key in seen or not self._observation_matches(observation, field):
+                        continue
+                    seen.add(key)
+                    candidate = self._product_observation_candidate(observation, field)
+                    if candidate is not None:
+                        candidates_by_field[field].append(candidate)
+
+        for field, candidates in candidates_by_field.items():
+            self._apply_latest_candidate(
+                data,
+                sources,
+                field,
+                candidates,
+                evaluation_at=evaluation_at,
+            )
 
         systolic_candidates = []
         diastolic_candidates = []
-        for bp_observation in (
-            observation
-            for observation in observations
-            if observation.observation_type == "blood_pressure" or observation.code == "85354-9"
-        ):
+        bp_observations = (
+            base.filter(Q(observation_type="blood_pressure") | Q(code="85354-9"))
+            .order_by("-effective_at", "-created_at")
+            .select_related("encounter")[: self.RECENT_CANDIDATES_PER_ALIAS]
+        )
+        for bp_observation in bp_observations:
             effective_at = bp_observation.effective_at or bp_observation.created_at
             source = {
                 "table": "observations",
@@ -430,12 +548,101 @@ class DiseaseRiskInputRepository:
                         source_priority=30,
                     )
                 )
-        self._apply_latest_candidate(data, sources, "systolic_bp", systolic_candidates)
-        self._apply_latest_candidate(data, sources, "diastolic_bp", diastolic_candidates)
+        self._apply_latest_candidate(
+            data,
+            sources,
+            "systolic_bp",
+            systolic_candidates,
+            evaluation_at=evaluation_at,
+        )
+        self._apply_latest_candidate(
+            data,
+            sources,
+            "diastolic_bp",
+            diastolic_candidates,
+            evaluation_at=evaluation_at,
+        )
 
-    def _add_questionnaire_flags(self, patient: Patient, data: Dict[str, Any], sources: Dict[str, Any]) -> None:
+    def _recent_observations_by_alias(self, base, field: str, values: tuple[str, ...]):
+        return (
+            base.filter(**{f"{field}__in": values})
+            .annotate(
+                _alias_rank=Window(
+                    expression=RowNumber(),
+                    partition_by=[F(field)],
+                    order_by=[F("effective_at").desc(), F("created_at").desc()],
+                )
+            )
+            .filter(_alias_rank__lte=self.RECENT_CANDIDATES_PER_ALIAS)
+            .select_related("encounter")
+        )
+
+    def _product_observation_candidate(
+        self,
+        observation: Observation,
+        field: str,
+    ) -> Optional[ClinicalDataCandidate]:
+        quantity = self._observation_quantity(observation, field)
+        if quantity is None:
+            return None
+        effective_at = observation.effective_at or observation.created_at
+        return ClinicalDataCandidate(
+            field=field,
+            value=quantity.value,
+            effective_at=effective_at,
+            source={
+                "table": "observations",
+                "id": str(observation.id),
+                "code": observation.code,
+                "display": observation.display,
+                "original_unit": quantity.original_unit,
+                "source_unit_display": self._observation_unit_display(observation),
+                "source_unit_code": self._observation_unit_code(observation),
+                "normalized_unit": quantity.normalized_unit,
+                "unit_conversion": quantity.conversion,
+                "unit_handling": "explicit_observation_unit",
+                "fhir_reference": self._fhir_reference(observation),
+                "effective_at": self._iso_datetime(effective_at),
+            },
+            source_priority=30,
+        )
+
+    def _latest_valid_exact_candidate(
+        self,
+        base,
+        field: str,
+    ) -> Optional[ClinicalDataCandidate]:
+        aliases = self.OBSERVATION_ALIASES[field]
+        query = Q(code__in=tuple(aliases["codes"])) | Q(
+            observation_type__in=tuple(aliases["types"])
+        )
+        observations = (
+            base.filter(query)
+            .order_by("-effective_at", "-created_at")
+            .select_related("encounter")
+            .iterator(chunk_size=self.RECENT_CANDIDATES_PER_ALIAS)
+        )
+        for observation in observations:
+            if not self._observation_matches(observation, field):
+                continue
+            candidate = self._product_observation_candidate(observation, field)
+            if candidate is not None:
+                return candidate
+        return None
+
+    def _add_questionnaire_flags(
+        self,
+        patient: Patient,
+        data: Dict[str, Any],
+        sources: Dict[str, Any],
+        evaluation_at: datetime,
+    ) -> None:
         responses = list(
-            QuestionnaireResponse.objects.filter(patient=patient, is_active=True)
+            QuestionnaireResponse.objects.filter(
+                patient=patient,
+                is_active=True,
+                authored_at__lte=evaluation_at,
+            )
             .order_by("-authored_at", "-created_at")
             .select_related("encounter")
         )
@@ -468,11 +675,27 @@ class DiseaseRiskInputRepository:
                         source_priority=20,
                     )
                 )
-            self._apply_latest_candidate(data, sources, field, candidates)
+            self._apply_latest_candidate(
+                data,
+                sources,
+                field,
+                candidates,
+                evaluation_at=evaluation_at,
+            )
 
-    def _add_questionnaire_scalars(self, patient: Patient, data: Dict[str, Any], sources: Dict[str, Any]) -> None:
+    def _add_questionnaire_scalars(
+        self,
+        patient: Patient,
+        data: Dict[str, Any],
+        sources: Dict[str, Any],
+        evaluation_at: datetime,
+    ) -> None:
         responses = list(
-            QuestionnaireResponse.objects.filter(patient=patient, is_active=True)
+            QuestionnaireResponse.objects.filter(
+                patient=patient,
+                is_active=True,
+                authored_at__lte=evaluation_at,
+            )
             .order_by("-authored_at", "-created_at")
         )
         for field in self.QUESTIONNAIRE_SCALAR_FIELDS:
@@ -504,13 +727,28 @@ class DiseaseRiskInputRepository:
                         source_priority=20,
                     )
                 )
-            self._apply_latest_candidate(data, sources, field, candidates)
+            self._apply_latest_candidate(
+                data,
+                sources,
+                field,
+                candidates,
+                evaluation_at=evaluation_at,
+            )
 
-    def _add_coded_observation_flags(self, patient: Patient, data: Dict[str, Any], sources: Dict[str, Any]) -> None:
+    def _add_coded_observation_flags(
+        self,
+        patient: Patient,
+        data: Dict[str, Any],
+        sources: Dict[str, Any],
+        evaluation_at: datetime,
+    ) -> None:
         candidates = []
-        observations = Observation.objects.filter(patient=patient, is_active=True, code="72166-2").order_by(
-            "-effective_at", "-created_at"
-        )
+        observations = Observation.objects.filter(
+            patient=patient,
+            is_active=True,
+            code="72166-2",
+            effective_at__lte=evaluation_at,
+        ).order_by("-effective_at", "-created_at")[: self.RECENT_CANDIDATES_PER_ALIAS]
         for observation in observations:
             smoking = self._smoking_status_value(observation)
             if smoking is None:
@@ -532,7 +770,13 @@ class DiseaseRiskInputRepository:
                     source_priority=30,
                 )
             )
-        self._apply_latest_candidate(data, sources, "is_smoker", candidates)
+        self._apply_latest_candidate(
+            data,
+            sources,
+            "is_smoker",
+            candidates,
+            evaluation_at=evaluation_at,
+        )
 
     def _smoking_status_value(self, observation: Observation) -> Optional[bool]:
         raw_value = observation.value_json.get("raw_value") if isinstance(observation.value_json, dict) else None
@@ -652,10 +896,21 @@ class DiseaseRiskInputRepository:
             data["pvd_history"] = True
             sources["pvd_history"] = source
 
-    def _add_legacy_screening_fallback(self, patient: Patient, data: Dict[str, Any], sources: Dict[str, Any]) -> None:
+    def _add_legacy_screening_fallback(
+        self,
+        patient: Patient,
+        data: Dict[str, Any],
+        sources: Dict[str, Any],
+        evaluation_at: datetime,
+        evaluation_date: date,
+    ) -> None:
         # Compatibility only: active ingestion now writes product observations.
         screenings = list(
-            HealthScreening.objects.filter(patient=patient, is_active=True)
+            HealthScreening.objects.filter(
+                patient=patient,
+                is_active=True,
+                screening_date__lte=evaluation_date,
+            )
             .order_by("-screening_date", "-created_at")
             .prefetch_related("lab_results")
         )
@@ -666,6 +921,7 @@ class DiseaseRiskInputRepository:
             Observation.objects.filter(
                 patient=patient,
                 is_active=True,
+                effective_at__lte=evaluation_at,
                 encounter__source_screening__in=screenings,
             ).values_list("encounter__source_screening_id", flat=True)
         )
@@ -703,7 +959,13 @@ class DiseaseRiskInputRepository:
                         source_priority=10,
                     )
                 )
-            self._apply_latest_candidate(data, sources, field, candidates)
+            self._apply_latest_candidate(
+                data,
+                sources,
+                field,
+                candidates,
+                evaluation_at=evaluation_at,
+            )
 
         for field, aliases in self.LEGACY_LAB_ALIASES.items():
             candidates = []
@@ -744,7 +1006,13 @@ class DiseaseRiskInputRepository:
                             source_priority=10,
                         )
                     )
-            self._apply_latest_candidate(data, sources, field, candidates)
+            self._apply_latest_candidate(
+                data,
+                sources,
+                field,
+                candidates,
+                evaluation_at=evaluation_at,
+            )
 
     def _observation_matches(self, observation: Observation, field: str) -> bool:
         alias = self.OBSERVATION_ALIASES[field]
@@ -933,8 +1201,16 @@ class DiseaseRiskInputRepository:
         sources: Dict[str, Any],
         field: str,
         candidates: Iterable[ClinicalDataCandidate],
+        *,
+        evaluation_at: datetime,
     ) -> None:
-        valid_candidates = [candidate for candidate in candidates if candidate.value not in (None, "")]
+        evaluation_ts = self._timestamp(evaluation_at)
+        valid_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.value not in (None, "")
+            and self._timestamp(candidate.effective_at) <= evaluation_ts
+        ]
         if not valid_candidates:
             return
         selected = max(valid_candidates, key=self._candidate_sort_key)
@@ -947,14 +1223,62 @@ class DiseaseRiskInputRepository:
             if current_ts == selected_ts and current_priority > selected.source_priority:
                 return
         data[field] = selected.value
+        age_seconds = (
+            None
+            if selected_ts == float("-inf")
+            else max(0.0, evaluation_ts - selected_ts)
+        )
         sources[field] = {
             **selected.source,
-            "selection_policy": "latest_available_per_field",
+            "selection_policy": "latest_valid_at_or_before_evaluation_per_field",
             "source_priority": selected.source_priority,
+            "evaluation_at": evaluation_at.isoformat(),
+            "age_at_evaluation_seconds": age_seconds,
+            "age_at_evaluation_days": (
+                round(age_seconds / 86400.0, 6) if age_seconds is not None else None
+            ),
         }
 
     def _candidate_sort_key(self, candidate: ClinicalDataCandidate) -> tuple[float, int]:
         return (self._timestamp(candidate.effective_at), candidate.source_priority)
+
+    def _derived_temporal_context(
+        self,
+        sources: Dict[str, Any],
+        fields: Iterable[str],
+        evaluation_at: datetime,
+    ) -> Dict[str, Any]:
+        """Expose temporal mismatch without inventing clinical freshness limits.
+
+        Acceptable maximum age and maximum input span are model-specific and
+        require primary-source or clinical-owner approval.  The repository
+        therefore records the facts needed for that policy instead of silently
+        rejecting an older-but-latest value.
+        """
+
+        timestamps = [
+            timestamp
+            for field in fields
+            if (timestamp := self._source_timestamp(sources.get(field)))
+            != float("-inf")
+        ]
+        if not timestamps:
+            return {}
+        evaluation_ts = self._timestamp(evaluation_at)
+        return {
+            "oldest_input_age_days": round(
+                max(0.0, evaluation_ts - min(timestamps)) / 86400.0,
+                6,
+            ),
+            "newest_input_age_days": round(
+                max(0.0, evaluation_ts - max(timestamps)) / 86400.0,
+                6,
+            ),
+            "input_temporal_span_days": round(
+                (max(timestamps) - min(timestamps)) / 86400.0,
+                6,
+            ),
+        }
 
     def _legacy_vitals(self, screening: HealthScreening) -> Any:
         try:

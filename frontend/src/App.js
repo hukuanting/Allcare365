@@ -14,6 +14,7 @@ import HealthDataInput from './components/HealthDataInput';
 import RiskAnalysis from './components/RiskAnalysis';
 import ResearchCohorts from './components/ResearchCohorts';
 import ResearchReports from './components/ResearchReports';
+import ContinuousSignalReport from './components/ContinuousSignalReport';
 import BulkHealthDataImport from './components/BulkHealthDataImport';
 import PatientManagement from './components/PatientManagement';
 import PatientChart from './components/PatientChart';
@@ -148,6 +149,7 @@ function App() {
               <Route path="/risk-analysis" element={<ProtectedPage><RiskAnalysis /></ProtectedPage>} />
               <Route path="/research-cohorts" element={<ProtectedPage allowedRoles={RESEARCH_ACCESS_ROLES}><ResearchCohorts /></ProtectedPage>} />
               <Route path="/research-reports" element={<ProtectedPage allowedRoles={RESEARCH_ACCESS_ROLES}><ResearchReports /></ProtectedPage>} />
+              <Route path="/research-continuous-signals" element={<ProtectedPage allowedRoles={RESEARCH_ACCESS_ROLES}><ContinuousSignalReport /></ProtectedPage>} />
               <Route path="/history" element={<ProtectedPage><HistoryRecords /></ProtectedPage>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

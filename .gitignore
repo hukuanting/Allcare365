@@ -16,10 +16,6 @@ frontend/.env.production.local
 *.pem
 local_settings.py
 
-# Cloudflare tunnel runtime files
-cloudflared-quick-tunnel.log
-cloudflare-current-url.env
-
 # Local clinical/source artifacts
 H2U_cvd_input_update.csv
 CORE.xlsx
@@ -27,6 +23,13 @@ ONC_CERTIFICATION.pdf
 ONC_CERTIFICATION*.pdf
 anon/*.db
 example/raw/
+
+# Restricted source evidence archives are kept outside the repository. The
+# generated manifest under docs/ remains the shareable inventory of these files.
+/docs/Examplar excel files/
+
+# Confidential Sotera research delivery materials
+/data/.delivery-research-tsukuba/
 
 # Python
 __pycache__/

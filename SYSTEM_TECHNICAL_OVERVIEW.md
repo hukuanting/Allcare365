@@ -427,32 +427,32 @@ React frontend:  http://localhost:3000
 Django backend:  http://localhost:8000
 PostgreSQL:      localhost:5432
 Redis:           localhost:6379
-Cloudflare:      public tunnel to backend for Inferno/SMART testing
 ```
 
-`start_system.bat` currently starts:
+`start_system.bat` starts only the local application services:
 
 1. Django migration and backend server on `0.0.0.0:8000`.
 2. React frontend through `npm start`.
-3. Cloudflare Tunnel to port `8000`.
 
-By default the script runs a free Cloudflare quick tunnel and prints the
-current ONC/Inferno URLs:
+The optional Cloudflare quick-tunnel script is not part of normal application
+startup. Run it separately only when an ONC/Inferno public endpoint is needed:
 
 ```powershell
 .\start_system.bat
+.\start_cloudflare_quick_tunnel.ps1
 ```
 
-The Cloudflare tunnel window prints:
+When used, the optional tunnel script prints:
 
 - `PUBLIC_BASE_URL`
 - FHIR Base URL, for example `https://<quick-id>.trycloudflare.com/fhir/R4`
 - FHIR metadata URL
 - OIDC issuer, for example `https://<quick-id>.trycloudflare.com/o/`
 
-Quick tunnel URLs can change each time `cloudflared` is restarted. For the
-fully free workflow, copy the latest values printed by the Cloudflare tunnel
-window into ONC/Inferno before each certification run.
+Quick tunnel URLs can change each time `cloudflared` is restarted. The
+application itself does not require Cloudflare; configure `PUBLIC_BASE_URL`,
+`ALLOWED_HOSTS`, and `CSRF_TRUSTED_ORIGINS` explicitly when using any public
+reverse proxy.
 
 ### 4.2 Backend Request Paths
 

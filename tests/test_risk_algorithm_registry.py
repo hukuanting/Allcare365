@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -17,8 +16,6 @@ django.setup()
 from services.disease_risk_engine.algorithm_registry import (
     CLINICAL_SYSTEM_DEFINITIONS,
     CLINICAL_VARIABLES,
-    DEFAULT_REVIEW_CATALOG_PATH,
-    DEFAULT_REVIEW_SCHEMA_PATH,
     CatalogInvariantError,
     CatalogSchemaValidationError,
     ClinicalSourceKind,
@@ -46,12 +43,121 @@ from services.disease_risk_engine.runtime_calculators import (
 from services.disease_risk_engine.service import DiseaseRiskAssessmentService
 
 
-def _source_catalog():
-    return json.loads(DEFAULT_REVIEW_CATALOG_PATH.read_text(encoding="utf-8"))
+_REVIEW_CATEGORY_RUNTIME_IDS = {
+    "anthropometry": "bmi",
+    "metabolic": "tyg_index",
+    "diabetes": "framingham_diabetes",
+    "fatty_liver": "fatty_liver_index",
+    "liver_fibrosis": "fib4",
+    "cardiovascular": "framingham_cvd_10_lipids",
+    "cardiovascular_diabetes": "christianson_t2dm_chd_score",
+    "hypertension": "framingham_hypertension",
+    "dementia": "dementia_risk_score_thin_60_79",
+    "lung_cancer": "mayo_pulmonary_nodule",
+    "mental_health": "gad7",
+}
 
 
-def test_example_catalog_validates_and_only_instantiates_reviewable_candidates():
-    source = _source_catalog()
+def _review_record(algorithm_id, category, implementation_status):
+    return {
+        "id": algorithm_id,
+        "name": f"Review fixture for {algorithm_id}",
+        "category": category,
+        "target": "test outcome",
+        "time_horizon": None,
+        "population": "synthetic test population",
+        "implementation_status": implementation_status,
+        "formula": (
+            "test-only extracted formula"
+            if implementation_status == "candidate_after_clinical_validation"
+            else None
+        ),
+        "output": "test result",
+        "inputs": [{
+            "name": "age",
+            "type": "number",
+            "unit": "years",
+            "encoding": None,
+            "constraints": ">=0",
+        }],
+        "source_locations": ["synthetic-test-source"],
+        "literature": [],
+        "issues": [],
+        "fhir_output": "RiskAssessment",
+    }
+
+
+@pytest.fixture
+def review_catalog_files(tmp_path):
+    source = {
+        "schema_version": "test-1.0.0",
+        "algorithms": [
+            *[
+                _review_record(algorithm_id, category, "candidate_after_clinical_validation")
+                for category, algorithm_id in _REVIEW_CATEGORY_RUNTIME_IDS.items()
+            ],
+            _review_record(
+                "blocked_source_conflict_test",
+                "cardiovascular",
+                "blocked_source_conflict",
+            ),
+        ],
+    }
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "required": ["schema_version", "algorithms"],
+        "properties": {
+            "schema_version": {"type": "string"},
+            "algorithms": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": [
+                        "id",
+                        "name",
+                        "category",
+                        "implementation_status",
+                        "formula",
+                        "output",
+                        "inputs",
+                        "source_locations",
+                        "fhir_output",
+                    ],
+                    "properties": {
+                        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+                        "name": {"type": "string"},
+                        "category": {"type": "string"},
+                        "implementation_status": {
+                            "enum": [
+                                "candidate_after_clinical_validation",
+                                "blocked_source_conflict",
+                                "reference_only",
+                            ]
+                        },
+                        "formula": {"type": ["string", "null"]},
+                        "output": {"type": "string"},
+                        "inputs": {"type": "array"},
+                        "source_locations": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "minItems": 1,
+                        },
+                        "fhir_output": {"enum": ["RiskAssessment", "Observation"]},
+                    },
+                },
+            },
+        },
+    }
+    catalog_path = tmp_path / "algorithms.json"
+    schema_path = tmp_path / "algorithm.schema.json"
+    catalog_path.write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
+    schema_path.write_text(json.dumps(schema, ensure_ascii=False), encoding="utf-8")
+    return source, catalog_path, schema_path
+
+
+def test_review_catalog_validates_and_only_instantiates_reviewable_candidates(review_catalog_files):
+    source, catalog_path, schema_path = review_catalog_files
     reviewable_ids = {
         record["id"]
         for record in source["algorithms"]
@@ -63,7 +169,7 @@ def test_example_catalog_validates_and_only_instantiates_reviewable_candidates()
         if record["implementation_status"] == "blocked_source_conflict"
     }
 
-    snapshot = load_review_catalog()
+    snapshot = load_review_catalog(catalog_path, schema_path)
 
     assert set(snapshot.candidate_ids) == reviewable_ids
     assert blocked_ids
@@ -77,8 +183,8 @@ def test_example_catalog_validates_and_only_instantiates_reviewable_candidates()
     assert all(blocked_id not in serialized_public_catalog for blocked_id in blocked_ids)
 
 
-def test_public_catalog_contains_all_non_conflicted_models_without_formulas():
-    source = _source_catalog()
+def test_public_catalog_contains_all_non_conflicted_models_without_formulas(review_catalog_files):
+    source, _, _ = review_catalog_files
     payload = public_algorithm_catalog()
     algorithms = [
         algorithm
@@ -109,14 +215,32 @@ def test_public_catalog_contains_all_non_conflicted_models_without_formulas():
     assert all(blocked_id not in serialized for blocked_id in blocked_ids)
 
 
-def test_schema_validation_rejects_a_catalog_missing_required_metadata(tmp_path):
-    source = _source_catalog()
+def test_public_catalog_does_not_depend_on_the_offline_review_catalog(monkeypatch):
+    def unavailable_review_catalog(*args, **kwargs):
+        raise CatalogSchemaValidationError("offline review catalog unavailable")
+
+    public_algorithm_catalog.cache_clear()
+    monkeypatch.setattr(
+        "services.disease_risk_engine.algorithm_registry.registry_with_review_candidates",
+        unavailable_review_catalog,
+    )
+
+    payload = public_algorithm_catalog()
+
+    assert payload["counts"]["runtime_catalog_models"] == len(RUNTIME_ALGORITHMS)
+    assert payload["counts"]["executable_models"] == len(RUNTIME_ALGORITHMS)
+    assert payload["counts"]["review_candidate_models"] == 0
+    public_algorithm_catalog.cache_clear()
+
+
+def test_schema_validation_rejects_a_catalog_missing_required_metadata(tmp_path, review_catalog_files):
+    source, _, schema_path = review_catalog_files
     del source["schema_version"]
     invalid_catalog = tmp_path / "algorithms.json"
     invalid_catalog.write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
 
     with pytest.raises(CatalogSchemaValidationError, match="schema_version"):
-        load_review_catalog(invalid_catalog, DEFAULT_REVIEW_SCHEMA_PATH)
+        load_review_catalog(invalid_catalog, schema_path)
 
 
 def test_clinical_system_codes_and_order_are_stable():
@@ -133,7 +257,7 @@ def test_clinical_system_codes_and_order_are_stable():
     assert [definition.sort_order for definition in CLINICAL_SYSTEM_DEFINITIONS] == [10, 20, 30, 40, 50, 60, 70, 999]
 
 
-def test_review_source_categories_have_explicit_stable_classifications():
+def test_review_source_categories_have_explicit_stable_classifications(review_catalog_files):
     expected = {
         "anthropometry": ClinicalSystem.METABOLIC_ENDOCRINE,
         "metabolic": ClinicalSystem.METABOLIC_ENDOCRINE,
@@ -148,7 +272,8 @@ def test_review_source_categories_have_explicit_stable_classifications():
         "mental_health": ClinicalSystem.MENTAL_HEALTH,
     }
 
-    candidates = load_review_catalog().candidates
+    _, catalog_path, schema_path = review_catalog_files
+    candidates = load_review_catalog(catalog_path, schema_path).candidates
 
     assert {candidate.source_category for candidate in candidates} == set(expected)
     assert all(candidate.clinical_system is expected[candidate.source_category] for candidate in candidates)
@@ -342,8 +467,9 @@ def test_canonical_boolean_validation_never_defaults_invalid_values_to_false(inv
     assert "has_diabetes" in validation.missing_fields
 
 
-def test_frontend_grouping_defaults_to_runtime_and_requires_explicit_review_opt_in():
-    registry = registry_with_review_candidates()
+def test_frontend_grouping_defaults_to_runtime_and_requires_explicit_review_opt_in(review_catalog_files):
+    _, catalog_path, schema_path = review_catalog_files
+    registry = registry_with_review_candidates(catalog_path, schema_path)
 
     default_payload = registry.to_frontend_payload(include_empty_systems=True)
     default_algorithms = [

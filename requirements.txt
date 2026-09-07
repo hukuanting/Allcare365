@@ -43,6 +43,8 @@ drf-spectacular[sidecar]==0.26.5
 # File Processing
 Pillow==10.0.1
 python-magic==0.4.27
+boto3==1.43.82
+pyarrow==25.0.1
 
 # Async Support
 celery==5.3.6

@@ -304,6 +304,8 @@ class SmartVisualInspectionContractTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         body = json.loads(response.content)
+        self.assertEqual(body["certification_status"], "not_certified")
+        self.assertNotEqual(body["name"], "Allcare 365 Certified API Technology")
         self.assertEqual(body["service_base_urls"]["fhir_r4"], "https://example.org/fhir/R4")
         self.assertEqual(
             body["service_base_urls"]["bulk_group_export"],

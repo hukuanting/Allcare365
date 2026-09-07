@@ -20,6 +20,7 @@ const API_CONFIG = {
     COHORT_SUMMARY: '/api/health-screening/cohorts/summary/',
     PATIENTS_LIKE_THIS: '/api/health-screening/cohorts/patients-like-this/',
     DATA_QUALITY_SUMMARY: '/api/health-screening/data-quality/summary/',
+    CONTINUOUS_SIGNAL_REPORT: '/api/health-screening/research/continuous-signals/latest/',
     RESEARCH_REPORTS: '/api/health-screening/research-reports/',
 
     FHIR_BASE: '/fhir/R4',

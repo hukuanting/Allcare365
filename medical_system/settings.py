@@ -33,7 +33,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='localhost,127.0.0.1,.trycloudflare.com',
+    default='localhost,127.0.0.1',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
@@ -64,14 +64,40 @@ INFERNO_BULK_ALLOW_DYNAMIC_CLIENT_REGISTRATION = config(
 
 _oidc_iss_default = f'{PUBLIC_BASE_URL}/o' if PUBLIC_BASE_URL else ''
 
-# CSRF Trusted Origins for public tunnel and Inferno access
+
+def _oidc_private_key():
+    """Load the OIDC signing key without keeping private material in Git."""
+
+    configured = config('OIDC_RSA_PRIVATE_KEY', default='').replace('\\n', '\n').strip()
+    if configured:
+        return configured
+    if DEBUG:
+        # A process-local key keeps SMART/OIDC development and tests usable.
+        # It is intentionally unstable across reloads and must never be used in
+        # production, where settings_production requires an injected key.
+        from jwcrypto import jwk
+
+        return jwk.JWK.generate(kty='RSA', size=2048).export_to_pem(
+            private_key=True,
+            password=None,
+        ).decode('utf-8')
+    return ''
+
+
+OIDC_RSA_PRIVATE_KEY = _oidc_private_key()
+
+# Keep local origins as the development default. Public deployment or ONC
+# testing must opt in through CSRF_TRUSTED_ORIGINS explicitly.
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.trycloudflare.com',
-    'https://inferno.healthit.gov',  # 允許 Inferno 進行認證回傳
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://localhost:8000',
-    'https://127.0.0.1:8000',
+    origin.strip()
+    for origin in config(
+        'CSRF_TRUSTED_ORIGINS',
+        default=(
+            'http://localhost:3000,http://127.0.0.1:3000,'
+            'https://localhost:8000,https://127.0.0.1:8000'
+        ),
+    ).split(',')
+    if origin.strip()
 ]
 
 
@@ -102,7 +128,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'apps.core.authentication.middleware.OAuthScopeCleanupMiddleware',  # Clean scopes before OAuth processing
     'corsheaders.middleware.CorsMiddleware',
-    'apps.integration.fhir_integration.middleware.DynamicBaseURLMiddleware',  # Dynamically set Base URL
+    'apps.integration.fhir_integration.middleware.DynamicBaseURLMiddleware',  # Reverse-proxy URL compatibility
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'oauth2_provider.middleware.OAuth2TokenMiddleware',  # OAuth2 Middleware
@@ -242,9 +268,12 @@ REST_FRAMEWORK = {
 
 # CORS settings for React frontend (Port 3000)
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://inferno.healthit.gov",  # For ONC testing
+    origin.strip()
+    for origin in config(
+        'CORS_ALLOWED_ORIGINS',
+        default='http://localhost:3000,http://127.0.0.1:3000',
+    ).split(',')
+    if origin.strip()
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -265,7 +294,8 @@ CORS_ALLOW_HEADERS = [
 
 # Security settings for medical data
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = False # Local Cloudflare Tunnel terminates HTTPS during certification testing.
+# Local development serves HTTP; production settings enable HTTPS redirects.
+SECURE_SSL_REDIRECT = False
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
@@ -273,7 +303,7 @@ SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 
-# Trust Cloudflare Tunnel proxy headers for generated absolute URLs.
+# Trust reverse-proxy headers for generated absolute URLs.
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
@@ -504,33 +534,7 @@ OAUTH2_PROVIDER = {
 
     'OIDC_ENABLED': True,
     'OIDC_ISS_ENDPOINT': config('OIDC_ISS_ENDPOINT', default=_oidc_iss_default),
-    'OIDC_RSA_PRIVATE_KEY': """-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEAn/XHuvhjsAKSfk105psNpLlcr11/utG4KXZcrnbawVCWqZBT
-9iDxsgABdRYeRjKcc0g9MrS3usL4Nb129LiY/qGaHY6ld4kPsVF+wyP6QkTtDkZq
-15Sg+51cb+Hdc/A4XjzUs48sKWdBpQ6DiIbQBVYLfXgIi/oYWUrCz7/+/LJCXfNn
-vFDCrHcBTBzSUDxo8bHwZVPWWejX3PCFMq7OoD4nGqpFeHl+rCRyJ4NS3g13Nf6c
-57eBiWq6gOvriRH8tz+/ON+V6LJ0TLR82/zj+GUCDj0EV/QPCWZPeXjwwAT7Xv3M
-wcaCkzJu6nRU2AEmXOG8PTIaYu2/8n0yKdF5UQIDAQABAoIBAAcRmVCSwLQC3xao
-BVwZ+sO+YcFJplb7BNKHPaADllXv4eKPI1i3errRG39hOXgEbUu+Y97xY8Oj8UxN
-qbu1iyRIf6sh9j+2rbv6JBoLRVhHm7qzY64Qbj9ERFUY4/yHP3Rxp3wiXfMb8ieR
-QUCHpZpww5v5MZZ++DO89SgxXbsssw8Lm33ZWFDxpTMYKGsAY/RrI8pWt3rA85NN
-iUmNz03FrU3+Cqz1mfzmkW0wfwoVC5aayz+nqu1garWz4aON+Doruxnei/inkvFS
-BjZVgt2tFYXCyxUjRROcgjtm7D0qJNeghCvdgpKzOArWrLFAyiW7Df4zTSDsceSO
-beTSjQkCgYEA1Z3WtaW9PpgxS4vra54RtK0K6rv4Ig/NwtjbPciK5yQflP6rQ2f3
-+59kzjV92jSPtiac39CaLKdB0zMB+xGxlnZLBsXhx+0PYxThNRv2n+U0ORO/gwd4
-t3OEQCJFi6PQ7AVSw4zwF2EJN0uaB8M3zZhSDLJBL/xW7bNHlyIHeokCgYEAv7KV
-jI7IzYrNDPD3RR1APjZ6m5c2+HRz3em4hgt5B3cVKTnajYRVL97xzBNaTFvUYyOo
-EapuN0GpQUdi/3GWlQYZraUs0nv7JKyQQ4I3o2ypJijQXcDBVMoa9I3ZAr32sRwA
-81yIU/78/OCtEBAGn6Wd15Wy+kUJga/OT4I4NokCgYEAmGt5Cj9qWsFpWwhJQI6W
-/54BDiB1GojAPmlRdjIjum1yA3P7a6tBrE69NM3CMPIUINpIUQKdH4NwWmwo26Zy
-WnOpcPm88lRaCE6bqrN7M/ftXVST78BjCDLqiIBrswl+Rwo9Vb64iVX5p3TQQP2w
-UYh/8wM1tDGPLSggytvDDlECgYB+8Xz1KmyxKFRnWH72hstPJ3aD6FwfpcZA0xA9
-vAU2u1YJCeW/xz0+SS3oDXzDiiAYUrlukWURNGsn7mURcZ/dKcABbJtE+5MxExEp
-k2bS0xckTOzG2OluA7Rb9D8cAL4HRNsgTUt+DCJuNz6Dn4kzWVIwPFLcRrFn7wr5
-PeuJuQKBgQCovMgzwH8Pb+iCDr/TgkdfnCwyCgoKLl0Qo8l3AayhmBiy/BuOEXYk
-yLlhbj3vuAxeayblO3beUTHvZm0g70iADGUPNQsmLQHzsH913dI2im0WCftxNMto
-V5yrGUqyHFRXx35e4cputxOdNSFjcECgNvdFKTwUWC9p6xFgnzXHYA==
------END RSA PRIVATE KEY-----""",
+    'OIDC_RSA_PRIVATE_KEY': OIDC_RSA_PRIVATE_KEY,
 }
 
 # 讓 OAuth 錯誤訊息包含更多細節 (幫助除錯)

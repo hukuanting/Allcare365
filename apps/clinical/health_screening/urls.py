@@ -23,6 +23,11 @@ urlpatterns = [
     path("cohorts/summary/fhir/", views.cohort_summary_fhir, name="cohort_summary_fhir"),
     path("cohorts/patients-like-this/", views.patients_like_this, name="patients_like_this"),
     path("data-quality/summary/", views.data_quality_summary, name="data_quality_summary"),
+    path(
+        "research/continuous-signals/latest/",
+        views.sotera_continuous_signal_report,
+        name="sotera_continuous_signal_report",
+    ),
     path("research-reports/", views.research_reports, name="research_reports"),
     path("research-reports/<uuid:report_id>/", views.research_report_detail, name="research_report_detail"),
     path("research-reports/<uuid:report_id>/approve/", views.approve_research_report, name="approve_research_report"),

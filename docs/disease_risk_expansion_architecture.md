@@ -20,7 +20,7 @@
 ## 2.1 目前模型盤點
 
 - 正式 runtime catalog：42 項，皆為 `runtime_approved + runtime_enabled`。
-- `example/algorithms.json` 保留作來源審核紀錄；`blocked_source_conflict` 不得進入 runtime、API 或 UI。
+- 待審來源目錄屬於可封存、可替換的離線治理資料；正式 runtime、API 與 UI 不得依賴它是否存在。`blocked_source_conflict` 不得進入 runtime、API 或 UI。
 - `GET /api/health-screening/risk-algorithms/` 回傳依器官系統分類的 42 項正式目錄與計數，但不公開公式內容。
 - Golden Patient 可解析全部 42 項：39 項產生分數，3 項依既定族群條件標示 `not_applicable`，且不得有任何資料缺失。
 

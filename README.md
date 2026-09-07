@@ -28,11 +28,13 @@ Django 5 / DRF (medical_system/, apps/)
 PostgreSQL (clinical source data + FHIR resources + audit data)
 ```
 
-## Quick start
+## Clone and quick start
 
 Prerequisites: Python 3.10+, PostgreSQL, Node.js 20+.
 
 ```bash
+git clone https://github.com/hukuanting/Allcare365.git
+cd Allcare365
 copy .env.example .env
 python -m venv .venv
 .venv\Scripts\activate
@@ -50,6 +52,17 @@ npm start
 ```
 
 The frontend runs at `http://localhost:3000`; the Django service runs at `http://localhost:8000`.
+
+Do not copy `venv/`, `node_modules/`, `.env`, local databases, clinical uploads,
+or research archives between machines. Recreate the Python and Node
+dependencies from `requirements.txt` and `frontend/package-lock.json`, then
+configure the new machine's local `.env`.
+
+The restricted risk-model evidence archive and confidential Sotera delivery
+files are intentionally not committed. The reproducible code, hashes, and
+retrieval boundaries are documented in
+[docs/SOURCE_ASSET_ARCHIVE.md](docs/SOURCE_ASSET_ARCHIVE.md) and
+[docs/SOTERA_RESEARCH_IMPORT.md](docs/SOTERA_RESEARCH_IMPORT.md).
 
 ## Quality checks
 

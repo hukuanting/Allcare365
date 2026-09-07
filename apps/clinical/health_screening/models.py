@@ -290,6 +290,14 @@ class Observation(BaseModel):
         db_table_comment = '標準化觀測資料；支援血壓、血糖、體重、心率、檢驗、居家檢測、穿戴資料與生活習慣。FHIR 對應：Observation、DiagnosticReport result。'
         indexes = [
             models.Index(fields=['patient', '-effective_at']),
+            models.Index(
+                fields=['patient', 'code', '-effective_at'],
+                name='obs_patient_code_eff_idx',
+            ),
+            models.Index(
+                fields=['patient', 'observation_type', '-effective_at'],
+                name='obs_patient_type_eff_idx',
+            ),
             models.Index(fields=['encounter']),
             models.Index(fields=['category', 'code']),
             models.Index(fields=['observation_type']),

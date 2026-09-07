@@ -25,6 +25,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
+import TimelineIcon from '@mui/icons-material/Timeline';
 import PeopleIcon from '@mui/icons-material/People';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useAuth } from '../hooks/useAuth';
@@ -38,6 +39,7 @@ const primaryNav = [
   { label: '風險分析', path: '/risk-analysis', icon: <AnalyticsIcon /> },
   { label: '研究 Cohort', path: '/research-cohorts', icon: <BiotechIcon />, allowedRoles: RESEARCH_ACCESS_ROLES },
   { label: '研究報告', path: '/research-reports', icon: <AssignmentTurnedInIcon />, allowedRoles: RESEARCH_ACCESS_ROLES },
+  { label: '連續訊號', path: '/research-continuous-signals', icon: <TimelineIcon />, allowedRoles: RESEARCH_ACCESS_ROLES },
   { label: '健檢紀錄', path: '/history', icon: <HistoryIcon /> },
 ];
 
