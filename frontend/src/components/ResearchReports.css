@@ -1,7 +1,7 @@
 .research-reports {
-  --report-line: #dce7f2;
-  --report-wash: #f5f9fc;
-  --report-ink: #102033;
+  --report-line: var(--atlas-line);
+  --report-wash: var(--atlas-wash);
+  --report-ink: var(--atlas-ink);
 }
 
 .report-layout {
@@ -29,7 +29,7 @@
 
 .report-table {
   border: 1px solid var(--report-line);
-  border-radius: 8px;
+  border-radius: 4px;
   overflow-x: auto;
 }
 
@@ -58,3 +58,35 @@
     position: static;
   }
 }
+
+.report-table .MuiTableCell-root { padding:14px 16px; overflow-wrap:anywhere; }
+.report-request-panel .panel-heading { padding-bottom:12px; border-bottom:1px solid var(--report-line); }
+
+.artifact-context { margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--atlas-line); overflow-wrap:anywhere; }
+.artifact-context .MuiTypography-subtitle1 { font-weight:600; margin-bottom:6px; }
+.artifact-loading { display:grid; gap:16px; padding:24px 0; }
+.artifact-loading .MuiLinearProgress-root { height:2px; }
+
+@media(max-width:600px){
+ .report-table table,.report-table tbody {display:block;width:100%}
+ .report-table thead {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .report-table .report-record {display:grid;grid-template-columns:minmax(0,1fr) auto;padding:14px 0;border-bottom:1px solid var(--atlas-line)}
+ .report-table .report-record td {display:block;border:0;white-space:normal;overflow-wrap:anywhere;padding:6px 0;min-width:0}
+ .report-table .report-record td:nth-child(1),.report-table .report-record td:nth-child(4),.report-table .report-record td:nth-child(5),.report-table .report-record td:nth-child(6) {grid-column:1/-1}
+ .report-table .report-record td:nth-child(1) {font-size:14px}
+ .report-table .report-record td:nth-child(3) {padding-left:12px}
+ .report-table .report-record td:nth-child(4)::before {content:"隱私 · ";color:var(--atlas-muted);font-size:12px}
+ .report-table .report-record td:nth-child(5)::before {content:"申請時間 · ";color:var(--atlas-muted);font-size:12px}
+ .report-table .report-record td:nth-child(6) .MuiStack-root {justify-content:flex-start;flex-wrap:wrap;gap:8px}
+}
+
+.fhir-report-summary h3 {font-size:16px;margin:24px 0 12px}
+.fhir-report-summary p {font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.fhir-report-summary h4 {font-size:14px;font-weight:600;line-height:1.6;margin:24px 0 8px;overflow-wrap:anywhere}
+.fhir-report-metrics {margin:20px 0;border-top:1px solid var(--atlas-line)}
+.fhir-report-metrics > div {display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid var(--atlas-line);padding:12px 0;font-size:13px;line-height:1.8}
+.fhir-report-metrics dt {min-width:0;overflow-wrap:anywhere;flex:1}
+.fhir-report-metrics dd {min-width:0;flex:1;margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.artifact-source summary {min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--atlas-green);font-size:13px}
+.artifact-source summary:focus-visible {outline:2px solid var(--atlas-green)}
+@media(max-width:600px){.fhir-report-metrics > div {display:block}.fhir-report-metrics dd {text-align:left;color:var(--atlas-muted);margin-top:4px}}

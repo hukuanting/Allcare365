@@ -129,7 +129,7 @@ def onc_certification_api_documentation(request):
             "offline_access_notice": "Authorization UI informs users that offline_access grants refresh-token based continued access.",
             "tls": "The public certification endpoint is served through HTTPS with TLS 1.2 or newer enforced at the public edge/tunnel termination layer.",
             "jwks_caching": "Remote JWKS used for Backend Services client assertions is fetched per validation and is not cached beyond the provider cache-control header.",
-            "bulk_since": "Group export accepts the _since parameter and stores it with the export job request.",
+            "bulk_since": "_since and _typeFilter are not implemented; requests containing either parameter are rejected.",
             "granular_scopes": "Condition and Observation category-constrained SMART v2 scopes are supported, including clinical-test Observation selection.",
         },
     }

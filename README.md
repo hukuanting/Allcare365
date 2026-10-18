@@ -30,7 +30,7 @@ PostgreSQL (clinical source data + FHIR resources + audit data)
 
 ## Clone and quick start
 
-Prerequisites: Python 3.10+, PostgreSQL, Node.js 20+.
+Prerequisites: Python 3.10+, PostgreSQL, Node.js 22.12+ (Node 24 recommended).
 
 ```bash
 git clone https://github.com/hukuanting/Allcare365.git
@@ -47,7 +47,7 @@ In another terminal:
 
 ```bash
 cd frontend
-npm ci
+npm ci --legacy-peer-deps
 npm start
 ```
 
@@ -69,7 +69,7 @@ retrieval boundaries are documented in
 ```bash
 python manage.py check
 pytest
-cd frontend && CI=true npm test -- --watchAll=false && npm run build
+cd frontend && npm test && npm run build
 ```
 
 GitHub Actions runs these checks for pushes and pull requests. The full handoff map, risks, and code ownership are in [docs/SYSTEM_TECH_REVIEW.md](docs/SYSTEM_TECH_REVIEW.md). Deployment instructions are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).

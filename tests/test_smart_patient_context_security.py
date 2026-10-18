@@ -206,7 +206,7 @@ class SmartPatientContextSecurityTests(TestCase):
         cross_read = self._get(f"/fhir/R4/RiskAssessment/{other_id}", token)
         self.assertEqual(cross_read.status_code, 404, cross_read.content)
 
-    def test_user_scope_remains_unbound_and_emits_only_persisted_fhir_user(self):
+    def test_user_scope_intersects_care_relationships_and_emits_persisted_fhir_user(self):
         token = self._access_token(
             value="user-scope-token",
             scope="user/Patient.rs openid fhirUser",
@@ -219,7 +219,9 @@ class SmartPatientContextSecurityTests(TestCase):
             for entry in json.loads(response.content).get("entry", [])
         }
         self.assertIn(identity.patient_id(self.patient_a), returned_ids)
-        self.assertIn(identity.patient_id(self.patient_b), returned_ids)
+        self.assertNotIn(identity.patient_id(self.patient_b), returned_ids)
+        denied = self._get(f'/fhir/R4/Patient/{identity.patient_id(self.patient_b)}', token)
+        self.assertEqual(denied.status_code, 404, denied.content)
 
         introspection = self.client.post("/o/introspect/", {"token": token.token})
         payload = json.loads(introspection.content)

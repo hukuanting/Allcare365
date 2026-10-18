@@ -20,7 +20,6 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     await performLogout('manual');
-    setState({ isAuthenticated: false, userInfo: null, loading: false });
   }, []);
 
   useEffect(() => {

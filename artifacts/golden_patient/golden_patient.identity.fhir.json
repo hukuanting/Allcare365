@@ -1,0 +1,66 @@
+{
+  "resourceType": "Bundle",
+  "id": "trial-golden-20261010-bundle",
+  "meta": {
+    "tag": [
+      {
+        "system": "https://allcare365.local/fhir/CodeSystem/conformance-data",
+        "code": "golden-patient"
+      }
+    ]
+  },
+  "type": "collection",
+  "timestamp": "2026-10-10T10:00:00+08:00",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "trial-golden-20261010-patient-v1",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "identifier": [
+          {
+            "use": "usual",
+            "system": "https://allcare365.local/identifier/synthetic-trial-mrn",
+            "value": "SYNTHETIC-GOLDEN-20261010-001"
+          }
+        ],
+        "active": true,
+        "name": [
+          {
+            "use": "official",
+            "family": "Synthetic",
+            "given": [
+              "Golden"
+            ],
+            "text": "Golden Synthetic (TEST ONLY)"
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1961-02-14",
+        "communication": [
+          {
+            "language": {
+              "coding": [
+                {
+                  "system": "urn:ietf:bcp:47",
+                  "code": "zh-TW",
+                  "display": "Chinese (Taiwan)"
+                }
+              ]
+            },
+            "preferred": true
+          }
+        ]
+      }
+    }
+  ]
+}

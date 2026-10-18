@@ -6,8 +6,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import BasePermission
 
 
-ADMIN_ROLES = {"admin", "administrator", "system_admin"}
-CLINICAL_ROLES = {"clinician", "doctor", "physician", "nurse", "provider"}
+ADMIN_ROLES = {"admanager", "admin", "administrator", "system_admin"}
+CLINICAL_ROLES = {"manager", "clinician", "doctor", "physician", "nurse", "provider"}
 RESEARCH_ROLES = {"researcher", "research", "data_scientist", "analyst"}
 LEGACY_PROFESSIONAL_ROLES = {"professional"}
 

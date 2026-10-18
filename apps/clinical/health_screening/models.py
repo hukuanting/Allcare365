@@ -34,6 +34,11 @@ class HealthScreening(BaseModel):
     
     class Meta:
         db_table = 'health_screening_healthscreening'
+        permissions = [
+            ('import_clinical_records', 'Can import clinical records'),
+            ('view_research_aggregates', 'Can view governed research aggregates'),
+            ('approve_research_aggregates', 'Can approve governed research aggregates'),
+        ]
         verbose_name = '就診/健康檢查'
 
 

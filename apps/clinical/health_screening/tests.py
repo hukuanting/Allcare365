@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.clinical.patients.models import Patient
+from apps.clinical.patients.models import Patient, PatientPractitionerLink, Practitioner
 
 from .ingestion_service import HealthScreeningIngestionService
 from .models import HealthScreening
@@ -24,6 +24,16 @@ class HealthScreeningModelTest(TestCase):
             last_name="Patient",
             date_of_birth=date(1990, 1, 1),
             sex="M",
+        )
+        practitioner = Practitioner.objects.create(
+            user=self.user,
+            first_name="Test",
+            last_name="Doctor",
+        )
+        PatientPractitionerLink.objects.create(
+            patient=self.patient,
+            practitioner=practitioner,
+            permissions_json={"patient_data": "read_write"},
         )
 
     def test_health_screening_creation_uses_current_encounter_schema(self):
@@ -73,6 +83,16 @@ class HealthScreeningAPITest(APITestCase):
             sex="M",
         )
         self.client.force_authenticate(user=self.user)
+        practitioner = Practitioner.objects.create(
+            user=self.user,
+            first_name="Test",
+            last_name="Doctor",
+        )
+        PatientPractitionerLink.objects.create(
+            patient=self.patient,
+            practitioner=practitioner,
+            permissions_json={"patient_data": "read_write"},
+        )
 
     def test_create_health_screening(self):
         data = {
@@ -113,3 +133,22 @@ class HealthScreeningAPITest(APITestCase):
         response = self.client.get("/api/health-screening/screenings/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 1)
+
+    def test_same_timestamp_screenings_have_stable_unique_order(self):
+        timestamp = timezone.now()
+        records = [HealthScreening.objects.create(patient=self.patient, screening_date=timestamp.date()) for _ in range(3)]
+        HealthScreening.objects.filter(id__in=[record.id for record in records]).update(created_at=timestamp)
+        expected = sorted((str(record.id) for record in records), reverse=True)
+        for _ in range(2):
+            response = self.client.get("/api/health-screening/screenings/")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual([str(item["id"]) for item in response.data["results"]], expected)
+
+    def test_unlinked_screenings_are_not_disclosed(self):
+        unrelated = Patient.objects.create(first_name="Private", last_name="Patient")
+        HealthScreening.objects.create(patient=self.patient, screening_date=timezone.now().date())
+        HealthScreening.objects.create(patient=unrelated, screening_date=timezone.now().date())
+
+        response = self.client.get("/api/health-screening/screenings/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([str(item["patient"]) for item in response.data["results"]], [str(self.patient.id)])

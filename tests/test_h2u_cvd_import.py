@@ -11,7 +11,7 @@ import django
 
 django.setup()
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from rest_framework.test import APIClient
 
 from apps.core.authentication.models import ProductUser
@@ -67,6 +67,15 @@ def _product_user(username="researcher", role="researcher"):
         status="active",
     )
     return user
+
+
+def _grant_permission(user, codename):
+    user.user_permissions.add(
+        Permission.objects.get(
+            content_type__app_label="health_screening",
+            codename=codename,
+        )
+    )
 
 
 @pytest.mark.django_db
@@ -141,6 +150,7 @@ def test_cohort_summary_suppresses_small_cohorts():
     )
 
     user = _product_user(username="researcher", role="researcher")
+    _grant_permission(user, "view_research_aggregates")
     client = APIClient()
     client.force_authenticate(user=user)
     response = client.get("/api/health-screening/cohorts/summary/", {"sex": "F"})
@@ -185,6 +195,7 @@ def test_cohort_summary_fhir_returns_measure_report_without_members():
     )
 
     user = _product_user(username="fhir_researcher", role="researcher")
+    _grant_permission(user, "view_research_aggregates")
     client = APIClient()
     client.force_authenticate(user=user)
     response = client.get("/api/health-screening/cohorts/summary/fhir/", {"sex": "F", "sbp_min": "130"})
@@ -350,6 +361,9 @@ def test_research_report_requires_approval_before_artifact_release():
 
     researcher = _product_user(username="report_researcher", role="researcher")
     approver = _product_user(username="report_admin", role="admin")
+    _grant_permission(researcher, "view_research_aggregates")
+    _grant_permission(approver, "view_research_aggregates")
+    _grant_permission(approver, "approve_research_aggregates")
     client = APIClient()
     client.force_authenticate(user=researcher)
 
@@ -407,6 +421,9 @@ def test_research_report_can_release_approved_fhir_measure_report():
 
     researcher = _product_user(username="fhir_report_researcher", role="researcher")
     approver = _product_user(username="fhir_report_admin", role="admin")
+    _grant_permission(researcher, "view_research_aggregates")
+    _grant_permission(approver, "view_research_aggregates")
+    _grant_permission(approver, "approve_research_aggregates")
     client = APIClient()
     client.force_authenticate(user=researcher)
     create_response = client.post(

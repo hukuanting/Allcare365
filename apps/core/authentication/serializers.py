@@ -1,9 +1,11 @@
 ﻿from django.contrib.auth.models import User
+from django.db import transaction
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
 from .permissions import normalized_user_roles
+from .models import ProductUser
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -69,17 +71,25 @@ class RegisterSerializer(serializers.ModelSerializer):
             
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
-        """
-        ?萄遣?啁??        """
-        user = User.objects.create(
+        # Public registration cannot select roles, groups, or admin flags.
+        user = User.objects.create_user(
             username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name']
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            is_active=True,
+            is_staff=False,
+            is_superuser=False,
         )
-        user.set_password(validated_data['password'])
-        user.save()
+        ProductUser.objects.create(
+            auth_user=user,
+            display_name=user.get_full_name().strip() or user.username,
+            role='viewer',
+            status='active',
+        )
         return user
 
 class LoginSerializer(serializers.Serializer):
@@ -89,4 +99,14 @@ class LoginSerializer(serializers.Serializer):
     """
     username = serializers.CharField()
     password = serializers.CharField()
+    otp_token = serializers.CharField(required=False, write_only=True, trim_whitespace=True)
+
+
+class MFAEnrollmentSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class MFAVerificationSerializer(MFAEnrollmentSerializer):
+    otp_token = serializers.CharField(write_only=True, trim_whitespace=True)
 

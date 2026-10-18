@@ -316,9 +316,11 @@ class SmartVisualInspectionContractTests(TestCase):
             7776000,
         )
 
-    def test_refresh_token_lifetime_supports_three_month_minimum(self):
+    def test_smart_refresh_lifetime_and_first_party_session_lifetime_are_separate(self):
         self.assertGreaterEqual(settings.OAUTH2_PROVIDER["REFRESH_TOKEN_EXPIRE_SECONDS"], 7776000)
-        self.assertGreaterEqual(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].days, 90)
+        self.assertLessEqual(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].days, 1)
+        self.assertTrue(settings.SIMPLE_JWT['ROTATE_REFRESH_TOKENS'])
+        self.assertTrue(settings.SIMPLE_JWT['BLACKLIST_AFTER_ROTATION'])
 
     @override_settings(PUBLIC_BASE_URL="https://example.org", ALLOWED_HOSTS=["testserver", "example.org"])
     def test_fine_grained_scopes_render_in_authorization_page(self):

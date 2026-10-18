@@ -3,6 +3,7 @@ import sys
 from datetime import date
 
 import pytest
+from django.test import override_settings
 
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -397,6 +398,7 @@ def test_source_namespace_prevents_cross_source_takeover_even_for_identical_payl
 
 
 @pytest.mark.django_db
+@override_settings(FHIR_DEFAULT_ORIGIN_NAMESPACE="")
 def test_fhir_import_requires_explicit_or_configured_source_namespace():
     with pytest.raises(ValueError, match="source_namespace is required"):
         HealthScreeningIngestionService().import_fhir(

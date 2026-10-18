@@ -85,6 +85,58 @@ OUTCOME_DISPLAY_LABELS = {
 }
 
 
+FIELD_DISPLAY_LABELS.update({
+    "ldl_cholesterol": "LDL 膽固醇",
+    "ferritin": "鐵蛋白",
+    "fasting_insulin": "空腹胰島素",
+    "type_iv_collagen_7s": "第四型膠原蛋白 7S",
+    "gamma_globulin": "γ 球蛋白",
+    "vascular_risk_factor_count": "血管危險因子數",
+    "family_history_dementia": "失智症家族史",
+    "east_asian": "東亞族群狀態",
+    "load_low_hdl_c": "LOAD 低 HDL 狀態",
+    "load_high_whr": "LOAD 高腰臀比狀態",
+    "load_ethnicity": "LOAD 原研究族群",
+    "urine_albumin_creatinine_ratio": "尿白蛋白／肌酸酐比",
+    "cimt_um": "頸動脈內膜中層厚度",
+    "bcra_population": "BCRA 發生率參考族群",
+    "breast_cancer_or_dcis_history": "乳癌或原位乳癌病史",
+    "lcis_history": "小葉原位癌病史",
+    "brca_mutation": "BRCA 致病變異狀態",
+    "atypical_hyperplasia": "非典型乳房增生",
+    "age_at_menarche": "初經年齡",
+    "age_at_first_live_birth": "首次活產年齡",
+    "number_of_breast_biopsies": "乳房切片次數",
+    "first_degree_relatives_with_breast_cancer": "乳癌一等親人數",
+    "diabetes_medication": "糖尿病用藥類別",
+    "regular_pickled_food": "每週至少三次醃製食品",
+    "regular_fried_food": "每週至少三次油炸食品",
+    "h_pylori_igg_eiu": "幽門螺旋桿菌 IgG（EIU）",
+    "pepsinogen_i_ii_ratio": "胃蛋白酶原 I／II 比",
+    "gastrin_17_pmol_l": "胃泌素 17",
+})
+OUTCOME_DISPLAY_LABELS.update({
+    "metabolic_indicator": "代謝與體位參考指標",
+    "hemodynamic_indicator": "血壓參考指標",
+    "gastric_cancer_prescreen_score": "胃癌篩檢積分",
+    "prediabetes_screening_score": "糖尿病前期篩檢積分",
+    "incident_egfr_below_45_5_year_risk": "五年新發 eGFR 低於45風險",
+    "arterial_stiffness_reference": "動脈僵硬度參考值",
+    "cimt_reference_percentile": "頸動脈厚度參考百分位",
+    "predicted_fvc_reference": "肺活量參考值",
+    "late_onset_alzheimer_score": "晚發型阿茲海默症積分",
+    "invasive_breast_cancer_5_year_risk": "五年侵襲性乳癌風險",
+    "invasive_breast_cancer_lifetime_risk": "至九十歲侵襲性乳癌風險",
+    "cirrhosis_screening": "肝硬化篩檢分數",
+    "nash_screening": "NASH 篩檢分數",
+    "liver_fibrosis_screening": "肝纖維化篩檢指數",
+    "dementia_screening": "失智症篩檢參考指標",
+    "stroke_10_year_risk": "十年中風風險",
+    "lung_cancer_6_year_risk": "六年肺癌風險",
+    "cvd_5_year_risk": "五年心血管疾病風險",
+    "mi_5_year_risk": "五年心肌梗塞風險",
+})
+
 @dataclass
 class DiseaseRiskResult:
     algorithm_key: str
@@ -1051,7 +1103,7 @@ def _prevent_recommendation(outcome: str, probability: float) -> str:
     if outcome == "ascvd":
         return f"請由醫師依完整病史與現行血脂指引共同決策；此風險值不會自動產生處方。{population_note}"
     if probability >= 0.075:
-        return f"10 年 PREVENT-CVD 已達 7.5%；可供第一期高血壓之臨床共同決策參考，仍須由醫師確認適用條件。{population_note}"
+        return f"10 年 PREVENT-CVD 已達 7.5%；檢視血壓、治療狀態與模型適用條件。{population_note}"
     return f"供心血管初級預防與生活型態共同決策參考，建議隨最新臨床資料定期重算。{population_note}"
 
 
@@ -1721,7 +1773,7 @@ def _expanded_formula_result(algorithm_id: str, data: Dict[str, Any]) -> Disease
     elif score is None:
         recommendation = "目前不符合此模型的已驗證適用條件。"
     else:
-        recommendation = "結果僅供風險分層，請結合臨床資料判讀。"
+        recommendation = "查看風險分層與本次輸入資料。"
 
     return DiseaseRiskResult(
         algorithm_key=algorithm_id,
@@ -1858,6 +1910,16 @@ FORMULA_CALCULATION_STEPS = (
     FormulaCalculationStep(("va_pulmonary_nodule",), calculate_va_pulmonary_nodule),
     FormulaCalculationStep(("caide_dementia_20y",), calculate_caide_dementia_20y),
     FormulaCalculationStep(("bdsi_dementia_6y",), calculate_bdsi_dementia_6y),
+)
+
+
+from functools import partial
+from .expert_sources import DEFINITIONS as _EXPERT_SOURCE_DEFINITIONS
+from .source_calculators import calculate_source_model
+
+FORMULA_CALCULATION_STEPS += tuple(
+    FormulaCalculationStep((definition["id"],), partial(calculate_source_model, definition["id"]))
+    for definition in _EXPERT_SOURCE_DEFINITIONS
 )
 
 

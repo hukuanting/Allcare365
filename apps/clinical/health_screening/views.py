@@ -3,14 +3,15 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, parser_classes, permission_classes
+from rest_framework.exceptions import APIException
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from services.disease_risk_engine import DiseaseRiskAssessmentService
 from services.disease_risk_engine.algorithm_registry import public_algorithm_catalog
-from apps.core.authentication.permissions import HasResearchAccess, HasResearchApprovalAccess
-from apps.clinical.patients.access_policy import patient_risk_access_policy
+from apps.clinical.patients.access_policy import patient_clinical_access_policy, patient_risk_access_policy
+from apps.clinical.patients.permissions import PatientScopedModelViewSetMixin
 from apps.integration.fhir_integration.models import AuditLog
 from apps.clinical.patients.clinical_scope import clinical_patients
 
@@ -18,6 +19,7 @@ from .cohort_service import CohortSummaryService
 from .data_quality_service import DataQualitySummaryService
 from .fhir_research_projection import CohortMeasureReportBuilder
 from .ingestion_service import HealthScreeningIngestionService
+from .fhir_import_formats import request_fhir_payload, summarize
 from .models import HealthScreening, Immunization, Problem, Procedure, ResearchAggregateReport
 from .patients_like_this_service import PatientsLikeThisService
 from .research_report_service import ResearchAggregateReportService
@@ -31,16 +33,40 @@ from .serializers import (
 )
 
 
-class HealthScreeningViewSet(viewsets.ModelViewSet):
+class HasExplicitClinicalPermission(BasePermission):
+    """Grant sensitive non-patient endpoints only through assigned permissions."""
+
+    required_permission = ""
+
+    def has_permission(self, request, view):
+        return bool(
+            patient_clinical_access_policy._is_active_user(request.user)
+            and (request.user.is_superuser or request.user.has_perm(self.required_permission))
+        )
+
+
+class HasClinicalImportPermission(HasExplicitClinicalPermission):
+    required_permission = "health_screening.import_clinical_records"
+
+
+class HasResearchAggregatePermission(HasExplicitClinicalPermission):
+    required_permission = "health_screening.view_research_aggregates"
+
+
+class HasResearchAggregateApprovalPermission(HasExplicitClinicalPermission):
+    required_permission = "health_screening.approve_research_aggregates"
+
+
+class HealthScreeningViewSet(PatientScopedModelViewSetMixin, viewsets.ModelViewSet):
     serializer_class = HealthScreeningSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = (
             HealthScreening.objects.select_related("patient")
-            .filter(patient__in=clinical_patients())
+            .filter(patient__in=patient_clinical_access_policy.queryset(self.request.user))
             .prefetch_related("lab_results")
-            .order_by("-screening_date", "-created_at")
+            .order_by("-screening_date", "-created_at", "-id")
         )
         patient = self.request.query_params.get("patient") or self.request.query_params.get("patient_id")
         if patient:
@@ -51,7 +77,15 @@ class HealthScreeningViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         try:
+            patient_identifier = request.data.get("patient") or request.data.get("patient_id")
+            patient = patient_clinical_access_policy.resolve_patient(patient_identifier)
+            patient_clinical_access_policy.require_access(request.user, patient, operation="write")
             screening = HealthScreeningIngestionService().create_screening(dict(request.data))
+            screening.created_by = request.user
+            screening.updated_by = request.user
+            screening.save(update_fields=["created_by", "updated_by", "updated_at"])
+        except APIException:
+            raise
         except Exception as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -81,26 +115,26 @@ class HealthScreeningViewSet(viewsets.ModelViewSet):
         return Response(result, status=response_status)
 
 
-class ImmunizationViewSet(viewsets.ModelViewSet):
+class ImmunizationViewSet(PatientScopedModelViewSetMixin, viewsets.ModelViewSet):
     queryset = Immunization.objects.all()
     serializer_class = ImmunizationSerializer
     permission_classes = [IsAuthenticated]
 
 
-class ProblemViewSet(viewsets.ModelViewSet):
+class ProblemViewSet(PatientScopedModelViewSetMixin, viewsets.ModelViewSet):
     queryset = Problem.objects.all()
     serializer_class = ProblemSerializer
     permission_classes = [IsAuthenticated]
 
 
-class ProcedureViewSet(viewsets.ModelViewSet):
+class ProcedureViewSet(PatientScopedModelViewSetMixin, viewsets.ModelViewSet):
     queryset = Procedure.objects.all()
     serializer_class = ProcedureSerializer
     permission_classes = [IsAuthenticated]
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([HasClinicalImportPermission])
 @parser_classes([MultiPartParser, FormParser])
 def parse_file(request):
     file_obj = request.FILES.get("file")
@@ -115,7 +149,7 @@ def parse_file(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([HasClinicalImportPermission])
 @parser_classes([MultiPartParser, FormParser])
 def bulk_import(request):
     file_obj = request.FILES.get("file")
@@ -128,21 +162,26 @@ def bulk_import(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
-@parser_classes([JSONParser])
-def fhir_import(request):
-    fhir_data = request.data.get("fhir_data")
-    if not fhir_data:
-        return Response({"detail": "fhir_data is required"}, status=status.HTTP_400_BAD_REQUEST)
-
+@permission_classes([HasClinicalImportPermission])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
+def fhir_preview(request):
+    """Normalize and summarize inputs without persisting clinical records."""
     try:
-        result = HealthScreeningIngestionService().import_fhir(
-            fhir_data,
-            request.data.get("format") or "json",
-        )
+        bundle = request_fhir_payload(request)
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({"fhir_data": bundle, **summarize(bundle)})
+
+
+@api_view(["POST"])
+@permission_classes([HasClinicalImportPermission])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
+def fhir_import(request):
+    try:
+        bundle = request_fhir_payload(request)
+        result = HealthScreeningIngestionService().import_fhir(bundle)
     except Exception as exc:
         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
     response_status = status.HTTP_207_MULTI_STATUS if result.get("error_count") else status.HTTP_201_CREATED
     return Response(result, status=response_status)
 
@@ -192,7 +231,7 @@ def disease_risk_assessment(request):
 
 
 @api_view(["GET"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def cohort_summary(request):
     minimum_cell_count = 10
     result = CohortSummaryService().summarize(
@@ -213,7 +252,7 @@ def cohort_summary(request):
 
 
 @api_view(["GET"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def cohort_summary_fhir(request):
     minimum_cell_count = 10
     result = CohortSummaryService().summarize(
@@ -236,7 +275,7 @@ def cohort_summary_fhir(request):
 
 
 @api_view(["GET"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def data_quality_summary(request):
     dataset = request.query_params.get("dataset") or "h2u_cvd_csv"
     result = DataQualitySummaryService().summarize(dataset=dataset)
@@ -254,7 +293,7 @@ def data_quality_summary(request):
 
 
 @api_view(["GET"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def sotera_continuous_signal_report(request):
     """Return the latest deidentified continuous-signal import report."""
 
@@ -274,7 +313,7 @@ def sotera_continuous_signal_report(request):
 
 
 @api_view(["GET"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def patients_like_this(request):
     minimum_cell_count = 10
     result = PatientsLikeThisService().find(
@@ -300,7 +339,7 @@ def patients_like_this(request):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def research_reports(request):
     service = ResearchAggregateReportService()
     if request.method == "GET":
@@ -334,7 +373,7 @@ def research_reports(request):
 
 
 @api_view(["GET"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def research_report_detail(request, report_id):
     report = ResearchAggregateReport.objects.filter(id=report_id, is_active=True).first()
     if not report:
@@ -343,7 +382,7 @@ def research_report_detail(request, report_id):
 
 
 @api_view(["POST"])
-@permission_classes([HasResearchApprovalAccess])
+@permission_classes([HasResearchAggregateApprovalPermission])
 def approve_research_report(request, report_id):
     report = ResearchAggregateReport.objects.filter(id=report_id, is_active=True).first()
     if not report:
@@ -368,7 +407,7 @@ def approve_research_report(request, report_id):
 
 
 @api_view(["POST"])
-@permission_classes([HasResearchApprovalAccess])
+@permission_classes([HasResearchAggregateApprovalPermission])
 def reject_research_report(request, report_id):
     report = ResearchAggregateReport.objects.filter(id=report_id, is_active=True).first()
     if not report:
@@ -393,7 +432,7 @@ def reject_research_report(request, report_id):
 
 
 @api_view(["GET"])
-@permission_classes([HasResearchAccess])
+@permission_classes([HasResearchAggregatePermission])
 def research_report_artifact(request, report_id):
     report = ResearchAggregateReport.objects.filter(id=report_id, is_active=True).first()
     if not report:

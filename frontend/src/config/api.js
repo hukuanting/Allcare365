@@ -1,11 +1,13 @@
 const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  BASE_URL: (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')).replace(/\/$/, ''),
   ENDPOINTS: {
     LOGIN: '/api/auth/login/',
     REGISTER: '/api/auth/register/',
     LOGOUT: '/api/auth/logout/',
     PROFILE: '/api/auth/profile/',
     TOKEN_REFRESH: '/api/auth/token/refresh/',
+    MFA_ENROLL: '/api/auth/mfa/enroll/',
+    MFA_VERIFY: '/api/auth/mfa/verify/',
 
     PATIENTS: '/api/patients/',
     HEALTH_SCREENINGS: '/api/health-screening/screenings/',
@@ -14,6 +16,7 @@ const API_CONFIG = {
     PROCEDURES: '/api/health-screening/procedures/',
     PARSE_FILE: '/api/health-screening/parse-file/',
     BULK_IMPORT: '/api/health-screening/bulk-import/',
+    FHIR_PREVIEW: '/api/health-screening/fhir-preview/',
     FHIR_IMPORT: '/api/health-screening/fhir-import/',
     RISK_ANALYSIS: '/api/health-screening/risk-analysis/',
     RISK_ALGORITHMS: '/api/health-screening/risk-algorithms/',
@@ -40,12 +43,14 @@ const buildHeaders = (headers = {}, includeJson = true) => ({
 
 export const apiRequest = async (endpoint, options = {}) => {
   const includeJson = options.includeJson !== false;
-  const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
-    ...options,
-    headers: buildHeaders(options.headers, includeJson),
-  });
+  const headers = buildHeaders(options.headers, includeJson);
+  const credentialEndpoint = [API_CONFIG.ENDPOINTS.LOGIN, API_CONFIG.ENDPOINTS.REGISTER, API_CONFIG.ENDPOINTS.MFA_ENROLL, API_CONFIG.ENDPOINTS.MFA_VERIFY, API_CONFIG.ENDPOINTS.TOKEN_REFRESH].includes(endpoint.split('?')[0]);
+  if (credentialEndpoint) delete headers.Authorization;
+  const sentAuthorization = headers.Authorization;
+  const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, { ...options, headers });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !credentialEndpoint && sentAuthorization
+      && sentAuthorization === `Bearer ${localStorage.getItem('access_token')}`) {
     window.dispatchEvent(new CustomEvent('session-logout', {
       detail: { reason: 'unauthorized' },
     }));
@@ -54,16 +59,7 @@ export const apiRequest = async (endpoint, options = {}) => {
   return response;
 };
 
-export const parseApiResponse = async (response) => {
-  const contentType = response.headers.get('content-type') || '';
-
-  if (!contentType.includes('application/json')) {
-    const text = await response.text();
-    return text ? { detail: text } : {};
-  }
-
-  return response.json();
-};
+export { parseApiResponse } from '../utils/apiResponse';
 
 export const api = {
   get: (endpoint, options = {}) => apiRequest(endpoint, { method: 'GET', ...options }),

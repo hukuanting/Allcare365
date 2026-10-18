@@ -11,6 +11,8 @@ django.setup()
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.core.cache import cache
+from django.test import override_settings
 from rest_framework.test import APIClient
 
 from apps.core.authentication.models import ProductUser, UserProfile
@@ -70,6 +72,7 @@ def test_login_prefers_active_product_role():
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=True)
 def test_seed_demo_role_accounts_creates_login_users():
     call_command('seed_demo_role_accounts')
 
@@ -90,6 +93,9 @@ def test_seed_demo_role_accounts_creates_login_users():
     client = APIClient()
 
     for username, (password, role) in expected.items():
+        # Each fixture account is an independent login contract. Throttling is
+        # covered separately; do not treat this fixture loop as one live IP.
+        cache.clear()
         response = client.post('/api/auth/login/', {'username': username, 'password': password})
         assert response.status_code == 200
         assert response.data['user']['role'] == role

@@ -9,12 +9,12 @@ import django
 
 django.setup()
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Patient, PatientAllergy, PatientDocument, PatientMedication
+from .models import Patient, PatientAllergy, PatientDocument, PatientMedication, PatientPractitionerLink, PatientUserLink, Practitioner
 
 
 class PatientModelTest(TestCase):
@@ -93,6 +93,16 @@ class PatientAPITest(APITestCase):
             phone_number="1234567890",
             email_address="john@example.com",
         )
+        practitioner = Practitioner.objects.create(
+            user=self.user,
+            first_name="Test",
+            last_name="Clinician",
+        )
+        PatientPractitionerLink.objects.create(
+            patient=self.patient,
+            practitioner=practitioner,
+            permissions_json={"patient_data": "read_write"},
+        )
 
     def test_get_patient_list(self):
         response = self.client.get("/api/patients/")
@@ -103,6 +113,11 @@ class PatientAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_create_patient(self):
+        self.user.user_permissions.add(
+            Permission.objects.get(
+                content_type__app_label="patients", codename="create_patient_records"
+            )
+        )
         data = {
             "first_name": "Jane",
             "last_name": "Smith",
@@ -113,3 +128,41 @@ class PatientAPITest(APITestCase):
         }
         response = self.client.post("/api/patients/", data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_unlinked_patient_is_not_listed_or_retrieved(self):
+        unrelated = Patient.objects.create(first_name="Private", last_name="Record")
+
+        response = self.client.get("/api/patients/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([str(item["id"]) for item in response.data["results"]], [str(self.patient.id)])
+
+        response = self.client.get(f"/api/patients/{unrelated.id}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_read_only_care_link_cannot_write(self):
+        PatientPractitionerLink.objects.filter(patient=self.patient).update(
+            permissions_json={"patient_data": "read"}
+        )
+
+        response = self.client.patch(
+            f"/api/patients/{self.patient.id}/",
+            {"first_name": "Changed"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_patient_user_link_is_read_only_and_cannot_access_another_patient(self):
+        patient_user = User.objects.create_user(username="linked-patient", password="testpass123")
+        PatientUserLink.objects.create(user=patient_user, patient=self.patient)
+        unrelated = Patient.objects.create(first_name="Private", last_name="Record")
+        self.client.force_authenticate(user=patient_user)
+
+        response = self.client.get("/api/patients/")
+        self.assertEqual([str(item["id"]) for item in response.data["results"]], [str(self.patient.id)])
+
+        response = self.client.patch(
+            f"/api/patients/{self.patient.id}/", {"first_name": "Changed"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.get(f"/api/patients/{unrelated.id}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

@@ -231,3 +231,55 @@ class FHIRObservationResource(models.Model):
             observations.append(FHIRObservation(**bp_data))
         
         return observations
+
+
+def bulk_export_upload_path(instance, filename):
+    """Keep sensitive export objects unguessable and outside public URL contracts."""
+    return f"bulk-exports/{instance.job_id}/{uuid.uuid4().hex}.ndjson"
+
+
+class BulkExportJob(models.Model):
+    """Durable authorization-bound state for a FHIR Bulk Data export."""
+
+    STATUS_COMPLETED = "completed"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_FAILED = "failed"
+    STATUS_CHOICES = [
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_CANCELLED, "Cancelled"),
+        (STATUS_FAILED, "Failed"),
+    ]
+
+    id = models.CharField(primary_key=True, max_length=96, editable=False)
+    owner_client_id = models.CharField(max_length=255, db_index=True)
+    export_type = models.CharField(max_length=16)
+    group_id = models.CharField(max_length=100, blank=True, default="")
+    resource_types = models.JSONField(default=list)
+    patient_ids = models.JSONField(default=list)
+    request_url = models.TextField()
+    transaction_time = models.DateTimeField()
+    since = models.CharField(max_length=1000, blank=True, default="")
+    type_filter = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_COMPLETED)
+    expires_at = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["owner_client_id", "expires_at"])]
+
+
+class BulkExportFile(models.Model):
+    """A private, immutable NDJSON snapshot produced for one export resource type."""
+
+    job = models.ForeignKey(BulkExportJob, on_delete=models.CASCADE, related_name="files")
+    resource_type = models.CharField(max_length=50)
+    content = models.FileField(upload_to=bulk_export_upload_path, max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["job", "resource_type"], name="unique_bulk_export_file_type"
+            )
+        ]

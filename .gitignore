@@ -28,6 +28,11 @@ example/raw/
 # generated manifest under docs/ remains the shareable inventory of these files.
 /docs/Examplar excel files/
 
+# Local browser captures and source audit extracts may contain private data
+# or restricted source material; keep them outside GitHub uploads.
+/artifacts/frontend_design/
+/artifacts/risk_source_audit_20261010/
+
 # Confidential Sotera research delivery materials
 /data/.delivery-research-tsukuba/
 
@@ -66,6 +71,7 @@ staticfiles/
 # Virtual environments
 venv/
 .venv/
+.venv-production/
 env/
 ENV/
 env.bak/

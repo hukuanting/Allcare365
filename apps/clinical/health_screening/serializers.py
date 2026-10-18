@@ -48,18 +48,21 @@ class ImmunizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Immunization
         fields = "__all__"
+        read_only_fields = ["id", "created_at", "updated_at", "created_by", "updated_by"]
 
 
 class ProblemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Problem
         fields = "__all__"
+        read_only_fields = ["id", "created_at", "updated_at", "created_by", "updated_by"]
 
 
 class ProcedureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Procedure
         fields = "__all__"
+        read_only_fields = ["id", "created_at", "updated_at", "created_by", "updated_by"]
 
 
 class HealthScreeningSerializer(serializers.ModelSerializer):
@@ -75,7 +78,7 @@ class HealthScreeningSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthScreening
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "created_by", "updated_by"]
 
     def get_patient_name(self, obj):
         return f"{obj.patient.last_name}{obj.patient.first_name}"

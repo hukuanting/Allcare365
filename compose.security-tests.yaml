@@ -1,0 +1,42 @@
+# Synthetic, isolated Linux regression environment. No host database/ports.
+services:
+  security-db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: allcare365_security
+      POSTGRES_USER: security_test
+      POSTGRES_PASSWORD: synthetic-tests-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U security_test -d allcare365_security"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  security-backend:
+    image: python:3.11-slim-bookworm
+    working_dir: /app
+    volumes:
+      - .:/app:ro
+    environment:
+      DJANGO_SETTINGS_MODULE: medical_system.settings_security_tests
+      SECRET_KEY: isolated-synthetic-tests-only-not-a-deployment-key
+      DEBUG: "True"
+      DB_NAME: allcare365_security
+      DB_USER: security_test
+      DB_PASSWORD: synthetic-tests-only
+      DB_HOST: security-db
+      DB_PORT: "5432"
+      SECURITY_TEST_MEDIA_ROOT: /tmp/security-test-media
+      PYTHONDONTWRITEBYTECODE: "1"
+    depends_on:
+      security-db:
+        condition: service_healthy
+    command:
+      - sh
+      - -ec
+      - |
+        apt-get update -qq && apt-get install -y --no-install-recommends libmagic1 >/dev/null
+        python -m pip install --quiet pip==26.2.1 setuptools==83.0.0
+        python -m pip install --quiet -r requirements.txt
+        python manage.py check
+        python manage.py makemigrations --check --dry-run
+        python -m pytest --reuse-db -p no:cacheprovider -q --tb=short

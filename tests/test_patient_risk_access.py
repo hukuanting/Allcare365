@@ -94,22 +94,24 @@ def test_unlinked_user_gets_403_on_all_risk_endpoints_before_any_write():
     client = _client(user)
 
     requests = (
-        (client.post, "/api/health-screening/risk-analysis/", {"patient_id": str(patient.id)}),
-        (client.post, "/api/health-screening/disease-risk/", {"patient_id": str(patient.id)}),
+        (client.post, "/api/health-screening/risk-analysis/", {"patient_id": str(patient.id)}, 403),
+        (client.post, "/api/health-screening/disease-risk/", {"patient_id": str(patient.id)}, 403),
         (
             client.get,
             f"/api/health-screening/screenings/{screening.id}/risk-analysis/",
             None,
+            404,
         ),
         (
             client.post,
             f"/api/health-screening/screenings/{screening.id}/calculate_comprehensive_risk/",
             {},
+            404,
         ),
     )
-    for request_method, url, payload in requests:
+    for request_method, url, payload, expected_status in requests:
         response = request_method(url, payload, format="json") if payload is not None else request_method(url)
-        assert response.status_code == 403
+        assert response.status_code == expected_status
         _assert_no_risk_side_effects(patient)
 
 
@@ -217,6 +219,7 @@ def test_patient_picker_explicitly_adds_only_the_marked_golden_demo_patient():
         metadata_json={"synthetic": True, "clinical_use_prohibited": True},
     )
     user = User.objects.create_user(username="patient-picker-user", password="password")
+    _practitioner_link(user, clinical)
     client = _client(user)
 
     default_response = client.get("/api/patients/")

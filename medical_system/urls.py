@@ -12,8 +12,14 @@ from apps.integration.fhir_integration.smart_config import (
 )
 from apps.integration.fhir_integration.views import FHIRResourceViewSet, smart_launch_test_page
 import apps.core.authentication.views as auth_views
+from two_factor.urls import urlpatterns as two_factor_patterns
+
+if settings.MFA_REQUIRED_FOR_PRIVILEGED:
+    from two_factor.admin import AdminSiteOTPRequired
+    admin.site.__class__ = AdminSiteOTPRequired
 
 urlpatterns = [
+    path('', include(two_factor_patterns)),
     path('admin/', admin.site.urls),
     
     # FHIR 標準入口

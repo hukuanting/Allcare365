@@ -161,7 +161,7 @@ class DiseaseRiskAssessmentService:
         category = "survey" if result.algorithm_key == "gad7" else (
             "vital-signs" if result.algorithm_key == "bmi" else "laboratory"
         )
-        unit = "kg/m2" if result.algorithm_key == "bmi" else "1"
+        unit = "kg/m2" if result.algorithm_key == "bmi" else metadata.output_unit
         fhir_json = {
             "resourceType": "Observation",
             "id": observation_id,

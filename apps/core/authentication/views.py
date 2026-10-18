@@ -3,7 +3,9 @@ import logging
 import time
 from urllib.parse import parse_qs, urlencode, urlparse
 
-from django.contrib.auth import authenticate, login
+from django.conf import settings
+from django.contrib.auth import authenticate, login, logout
+from django_otp import login as otp_login
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
@@ -18,16 +20,33 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView
 
 from rest_framework import generics, status, permissions
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.throttling import ScopedRateThrottle, SimpleRateThrottle
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from oauth2_provider.views import AuthorizationView, TokenView
 from oauth2_provider.settings import oauth2_settings
 from oauth2_provider.models import AccessToken, Application, RefreshToken as OAuthRefreshToken
 from jwcrypto import jwk
 
-from .serializers import UserSerializer, RegisterSerializer, LoginSerializer
+from .serializers import (
+    MFAEnrollmentSerializer,
+    MFAVerificationSerializer,
+    UserSerializer,
+    RegisterSerializer,
+    LoginSerializer,
+)
+from .jwt_authentication import VersionedRefreshToken
+from .models import ProductUser
+from .services import (
+    invalidate_user_tokens,
+    primary_totp_device,
+    requires_mfa,
+    user_is_approved,
+    verify_totp,
+)
 from .smart_utils import SMARTContextError, SMARTContextService
 from apps.integration.fhir_integration.fine_grained_scopes import (
     granular_scope_selection_options,
@@ -36,6 +55,39 @@ from apps.integration.fhir_integration.fine_grained_scopes import (
 from apps.integration.fhir_integration.public_url import get_public_base_url
 
 logger = logging.getLogger('medical_system')
+
+
+class PublicCredentialAPIView:
+    """Credential endpoints deliberately ignore stale bearer/session auth.
+
+    These endpoints issue a new browser session after password verification, so
+    they reject cross-origin browser posts to prevent login-CSRF.
+    """
+
+    authentication_classes = []
+
+    def initial(self, request, *args, **kwargs):
+        origin = request.headers.get('Origin')
+        if origin:
+            same_origin = f'{request.scheme}://{request.get_host()}'
+            allowed_origins = set(getattr(settings, 'CSRF_TRUSTED_ORIGINS', []))
+            allowed_origins.update(getattr(settings, 'CORS_ALLOWED_ORIGINS', []))
+            allowed_origins.add(same_origin)
+            if origin not in allowed_origins:
+                raise PermissionDenied('Cross-origin credential requests are not allowed.')
+        return super().initial(request, *args, **kwargs)
+
+
+class AccountCredentialThrottle(SimpleRateThrottle):
+    """Limit each account independently in addition to the IP-based limit."""
+
+    scope = 'auth_login'
+
+    def get_cache_key(self, request, view):
+        username = str(request.data.get('username', '')).strip().casefold()
+        if not username:
+            return None
+        return self.cache_format % {'scope': self.scope, 'ident': f'account:{username}'}
 
 PROFILE_SCOPE_RESOURCE_TYPES = {
     'BodyWeight',
@@ -103,6 +155,19 @@ class CustomAuthorizationView(AuthorizationView):
         """
         Pre-process the request before it reaches OAuth2 validation.
         """
+        # Privileged SMART users must prove MFA in the same browser session.
+        # A password-only Django session must not be used as an OAuth bypass.
+        if (
+            request.user.is_authenticated
+            and requires_mfa(request.user)
+            and not getattr(request.user, 'is_verified', lambda: False)()
+        ):
+            return _json_oauth_error(
+                'access_denied',
+                'Multi-factor authentication is required for this account.',
+                status_code=403,
+            )
+
         # Feature: SMART v2 POST Launch Support
         # Inferno sends authorization params via POST, but DOT expects GET (standard OAuth2 code flow).
         if request.method == 'POST' and 'response_type' in request.POST and 'allow' not in request.POST:
@@ -714,25 +779,28 @@ class SmartIntrospectionView(View):
 
 # --- Standard Auth Views (Unchanged Logic, Cleaned up) ---
 
-class RegisterAPIView(generics.GenericAPIView):
+class RegisterAPIView(PublicCredentialAPIView, generics.GenericAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_register'
+    throttle_classes = [ScopedRateThrottle]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        refresh = RefreshToken.for_user(user)
         return Response({
             "user": UserSerializer(user, context=self.get_serializer_context()).data,
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
+            "detail": "帳號已建立，您可以使用 Viewer 權限登入。",
+            "status": "active",
         }, status=status.HTTP_201_CREATED)
 
 
-class LoginAPIView(generics.GenericAPIView):
+class LoginAPIView(PublicCredentialAPIView, generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_login'
+    throttle_classes = [ScopedRateThrottle, AccountCredentialThrottle]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -744,9 +812,25 @@ class LoginAPIView(generics.GenericAPIView):
         
         user = authenticate(request, username=username, password=password)
         
-        if user is not None:
+        if user is not None and user_is_approved(user):
+            mfa_verified = False
+            if requires_mfa(user):
+                verified, device = verify_totp(user, serializer.validated_data.get('otp_token'))
+                if not device:
+                    return Response(
+                        {'code': 'mfa_enrollment_required', 'detail': 'Multi-factor enrollment is required.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                if not verified:
+                    return Response(
+                        {'code': 'mfa_required', 'detail': 'Invalid multi-factor authentication code.'},
+                        status=status.HTTP_401_UNAUTHORIZED,
+                    )
+                mfa_verified = True
             login(request, user)
-            refresh = RefreshToken.for_user(user)
+            if mfa_verified:
+                otp_login(request, device)
+            refresh = VersionedRefreshToken.for_user(user, mfa_verified=mfa_verified)
             return Response({
                 "user": UserSerializer(user, context={'request': request}).data,
                 "refresh": str(refresh),
@@ -760,7 +844,106 @@ class LogoutAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        # Logout is global by design: a stolen refresh token on another device
+        # cannot continue an account after the user has explicitly signed out.
+        invalidate_user_tokens(request.user)
+        logout(request)
         return Response({"detail": "Successfully logged out"}, status=status.HTTP_205_RESET_CONTENT)
+
+
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """Apply the same credential-attempt limit as the custom login API."""
+
+    authentication_classes = []
+    throttle_scope = 'auth_login'
+    throttle_classes = [ScopedRateThrottle, AccountCredentialThrottle]
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    """Bound refresh-token guessing and rotation contention by client IP."""
+
+    authentication_classes = []
+    throttle_scope = 'auth_token_refresh'
+    throttle_classes = [ScopedRateThrottle]
+
+
+class MFAEnrollAPIView(PublicCredentialAPIView, generics.GenericAPIView):
+    """Create one unconfirmed TOTP device after a fresh password check."""
+
+    serializer_class = MFAEnrollmentSerializer
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_login'
+    throttle_classes = [ScopedRateThrottle, AccountCredentialThrottle]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = authenticate(
+            request,
+            username=serializer.validated_data['username'],
+            password=serializer.validated_data['password'],
+        )
+        if not user or not user_is_approved(user):
+            return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if not requires_mfa(user):
+            return Response(
+                {'detail': 'Multi-factor enrollment is currently required only for privileged accounts.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if primary_totp_device(user, confirmed=True) or primary_totp_device(user, confirmed=False):
+            return Response(
+                {'detail': 'A multi-factor device already exists. Contact an administrator for recovery.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        from django_otp.plugins.otp_totp.models import TOTPDevice
+
+        device = TOTPDevice.objects.create(user=user, name='primary', confirmed=False)
+        # config_url contains the provisioning secret.  It is deliberately sent
+        # only in this response, never stored in a session or application log.
+        return Response({'provisioning_uri': device.config_url, 'status': 'pending_verification'})
+
+
+class MFAVerifyAPIView(PublicCredentialAPIView, generics.GenericAPIView):
+    """Confirm the one-time provisioning code and start an MFA-authenticated session."""
+
+    serializer_class = MFAVerificationSerializer
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = 'auth_login'
+    throttle_classes = [ScopedRateThrottle, AccountCredentialThrottle]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = authenticate(
+            request,
+            username=serializer.validated_data['username'],
+            password=serializer.validated_data['password'],
+        )
+        if not user or not user_is_approved(user):
+            return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if not requires_mfa(user):
+            return Response(
+                {'detail': 'Multi-factor verification is not required for this account.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        verified, device = verify_totp(
+            user, serializer.validated_data['otp_token'], confirmed=False
+        )
+        if not verified:
+            return Response({'code': 'mfa_required', 'detail': 'Invalid multi-factor authentication code.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        device.confirmed = True
+        device.save(update_fields=['confirmed'])
+        invalidate_user_tokens(user)
+        login(request, user)
+        otp_login(request, device)
+        refresh = VersionedRefreshToken.for_user(user, mfa_verified=True)
+        return Response({
+            'user': UserSerializer(user, context={'request': request}).data,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
 
 
 class ProfileAPIView(generics.RetrieveAPIView):
@@ -776,8 +959,18 @@ class RegisterView(CreateView):
     success_url = reverse_lazy('authentication:login')
     
     def form_valid(self, form):
+        # HTML and API registration both start at the public Viewer tier.
+        form.instance.is_active = True
         response = super().form_valid(form)
-        messages.success(self.request, 'Registration successful. Please login.')
+        ProductUser.objects.get_or_create(
+            auth_user=self.object,
+            defaults={
+                'display_name': self.object.get_full_name().strip() or self.object.username,
+                'role': 'viewer',
+                'status': 'active',
+            },
+        )
+        messages.success(self.request, '帳號已建立，您可以使用 Viewer 權限登入。')
         return response
     
     def form_invalid(self, form):

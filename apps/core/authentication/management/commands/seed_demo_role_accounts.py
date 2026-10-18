@@ -1,5 +1,6 @@
 from django.contrib.auth.models import Group, User
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
 from django.db import transaction
 
 from apps.core.authentication.models import ProductUser, UserProfile
@@ -33,6 +34,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError('Demo accounts are disabled outside local development.')
         keep_passwords = bool(options.get("keep_passwords"))
         for account in DEMO_ROLE_ACCOUNTS:
             user, created = User.objects.get_or_create(
@@ -77,6 +80,6 @@ class Command(BaseCommand):
             state = "created" if created else "updated"
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"{state}: {account['username']} / {account['password']} ({account['role']})"
+                    f"Demo role account {state}: {account['role']}"
                 )
             )

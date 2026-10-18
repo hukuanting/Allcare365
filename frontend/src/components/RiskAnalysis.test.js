@@ -1,8 +1,12 @@
-jest.mock('react-router-dom', () => ({
+import { vi } from 'vitest';
+vi.mock('react-router-dom', () => ({
   useSearchParams: () => [new URLSearchParams()],
-}), { virtual: true });
+}));
 
 import {
+  snapshotDisplayValue,
+  modelReferenceUrl,
+  filterRiskResults,
   groupRiskResults,
   normalizePendingModels,
   normalizeRiskResults,
@@ -157,7 +161,7 @@ describe('risk analysis clinical-system grouping', () => {
     expect(pending).toHaveLength(2);
     expect(pending.find((card) => card.algorithm === 'tyg_index')).toEqual(
       expect.objectContaining({
-        value: '待臨床審核',
+        value: '模型準備中',
         level: 'review_required',
         sectionKey: 'metabolic_endocrine',
         catalogOnly: true,
@@ -165,4 +169,44 @@ describe('risk analysis clinical-system grouping', () => {
     );
     expect(pending.find((card) => card.algorithm === 'mayo_pulmonary_nodule').sectionKey).toBe('respiratory');
   });
+});
+
+
+describe('risk result filtering', () => {
+  const cards = [
+    { algorithm: 'nelson', title: '腎臟風險', titleEn: 'Nelson', item: '五年風險', level: 'high', applicability: 'applicable' },
+    { algorithm: 'prisq', title: '篩檢', titleEn: 'PRISQ', level: 'missing', applicability: 'applicable' },
+    { algorithm: 'gail', title: '乳癌', titleEn: 'Gail', level: 'not_applicable', applicability: 'not_applicable' },
+  ];
+  test('combines bilingual text with status without changing the source', () => {
+    expect(filterRiskResults(cards, ' NELSON ', 'attention')).toEqual([cards[0]]);
+    expect(filterRiskResults(cards, '腎臟', 'missing')).toEqual([]);
+    expect(filterRiskResults(cards, '', 'missing')).toEqual([cards[1]]);
+    expect(filterRiskResults(cards, '', 'not_applicable')).toEqual([cards[2]]);
+    expect(cards).toHaveLength(3);
+  });
+});
+
+
+test('preserves model provenance and allows only ordinary web reference links', () => {
+  expect(modelReferenceUrl('javascript:alert(1)')).toBeNull();
+  expect(modelReferenceUrl('https://user:password@example.org/paper')).toBeNull();
+  expect(modelReferenceUrl('https://doi.org/10.1111/jdi.13445')).toBe('https://doi.org/10.1111/jdi.13445');
+  const [card] = normalizeRiskResults({disease_risk_results:[{
+    algorithm:'prisq_prediabetes_screen', model_version:'expert-source-2026-10-10',
+    method_uri:'https://doi.org/10.1111/jdi.13445', risk_level:'informational',
+    evidence:{source_document:'Abbas 2021 Table 2', time_horizon:null},
+  }]});
+  expect(card.sourceDocument).toBe('Abbas 2021 Table 2');
+  expect(card.modelVersion).toBe('expert-source-2026-10-10');
+  expect(card.levelLabel).toBe('參考指標');
+});
+
+
+test('input snapshot uses specific assay units and preserves unknown versus false', () => {
+ expect(snapshotDisplayValue('ferritin',300)).toBe('300 ng/mL');
+ expect(snapshotDisplayValue('h_pylori_igg_eiu',34)).toBe('34 EIU');
+ expect(snapshotDisplayValue('diabetes_medication','oral')).toBe('口服藥');
+ expect(snapshotDisplayValue('regular_fried_food',false)).toBe('否');
+ expect(snapshotDisplayValue('ferritin',null)).toBe('無資料');
 });

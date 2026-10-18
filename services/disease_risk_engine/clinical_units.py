@@ -246,11 +246,24 @@ _UNIT_CONTRACTS = (
         "urine_albumin_creatinine_ratio",
         fallback_unit="mg/g",
         identity_units=("mg/g", "mg/g{creat}", "mg/g creatinine"),
+        conversions=MappingProxyType({"mg/mmol": (8.84, "acr_mg_per_mmol_to_mg_per_g")}),
     ),
     _rule(
         "apoe_e4",
         identity_units=("{allele}", "allele", "alleles"),
     ),
+)
+
+_UNIT_CONTRACTS += (
+    _rule("h_pylori_igg_eiu", identity_units=("{EIU}", "EIU")),
+    _rule("pepsinogen_i_ii_ratio", identity_units=("1",)),
+    _rule("gastrin_17_pmol_l", identity_units=("pmol/L",)),
+    _rule("cimt_um", identity_units=("um",), conversions=MappingProxyType({"mm": (1000.0, "mm_to_um")})),
+    _rule("ferritin", identity_units=("ng/mL", "ug/L")),
+    _rule("type_iv_collagen_7s", identity_units=("ng/mL", "ug/L")),
+    _rule("fasting_insulin", identity_units=("u[IU]/mL", "[uIU]/mL", "uIU/mL")),
+    _rule("gamma_globulin", identity_units=("g/dL",), conversions=MappingProxyType({"g/L": (0.1, "g_per_l_to_g_per_dl")})),
+    _rule("ldl_cholesterol", identity_units=("mg/dL",), conversions=_CHOLESTEROL_CONVERSIONS),
 )
 
 OBSERVATION_UNIT_CONTRACTS: Mapping[str, ObservationUnitContract] = MappingProxyType(

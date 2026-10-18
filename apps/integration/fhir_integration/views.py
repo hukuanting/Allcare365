@@ -15,8 +15,7 @@ import logging
 import uuid
 import urllib.parse
 import jwt # PyJWT for backend services validation
-from datetime import datetime, timezone, timedelta
-from threading import Lock
+from datetime import datetime, timezone
 
 from django.conf import settings
 from django.db import models
@@ -51,6 +50,7 @@ from .bulk_export_service import (
     BulkProjectionError,
     PersistentBulkExportService,
 )
+from .bulk_export_jobs import BulkExportJobStore, BulkExportStorageError
 from .public_url import build_public_url, get_public_base_url, get_token_endpoint_candidates
 
 # ── FHIR Projection Engine imports ──────────────────────────────────────────
@@ -71,12 +71,6 @@ import apps.integration.fhir_integration.projectors  # trigger auto-registration
 
 
 logger = logging.getLogger('medical_system')
-
-# Thread-safe set to track cancelled bulk export jobs
-# In production, this should use Redis or database
-_cancelled_jobs = set()
-_bulk_export_jobs = {}
-_cancelled_jobs_lock = Lock()
 
 INFERNO_BULK_CLIENT_ID = "inferno_bulk_client"
 INFERNO_BULK_PUBLIC_JWKS = {
@@ -244,8 +238,18 @@ class FHIRScopePermission(permissions.BasePermission):
         resource_type = self._get_resource_type(view, request)
         
         # Bypass for metadata endpoints
-        if not resource_type or resource_type in ['Metadata', 'Jwks', 'Smart-configuration', 'Compliance']:
+        if resource_type in ['Metadata', 'Jwks', 'Smart-configuration', 'Compliance']:
             return True
+        if not resource_type:
+            return False
+
+        # A human token must lose access immediately after account suspension,
+        # even if a caller bypassed the normal ORM signal with a bulk update.
+        token_user = getattr(token, 'user', None)
+        if token_user is not None:
+            from apps.core.authentication.services import user_is_approved
+            if not user_is_approved(token_user):
+                return False
 
         # Check Scopes
         token_scopes = token.scope.split()
@@ -411,6 +415,11 @@ def _bulk_token_owner(token):
     return None
 
 
+def _bulk_owner_key(owner):
+    """Serialize an OAuth owner deterministically for durable equality checks."""
+    return json.dumps(owner, sort_keys=True, separators=(",", ":"))
+
+
 class FHIRBaseMixin:
     """
     Mixin to provide common FHIR response handling and error formatting.
@@ -495,12 +504,15 @@ class FHIRBaseMixin:
         return allowed_category_tokens(token_scopes, resource_type)
 
     def _is_resource_allowed_by_fine_grained_scopes(self, request, resource_type, resource):
+        if not self._is_resource_allowed_by_user_access(request, resource):
+            return False
         allowed_categories = self._fine_grained_allowed_categories(request, resource_type)
         if not allowed_categories:
             return True
         return resource_matches_allowed_categories(resource, allowed_categories)
 
     def _apply_fine_grained_scope_filter(self, request, resource_type, resources):
+        resources = [res for res in resources if self._is_resource_allowed_by_user_access(request, res)]
         allowed_categories = self._fine_grained_allowed_categories(request, resource_type)
         if not allowed_categories:
             return resources
@@ -509,6 +521,14 @@ class FHIRBaseMixin:
             for resource in resources
             if resource_matches_allowed_categories(resource, allowed_categories)
         ]
+
+    def _is_resource_allowed_by_user_access(self, request, resource):
+        if getattr(request, 'smart_scope_family', None) != 'user':
+            return True
+        if not hasattr(request, '_fhir_user_access'):
+            from .user_access import FHIRUserAccess
+            request._fhir_user_access = FHIRUserAccess(request.user)
+        return request._fhir_user_access.allows(resource)
 
     def _projected_read_response(self, request, resource_type, pk):
         import logging
@@ -604,7 +624,8 @@ class FHIRBaseMixin:
         primary_resources = self._apply_fine_grained_scope_filter(request, resource_type, primary_resources)
         primary_resources = sorted(primary_resources, key=lambda r: str(r.get("id", "")))
 
-        included_resources = IncludeResolver.resolve(ctx.include_tracker, ctx)
+        included_resources = [res for res in IncludeResolver.resolve(ctx.include_tracker, ctx)
+            if self._is_resource_allowed_by_user_access(request, res)]
 
         rev_values = list(parsed.rev_includes)
         if 'Provenance:target' in rev_values and ProjectorRegistry.has('Provenance'):
@@ -612,7 +633,8 @@ class FHIRBaseMixin:
             for res in primary_resources:
                 prov = prov_projector.for_resource(res, ctx)
                 if prov is not None:
-                    included_resources.append(prov)
+                    if self._is_resource_allowed_by_user_access(request, prov):
+                        included_resources.append(prov)
 
         builder = FHIRBundleBuilder(ctx)
         bundle = builder.build_searchset(
@@ -874,7 +896,7 @@ class FHIRResourceViewSet(FHIRBaseMixin, viewsets.ModelViewSet):
         # ── Projection Engine: resolve by resource type and ID ──
         try:
             if not ProjectorRegistry.has(resource_type):
-                if getattr(request, "smart_scope_family", None) == "patient":
+                if getattr(request, "smart_scope_family", None) in {"patient", "user"}:
                     return JsonResponse({
                         "resourceType": "OperationOutcome",
                         "issue": [{"severity": "error", "code": "not-found"}],
@@ -922,7 +944,7 @@ class FHIRResourceViewSet(FHIRBaseMixin, viewsets.ModelViewSet):
             return JsonResponse(e.to_operation_outcome(), status=e.http_status, content_type='application/fhir+json')
         except Exception as e:
             logger.error(f"Error in retrieve: {e}")
-            if getattr(request, "smart_scope_family", None) == "patient":
+            if getattr(request, "smart_scope_family", None) in {"patient", "user"}:
                 return JsonResponse({
                     "resourceType": "OperationOutcome",
                     "issue": [{"severity": "error", "code": "not-found"}],
@@ -993,7 +1015,8 @@ class FHIRResourceViewSet(FHIRBaseMixin, viewsets.ModelViewSet):
             primary_resources = sorted(primary_resources, key=lambda r: str(r.get("id", "")))
 
             # ── 4. Lazy includes ──
-            included_resources = IncludeResolver.resolve(ctx.include_tracker, ctx)
+            included_resources = [res for res in IncludeResolver.resolve(ctx.include_tracker, ctx)
+            if self._is_resource_allowed_by_user_access(request, res)]
 
             # ── 5. _revinclude=Provenance:target ──
             rev_values = list(parsed.rev_includes)
@@ -1002,7 +1025,8 @@ class FHIRResourceViewSet(FHIRBaseMixin, viewsets.ModelViewSet):
                 for res in primary_resources:
                     prov = prov_projector.for_resource(res, ctx)
                     if prov is not None:
-                        included_resources.append(prov)
+                        if self._is_resource_allowed_by_user_access(request, prov):
+                            included_resources.append(prov)
 
             # ── 6. Build Bundle ──
             builder = FHIRBundleBuilder(ctx)
@@ -1394,11 +1418,11 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
     def _authorize_job(self, request, job):
         owner, error_response = self._authorize_resource_types(
             request,
-            job.get("resource_types", []),
+            job.resource_types,
         )
         if error_response is not None:
             return error_response
-        if owner != job.get("owner"):
+        if _bulk_owner_key(owner) != job.owner_client_id:
             return self._operation_outcome(
                 "forbidden",
                 "Bulk export jobs are accessible only to the OAuth client that created them.",
@@ -1407,6 +1431,18 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
         return None
 
     def _create_job(self, request, export_type, group_id=None):
+        unsupported_filters = [
+            parameter
+            for parameter in ("_since", "_typeFilter")
+            if request.query_params.get(parameter)
+        ]
+        if unsupported_filters:
+            return None, self._operation_outcome(
+                "not-supported",
+                "Bulk export filters are not implemented: " + ", ".join(unsupported_filters),
+                status.HTTP_400_BAD_REQUEST,
+            )
+
         output_format_error = self._validate_output_format(request)
         if output_format_error is not None:
             return None, output_format_error
@@ -1448,24 +1484,40 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
             )
 
         job_id = f"{export_type}-export-{group_id or 'system'}-{uuid.uuid4().hex[:8]}"
-        transaction_time = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        job = {
-            "id": job_id,
-            "export_type": export_type,
-            "group_id": group_id,
-            "resource_types": resource_types,
-            "request": request.build_absolute_uri(),
-            "transaction_time": transaction_time,
-            "since": request.query_params.get("_since"),
-            "type_filter": request.query_params.get("_typeFilter"),
-            "created_at": transaction_time,
-            "patient_ids": [str(patient.id) for patient in export_scope.patients],
-            "owner": owner,
-        }
-
-        with _cancelled_jobs_lock:
-            _bulk_export_jobs[job_id] = job
-            _cancelled_jobs.discard(job_id)
+        try:
+            job = BulkExportJobStore.create(
+                id=job_id,
+                export_type=export_type,
+                group_id=group_id or "",
+                resource_types=resource_types,
+                request_url=request.build_absolute_uri(),
+                transaction_time=datetime.now(timezone.utc),
+                since=request.query_params.get("_since") or "",
+                type_filter=request.query_params.get("_typeFilter") or "",
+                patient_ids=[str(patient.id) for patient in export_scope.patients],
+                owner_client_id=_bulk_owner_key(owner),
+            )
+            service = PersistentBulkExportService()
+            for resource_type in resource_types:
+                BulkExportJobStore.get_or_create_output(
+                    job,
+                    resource_type,
+                    lambda resource_type=resource_type: service.render_ndjson(
+                        resource_type=resource_type,
+                        scope=export_scope,
+                        request=request,
+                    ),
+                )
+        except BulkExportStorageError as exc:
+            return None, self._operation_outcome(
+                "exception", str(exc), status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except BulkProjectionError:
+            return None, self._operation_outcome(
+                "exception",
+                "Bulk export failed while projecting persisted data.",
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return job, None
 
@@ -1497,7 +1549,7 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
             return error_response
 
         response = Response(status=status.HTTP_202_ACCEPTED)
-        response['Content-Location'] = self._bulk_url(request, f"bulk-status/{job['id']}")
+        response['Content-Location'] = self._bulk_url(request, f"bulk-status/{job.id}")
         response['X-Progress'] = 'accepted'
         response['Cache-Control'] = 'no-store'
         return response
@@ -1512,7 +1564,7 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
             return error_response
 
         response = Response(status=status.HTTP_202_ACCEPTED)
-        response['Content-Location'] = self._bulk_url(request, f"bulk-status/{job['id']}")
+        response['Content-Location'] = self._bulk_url(request, f"bulk-status/{job.id}")
         response['X-Progress'] = 'accepted'
         response['Cache-Control'] = 'no-store'
         return response
@@ -1521,14 +1573,7 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
         """
         Returns the completed Bulk Data status manifest for a kickoff job.
         """
-        with _cancelled_jobs_lock:
-            if job_id in _cancelled_jobs:
-                return self._operation_outcome(
-                    "not-found",
-                    f"Bulk export job {job_id} was cancelled and is no longer available.",
-                    status.HTTP_404_NOT_FOUND,
-                )
-            job = _bulk_export_jobs.get(job_id)
+        job = BulkExportJobStore.get_active(job_id)
 
         if job is None:
             return self._operation_outcome(
@@ -1547,13 +1592,13 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
                 "type": res_type,
                 "url": f"{base_url}{res_type.lower()}.ndjson",
             }
-            for res_type in job["resource_types"]
+            for res_type in job.resource_types
         ]
 
         response = JsonResponse(
             {
-                "transactionTime": job["transaction_time"],
-                "request": job["request"],
+                "transactionTime": job.transaction_time.isoformat().replace("+00:00", "Z"),
+                "request": job.request_url,
                 "requiresAccessToken": True,
                 "output": output,
                 "error": [],
@@ -1561,9 +1606,7 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
             status=200,
             content_type='application/json',
         )
-        response["Expires"] = (
-            datetime.now(timezone.utc) + timedelta(minutes=10)
-        ).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        response["Expires"] = job.expires_at.strftime("%a, %d %b %Y %H:%M:%S GMT")
         return response
 
     def cancel_job(self, request, job_id=None):
@@ -1577,8 +1620,7 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
                 status.HTTP_400_BAD_REQUEST,
             )
 
-        with _cancelled_jobs_lock:
-            job = _bulk_export_jobs.get(job_id)
+        job = BulkExportJobStore.get_active(job_id)
         if job is None:
             return self._operation_outcome(
                 "not-found",
@@ -1589,22 +1631,13 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
         if authorization_error is not None:
             return authorization_error
 
-        with _cancelled_jobs_lock:
-            _cancelled_jobs.add(job_id)
-            _bulk_export_jobs.pop(job_id, None)
+        BulkExportJobStore.cancel(job)
 
         return Response(status=status.HTTP_202_ACCEPTED)
     
     def download_file(self, request, job_id=None, file_name=None):
         """Render one persisted projector-backed NDJSON file for a kickoff job."""
-        with _cancelled_jobs_lock:
-            if job_id in _cancelled_jobs:
-                return self._operation_outcome(
-                    "not-found",
-                    f"Bulk export job {job_id} was cancelled.",
-                    status.HTTP_404_NOT_FOUND,
-                )
-            job = _bulk_export_jobs.get(job_id)
+        job = BulkExportJobStore.get_active(job_id)
 
         if job is None:
             return self._operation_outcome(
@@ -1626,36 +1659,23 @@ class BulkExportViewSet(FHIRBaseMixin, viewsets.ViewSet):
 
         resource_name = file_name.rsplit(".", 1)[0]
         res_type = FHIRUtils.normalize_resource_name(resource_name)
-        if not res_type or res_type not in job["resource_types"]:
+        if not res_type or res_type not in job.resource_types:
             return self._operation_outcome(
                 "not-found",
                 f"Resource type {resource_name} was not requested for bulk export job {job_id}.",
                 status.HTTP_404_NOT_FOUND,
             )
 
-        service = PersistentBulkExportService()
-        try:
-            scope = service.restore_scope(
-                export_type=job["export_type"],
-                group_id=job.get("group_id"),
-                patient_ids=job.get("patient_ids", []),
-            )
-            ndjson_content = service.render_ndjson(
-                resource_type=res_type,
-                scope=scope,
-                request=request,
-            )
-        except BulkProjectionError:
+        export_file = BulkExportJobStore.get_output(job, res_type)
+        if export_file is None:
             return self._operation_outcome(
-                "exception",
-                f"Bulk export of {res_type} failed while projecting persisted data.",
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "not-found",
+                f"Bulk export output for {res_type} is no longer available.",
+                status.HTTP_404_NOT_FOUND,
             )
 
-        response = HttpResponse(
-            ndjson_content,
-            content_type="application/fhir+ndjson",
-        )
+        with export_file.content.open("rb") as output_file:
+            response = HttpResponse(output_file.read(), content_type="application/fhir+ndjson")
         response["Content-Disposition"] = f'inline; filename="{file_name}"'
         response["Cache-Control"] = "no-store"
         return response

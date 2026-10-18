@@ -1,0 +1,27 @@
+#!include:.gitignore
+
+# Never upload local cloud credentials, development secrets, or private tooling.
+.aws/
+.codex/
+.agents/
+.git/
+.env*
+!.env.example
+**/.env
+**/.env.*
+**/node_modules/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/htmlcov/
+**/coverage/
+frontend/dist/
+frontend/build/
+media/
+data/
+patient_data/
+medical_records/
+backup_data/
+database_backups/

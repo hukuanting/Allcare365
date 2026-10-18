@@ -199,13 +199,13 @@ def test_public_catalog_contains_all_non_conflicted_models_without_formulas(revi
     }
 
     assert payload["counts"] == {
-        "total_models": 42,
-        "runtime_catalog_models": 42,
-        "executable_models": 42,
+        "total_models": 82,
+        "runtime_catalog_models": 82,
+        "executable_models": 82,
         "clinical_review_required_models": 0,
         "review_candidate_models": 0,
     }
-    assert len(algorithms) == len(ids) == 42
+    assert len(algorithms) == len(ids) == 82
     assert blocked_ids.isdisjoint(ids)
     assert {item["catalog_kind"] for item in algorithms} == {"runtime"}
     assert all(algorithm["display_name_zh"] for algorithm in algorithms)
@@ -301,7 +301,7 @@ def test_formal_runtime_catalog_has_stable_system_and_governance_metadata():
         "aha_prevent_hf_10y": ClinicalSystem.CARDIOVASCULAR,
     }
 
-    assert len(RUNTIME_ALGORITHMS) == 42
+    assert len(RUNTIME_ALGORITHMS) == 82
     actual = {item.algorithm_id: item.clinical_system for item in RUNTIME_ALGORITHMS}
     assert all(actual[algorithm_id] is system for algorithm_id, system in expected.items())
     assert all(item.runtime_enabled for item in RUNTIME_ALGORITHMS)
@@ -427,7 +427,7 @@ def test_fhir_probability_preserves_bounds_instead_of_fabricating_midpoints():
 
 
 def test_runtime_variable_contracts_define_sources_units_and_loinc_aliases():
-    assert len(CLINICAL_VARIABLES) == 115
+    assert len(CLINICAL_VARIABLES) == 144
     assert all(contract.source_kinds for contract in CLINICAL_VARIABLES.values())
     observation_backed = [
         contract

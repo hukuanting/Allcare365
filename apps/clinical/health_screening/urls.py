@@ -15,6 +15,7 @@ app_name = "apps.clinical.health_screening"
 urlpatterns = [
     path("parse-file/", views.parse_file, name="parse_file"),
     path("bulk-import/", views.bulk_import, name="bulk_import"),
+    path("fhir-preview/", views.fhir_preview, name="fhir_preview"),
     path("fhir-import/", views.fhir_import, name="fhir_import"),
     path("risk-analysis/", views.risk_analysis, name="risk_analysis"),
     path("risk-algorithms/", views.risk_algorithm_catalog, name="risk_algorithm_catalog"),

@@ -351,8 +351,9 @@ class HealthScreeningIngestionService:
         data_format: str = "json",
         source_namespace: Optional[str] = None,
     ) -> Dict[str, Any]:
-        if isinstance(fhir_data, str) and data_format == "json":
-            fhir_data = json.loads(fhir_data)
+        from .fhir_import_formats import decode_fhir
+
+        fhir_data = decode_fhir(fhir_data, data_format)
 
         source_namespace = self._fhir_source_namespace(fhir_data, source_namespace)
         entries = self._extract_fhir_entries(fhir_data)
@@ -442,7 +443,7 @@ class HealthScreeningIngestionService:
             try:
                 with transaction.atomic():
                     if resource.get("resourceType") == "Observation":
-                        context_created, patient, observation = self._ingest_fhir_observation(
+                        context_created, patient, observation, observation_created = self._ingest_fhir_observation(
                             resource,
                             patient_map,
                             clinical_contexts=clinical_contexts,
@@ -463,7 +464,7 @@ class HealthScreeningIngestionService:
                             source_namespace,
                         )
                         imported_patients[str(patient.id)] = patient
-                        created_observations += 1
+                        created_observations += int(observation_created)
                         if context_created:
                             created_screenings += 1
                     elif resource.get("resourceType") == "Condition":
@@ -487,7 +488,7 @@ class HealthScreeningIngestionService:
                         )
                         imported_patients[str(patient.id)] = patient
                     elif resource.get("resourceType") == "QuestionnaireResponse":
-                        patient, questionnaire_response = self._ingest_fhir_questionnaire_response(
+                        patient, questionnaire_response, response_created = self._ingest_fhir_questionnaire_response(
                             resource,
                             patient_map,
                             source_namespace,
@@ -506,7 +507,7 @@ class HealthScreeningIngestionService:
                             source_namespace,
                         )
                         imported_patients[str(patient.id)] = patient
-                        created_questionnaire_responses += 1
+                        created_questionnaire_responses += int(response_created)
                     else:
                         self._persist_fhir_resource(
                             resource,
@@ -1449,7 +1450,7 @@ class HealthScreeningIngestionService:
         clinical_contexts: Optional[Dict[Tuple[str, str], Tuple[HealthScreening, Encounter]]] = None,
         encounter_resources: Optional[Dict[str, Dict[str, Any]]] = None,
         source_namespace: str,
-    ) -> Tuple[bool, Patient, Observation]:
+    ) -> Tuple[bool, Patient, Observation, bool]:
         patient = self._patient_from_subject(
             resource.get("subject") or {},
             patient_map,
@@ -1545,13 +1546,14 @@ class HealthScreeningIngestionService:
             observation = legacy_matches[0] if legacy_matches else None
         if observation is not None and observation.patient_id != patient.id:
             raise ValueError(f"FHIR Observation/{resource_id} is already bound to another patient")
+        created = observation is None
         if observation is None:
             observation = Observation.objects.create(patient=patient, **defaults)
         else:
             for field, field_value in defaults.items():
                 setattr(observation, field, field_value)
             observation.save(update_fields=[*defaults.keys(), "updated_at"])
-        return context_created, patient, observation
+        return context_created, patient, observation, created
 
     def _ingest_fhir_condition(
         self,
@@ -1614,7 +1616,7 @@ class HealthScreeningIngestionService:
         resource: Dict[str, Any],
         patient_map: Dict[Any, Patient],
         source_namespace: str,
-    ) -> Tuple[Patient, QuestionnaireResponse]:
+    ) -> Tuple[Patient, QuestionnaireResponse, bool]:
         patient = self._patient_from_subject(
             resource.get("subject") or {},
             patient_map,
@@ -1675,6 +1677,7 @@ class HealthScreeningIngestionService:
             raise ValueError(
                 f"FHIR QuestionnaireResponse/{resource_id} is already bound to another patient"
             )
+        created = existing is None
         if existing:
             for field, value in defaults.items():
                 setattr(existing, field, value)
@@ -1682,7 +1685,7 @@ class HealthScreeningIngestionService:
             questionnaire_response = existing
         else:
             questionnaire_response = QuestionnaireResponse.objects.create(patient=patient, **defaults)
-        return patient, questionnaire_response
+        return patient, questionnaire_response, created
 
     def _collect_fhir_questionnaire_items(
         self,

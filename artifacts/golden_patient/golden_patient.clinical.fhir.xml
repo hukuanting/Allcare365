@@ -1,0 +1,2618 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Bundle xmlns="http://hl7.org/fhir">
+  <id value="trial-golden-20261010-bundle" />
+  <meta>
+    <tag>
+      <system value="https://allcare365.local/fhir/CodeSystem/conformance-data" />
+      <code value="golden-patient" />
+    </tag>
+  </meta>
+  <type value="collection" />
+  <timestamp value="2026-10-10T10:00:00+08:00" />
+  <entry>
+    <fullUrl value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+    <resource>
+      <Encounter>
+        <id value="trial-golden-20261010-encounter-v1" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <identifier>
+          <system value="https://allcare365.local/identifier/encounter" />
+          <value value="SYNTHETIC-ENC-20261010-001" />
+        </identifier>
+        <status value="finished" />
+        <class>
+          <system value="http://terminology.hl7.org/CodeSystem/v3-ActCode" />
+          <code value="AMB" />
+          <display value="ambulatory" />
+        </class>
+        <type>
+          <coding>
+            <system value="http://snomed.info/sct" />
+            <code value="185349003" />
+            <display value="Encounter for check up" />
+          </coding>
+        </type>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <period>
+          <start value="2026-10-10T09:00:00+08:00" />
+          <end value="2026-10-10T10:00:00+08:00" />
+        </period>
+        <reasonCode>
+          <text value="Synthetic risk-engine import trial" />
+        </reasonCode>
+      </Encounter>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:c9ee0ea2-aff0-5a7d-bbc7-824d90e927d6" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-height" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="vital-signs" />
+            <display value="Vital Signs" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="8302-2" />
+            <display value="Body height" />
+          </coding>
+          <text value="Body height" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="170" />
+          <unit value="cm" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="cm" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:5f661a0f-99fd-5794-92b9-533a1c02a819" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-weight" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="vital-signs" />
+            <display value="Vital Signs" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="29463-7" />
+            <display value="Body weight" />
+          </coding>
+          <text value="Body weight" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="82" />
+          <unit value="kg" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="kg" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:ddb57c80-5a0f-5817-b7b3-807c750fa554" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-bmi" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="vital-signs" />
+            <display value="Vital Signs" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="39156-5" />
+            <display value="Body mass index" />
+          </coding>
+          <text value="Body mass index" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="28.4" />
+          <unit value="kg/m2" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="kg/m2" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:7c82d145-1f0e-5204-b536-3070e0ed9f33" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-waist" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="vital-signs" />
+            <display value="Vital Signs" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="8280-0" />
+            <display value="Waist circumference" />
+          </coding>
+          <text value="Waist circumference" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="96" />
+          <unit value="cm" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="cm" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:03c38eb0-51cf-58dd-8ef7-9b829ae1c762" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-hip" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="vital-signs" />
+            <display value="Vital Signs" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="56074-8" />
+            <display value="Hip circumference" />
+          </coding>
+          <text value="Hip circumference" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="102" />
+          <unit value="cm" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="cm" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:27968a89-d916-57fc-8b3f-dd9eef1b096d" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-alcohol-weekly" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="social-history" />
+            <display value="Social History" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="74013-4" />
+            <display value="Alcoholic drinks per week" />
+          </coding>
+          <text value="Alcoholic drinks per week" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="4" />
+          <unit value="drinks/week" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="1/wk" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:a9673f7b-dc76-5ffb-b574-cb15b5800d8c" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-heart-rate" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="vital-signs" />
+            <display value="Vital Signs" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="8867-4" />
+            <display value="Heart rate" />
+          </coding>
+          <text value="Heart rate" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="72" />
+          <unit value="beats/minute" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="/min" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:14f71e0d-1a6e-50bb-907c-019754c59693" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-blood-pressure" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="vital-signs" />
+            <display value="Vital Signs" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="85354-9" />
+            <display value="Blood pressure panel with all children optional" />
+          </coding>
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <component>
+          <code>
+            <coding>
+              <system value="http://loinc.org" />
+              <code value="8480-6" />
+              <display value="Systolic blood pressure" />
+            </coding>
+          </code>
+          <valueQuantity>
+            <value value="138" />
+            <unit value="mmHg" />
+            <system value="http://unitsofmeasure.org" />
+            <code value="mm[Hg]" />
+          </valueQuantity>
+        </component>
+        <component>
+          <code>
+            <coding>
+              <system value="http://loinc.org" />
+              <code value="8462-4" />
+              <display value="Diastolic blood pressure" />
+            </coding>
+          </code>
+          <valueQuantity>
+            <value value="86" />
+            <unit value="mmHg" />
+            <system value="http://unitsofmeasure.org" />
+            <code value="mm[Hg]" />
+          </valueQuantity>
+        </component>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:9bbd85b2-5dcf-5a02-aad3-f30a2997ad13" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-glucose" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="1558-6" />
+            <display value="Fasting glucose" />
+          </coding>
+          <text value="Fasting glucose" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="108" />
+          <unit value="mg/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:0f77737c-8e8a-563f-bab1-a33c8ec6187b" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-total-cholesterol" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="2093-3" />
+            <display value="Total cholesterol" />
+          </coding>
+          <text value="Total cholesterol" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="210" />
+          <unit value="mg/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:67620320-c7e8-5278-9ca0-e3e469cec803" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-hdl" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="2085-9" />
+            <display value="HDL cholesterol" />
+          </coding>
+          <text value="HDL cholesterol" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="44" />
+          <unit value="mg/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:4d665772-5a7a-5747-9d21-76df1f8c15de" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-triglycerides" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="2571-8" />
+            <display value="Triglycerides" />
+          </coding>
+          <text value="Triglycerides" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="165" />
+          <unit value="mg/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:eec40132-7a94-5df6-a81a-a2661bf6574d" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-creatinine" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="2160-0" />
+            <display value="Creatinine" />
+          </coding>
+          <text value="Creatinine" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="1.1" />
+          <unit value="mg/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:3f6a128d-908d-5eab-b522-ad51c4f0e8b4" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-egfr" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="33914-3" />
+            <display value="Glomerular filtration rate/1.73 sq M predicted" />
+          </coding>
+          <text value="Glomerular filtration rate/1.73 sq M predicted" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="83" />
+          <unit value="mL/min/1.73m2" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mL/min/{1.73_m2}" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:d1f9eb84-0dfc-5c2e-82dd-6c5253d633d7" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-alt" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="1742-6" />
+            <display value="Alanine aminotransferase" />
+          </coding>
+          <text value="Alanine aminotransferase" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="42" />
+          <unit value="U/L" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="U/L" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:7e30aa8e-11ac-5e66-9e0f-f8569a21a154" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-ast" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="1920-8" />
+            <display value="Aspartate aminotransferase" />
+          </coding>
+          <text value="Aspartate aminotransferase" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="38" />
+          <unit value="U/L" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="U/L" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:6ebbbcae-4cd9-52f0-9283-d33cb15956ff" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-ast-uln" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-ast-uln" />
+            <display value="AST ULN" />
+          </coding>
+          <text value="AST ULN" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="40" />
+          <unit value="U/L" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="U/L" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:2e05d007-e5c9-593d-882c-8e3cd50f7385" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-ggt" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="2324-2" />
+            <display value="Gamma glutamyl transferase" />
+          </coding>
+          <text value="Gamma glutamyl transferase" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="55" />
+          <unit value="U/L" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="U/L" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:98e9a6fc-bd64-563f-85fb-f7ec9b637673" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-ggt-uln" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-ggt-uln" />
+            <display value="GGT upper limit of normal" />
+          </coding>
+          <text value="GGT upper limit of normal" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="50" />
+          <unit value="U/L" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="U/L" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:c6cac22b-ea25-51a5-b4ec-0f6b3691200f" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-platelets" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="777-3" />
+            <display value="Platelet count" />
+          </coding>
+          <text value="Platelet count" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="220" />
+          <unit value="10*3/uL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="10*3/uL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:890c4b6b-4d14-5543-a1dc-fcedded3d16e" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-albumin" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="1751-7" />
+            <display value="Albumin" />
+          </coding>
+          <text value="Albumin" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="4.2" />
+          <unit value="g/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="g/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:c8d0b025-9c04-5d94-b416-aaba1c458675" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-insulin" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="20448-7" />
+            <display value="Insulin" />
+          </coding>
+          <text value="Insulin" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="14" />
+          <unit value="uIU/mL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="[uIU]/mL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:6c1e0749-d3fd-5cd6-812e-27a0c47586e4" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-rdw" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="788-0" />
+            <display value="Red cell distribution width" />
+          </coding>
+          <text value="Red cell distribution width" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="13.2" />
+          <unit value="%" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="%" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:3cf9cb83-fa64-50bc-b15d-f31708b39482" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-mpv" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="32623-1" />
+            <display value="Mean platelet volume" />
+          </coding>
+          <text value="Mean platelet volume" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="10.2" />
+          <unit value="fL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="fL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:a5b66a36-38cd-5e78-92ab-4e61d14f17a8" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-hba1c" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="4548-4" />
+            <display value="Hemoglobin A1c" />
+          </coding>
+          <text value="Hemoglobin A1c" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="7.2" />
+          <unit value="%" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="%" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:0265895a-ec7b-5e1f-9719-992c3d39a572" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-hs-crp" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="30522-7" />
+            <display value="High sensitivity C-reactive protein" />
+          </coding>
+          <text value="High sensitivity C-reactive protein" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="2.2" />
+          <unit value="mg/L" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/L" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:a56023c6-f576-5750-aa06-a43a327a07b2" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-microalbumin-rate" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="14956-7" />
+            <display value="Urine albumin excretion rate" />
+          </coding>
+          <text value="Urine albumin excretion rate" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="20" />
+          <unit value="ug/min" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="ug/min" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:af0e4259-d2f0-5b49-a2a9-70a5f83a0d6d" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-nodule-diameter" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="imaging" />
+            <display value="Imaging" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-nodule-diameter" />
+            <display value="Pulmonary nodule diameter" />
+          </coding>
+          <text value="Pulmonary nodule diameter" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="8" />
+          <unit value="mm" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mm" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:13ead658-4840-5885-9783-690a1c768861" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-uacr" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="9318-7" />
+            <display value="Albumin/Creatinine ratio in urine" />
+          </coding>
+          <text value="Albumin/Creatinine ratio in urine" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="18" />
+          <unit value="mg/g" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/g" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:00514975-6cbc-5a00-a2f6-77f87176bbfc" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-apoe-e4" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="79713-2" />
+            <display value="APOE e4 allele count" />
+          </coding>
+          <text value="APOE e4 allele count" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="1" />
+          <unit value="allele" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="{allele}" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:3f43cf5f-50c9-5d92-b67e-667ec2490db6" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-smoking-status" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="social-history" />
+            <display value="Social History" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="72166-2" />
+            <display value="Tobacco smoking status" />
+          </coding>
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueCodeableConcept>
+          <coding>
+            <system value="http://snomed.info/sct" />
+            <code value="8517006" />
+            <display value="Ex-smoker" />
+          </coding>
+          <text value="Former smoker" />
+        </valueCodeableConcept>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:3c219bf1-64de-5644-86d8-0c5c11440ef7" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-ldl" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="2089-1" />
+            <display value="LDL cholesterol" />
+          </coding>
+          <text value="LDL cholesterol" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="120" />
+          <unit value="mg/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="mg/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:88966b88-50ef-5d96-9389-ff4d55a84cff" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-ferritin" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://loinc.org" />
+            <code value="2276-4" />
+            <display value="Ferritin" />
+          </coding>
+          <text value="Ferritin" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="300" />
+          <unit value="ng/mL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="ng/mL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:7ba18e01-a59d-52a8-a7ab-4e6d436d2e5b" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-fasting-insulin" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-fasting-insulin" />
+            <display value="Fasting insulin" />
+          </coding>
+          <text value="Fasting insulin" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="14" />
+          <unit value="u[IU]/mL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="u[IU]/mL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:ac8c76d3-ce31-5068-9c0a-be0cbd8fbcef" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-collagen" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-type-iv-collagen-7s" />
+            <display value="Type IV collagen 7S" />
+          </coding>
+          <text value="Type IV collagen 7S" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="5" />
+          <unit value="ng/mL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="ng/mL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:6fdc0bab-a9e9-5bd7-92fb-54d70a121dc4" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-gamma" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-gamma-globulin" />
+            <display value="Gamma globulin" />
+          </coding>
+          <text value="Gamma globulin" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="1.5" />
+          <unit value="g/dL" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="g/dL" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:733e3dcf-9777-5a54-9c97-c406499ff6b3" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-cimt" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-cimt" />
+            <display value="Carotid intima media thickness" />
+          </coding>
+          <text value="Carotid intima media thickness" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="700" />
+          <unit value="um" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="um" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:40c203ab-2fd2-5d58-b93c-395b07c54a0e" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-hp" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-h-pylori-igg-eiu" />
+            <display value="Helicobacter pylori IgG" />
+          </coding>
+          <text value="Helicobacter pylori IgG" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="20" />
+          <unit value="{EIU}" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="{EIU}" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:cfbce1ab-9ed9-5c7f-906f-3e5eb17d5bf5" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-pgr" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-pepsinogen-i-ii-ratio" />
+            <display value="Pepsinogen I II ratio" />
+          </coding>
+          <text value="Pepsinogen I II ratio" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="4" />
+          <unit value="1" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="1" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:42ad1ad4-108c-5a6f-9d24-44c6a2ad5662" />
+    <resource>
+      <Observation>
+        <id value="trial-golden-20261010-obs-g17" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <status value="final" />
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/observation-category" />
+            <code value="laboratory" />
+            <display value="Laboratory" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="https://allcare365.local/fhir/CodeSystem/risk-input" />
+            <code value="allcare365-gastrin-17" />
+            <display value="Gastrin 17" />
+          </coding>
+          <text value="Gastrin 17" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <effectiveDateTime value="2026-10-10T09:30:00+08:00" />
+        <valueQuantity>
+          <value value="3" />
+          <unit value="pmol/L" />
+          <system value="http://unitsofmeasure.org" />
+          <code value="pmol/L" />
+        </valueQuantity>
+      </Observation>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:5073e306-d789-5ec6-9f4f-c5d952b0e5b8" />
+    <resource>
+      <Condition>
+        <id value="trial-golden-20261010-condition-hypertension-v1" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <clinicalStatus>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/condition-clinical" />
+            <code value="active" />
+          </coding>
+        </clinicalStatus>
+        <verificationStatus>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/condition-ver-status" />
+            <code value="confirmed" />
+          </coding>
+        </verificationStatus>
+        <category>
+          <coding>
+            <system value="http://terminology.hl7.org/CodeSystem/condition-category" />
+            <code value="problem-list-item" />
+          </coding>
+        </category>
+        <code>
+          <coding>
+            <system value="http://snomed.info/sct" />
+            <code value="38341003" />
+            <display value="Essential hypertension" />
+          </coding>
+          <text value="Essential hypertension" />
+        </code>
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <onsetDateTime value="2020-06-01T00:00:00+08:00" />
+        <recordedDate value="2026-10-10T09:30:00+08:00" />
+      </Condition>
+    </resource>
+  </entry>
+  <entry>
+    <fullUrl value="urn:uuid:32556828-2f43-509f-b12e-d642dacea656" />
+    <resource>
+      <QuestionnaireResponse>
+        <id value="trial-golden-20261010-questionnaire-v1" />
+        <meta>
+          <tag>
+            <system value="https://allcare365.local/fhir/CodeSystem/test-data" />
+            <code value="synthetic-only" />
+            <display value="Synthetic test data; not a real patient" />
+          </tag>
+        </meta>
+        <questionnaire value="https://allcare365.local/fhir/Questionnaire/allcare365-risk-intake-v1" />
+        <status value="completed" />
+        <subject>
+          <reference value="urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf" />
+        </subject>
+        <encounter>
+          <reference value="urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0" />
+        </encounter>
+        <authored value="2026-10-10T09:30:00+08:00" />
+        <item>
+          <linkId value="vascular_risk_factor_count" />
+          <text value="vascular risk factor count" />
+          <answer>
+            <valueInteger value="1" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="family_history_dementia" />
+          <text value="family history dementia" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="east_asian" />
+          <text value="east asian" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="load_low_hdl_c" />
+          <text value="load low hdl c" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="load_high_whr" />
+          <text value="load high whr" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="load_ethnicity" />
+          <text value="load ethnicity" />
+          <answer>
+            <valueString value="white" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="bcra_population" />
+          <text value="bcra population" />
+          <answer>
+            <valueString value="chinese_american" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="breast_cancer_or_dcis_history" />
+          <text value="breast cancer or dcis history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="lcis_history" />
+          <text value="lcis history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="brca_mutation" />
+          <text value="brca mutation" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="atypical_hyperplasia" />
+          <text value="atypical hyperplasia" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="age_at_menarche" />
+          <text value="age at menarche" />
+          <answer>
+            <valueInteger value="13" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="age_at_first_live_birth" />
+          <text value="age at first live birth" />
+          <answer>
+            <valueInteger value="25" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="number_of_breast_biopsies" />
+          <text value="number of breast biopsies" />
+          <answer>
+            <valueInteger value="0" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="first_degree_relatives_with_breast_cancer" />
+          <text value="first degree relatives with breast cancer" />
+          <answer>
+            <valueInteger value="0" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="diabetes_medication" />
+          <text value="diabetes medication" />
+          <answer>
+            <valueString value="oral" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="regular_pickled_food" />
+          <text value="regular pickled food" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="regular_fried_food" />
+          <text value="regular fried food" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="family_history_diabetes" />
+          <text value="family history diabetes" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="anti_hypertensive_drugs" />
+          <text value="anti hypertensive drugs" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="using_lipid_lowering_drugs" />
+          <text value="using lipid lowering drugs" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="statin_use" />
+          <text value="statin use" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="has_diabetes" />
+          <text value="has diabetes" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="prediabetes" />
+          <text value="prediabetes" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="metabolic_syndrome" />
+          <text value="metabolic syndrome" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="has_hypertension" />
+          <text value="has hypertension" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="vegetables_daily" />
+          <text value="vegetables daily" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="physical_activity_active" />
+          <text value="physical activity active" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="moderate_alcohol" />
+          <text value="moderate alcohol" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="heavy_alcohol" />
+          <text value="heavy alcohol" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="is_smoker" />
+          <text value="is smoker" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="former_smoker" />
+          <text value="former smoker" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="chd_history" />
+          <text value="chd history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="cvd_history" />
+          <text value="cvd history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="pvd_history" />
+          <text value="pvd history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="prescribed_steroids" />
+          <text value="prescribed steroids" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="family_history_diabetes_both" />
+          <text value="family history diabetes both" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="parental_hypertension_count" />
+          <text value="parental hypertension count" />
+          <answer>
+            <valueInteger value="1" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="deprivation_quintile" />
+          <text value="deprivation quintile" />
+          <answer>
+            <valueInteger value="3" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="depression_or_antidepressant" />
+          <text value="depression or antidepressant" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="aspirin_use" />
+          <text value="aspirin use" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="stroke_tia_history" />
+          <text value="stroke tia history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="atrial_fibrillation" />
+          <text value="atrial fibrillation" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="race_black" />
+          <text value="race black" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="ethnicity_hispanic" />
+          <text value="ethnicity hispanic" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="moderate_heavy_activity" />
+          <text value="moderate heavy activity" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="ever_smoker" />
+          <text value="ever smoker" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="extrathoracic_cancer_over_5y" />
+          <text value="extrathoracic cancer over 5y" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="nodule_spiculation" />
+          <text value="nodule spiculation" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="nodule_upper_lobe" />
+          <text value="nodule upper lobe" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="education_high_school_or_below" />
+          <text value="education high school or below" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="ever_high_blood_glucose" />
+          <text value="ever high blood glucose" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="ausdrisk_indigenous_or_pacific" />
+          <text value="ausdrisk indigenous or pacific" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="ausdrisk_high_risk_birth_region" />
+          <text value="ausdrisk high risk birth region" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="ausdrisk_lower_waist_threshold_group" />
+          <text value="ausdrisk lower waist threshold group" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="ascvd_history" />
+          <text value="ascvd history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="heart_failure_history" />
+          <text value="heart failure history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="parental_mi_before_60" />
+          <text value="parental mi before 60" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="family_history_lung_cancer" />
+          <text value="family history lung cancer" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="has_emphysema" />
+          <text value="has emphysema" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="weather_affected_cough" />
+          <text value="weather affected cough" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="sputum_without_cold" />
+          <text value="sputum without cold" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="morning_sputum" />
+          <text value="morning sputum" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="wheeze_sometimes_or_often" />
+          <text value="wheeze sometimes or often" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="allergy_history" />
+          <text value="allergy history" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="has_amnestic_mci" />
+          <text value="has amnestic mci" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="stubborn_or_resistive" />
+          <text value="stubborn or resistive" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="upset_when_separated_from_caregiver" />
+          <text value="upset when separated from caregiver" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="difficulty_shopping_alone" />
+          <text value="difficulty shopping alone" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="forgets_appointments" />
+          <text value="forgets appointments" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="depressive_symptoms" />
+          <text value="depressive symptoms" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="needs_help_money_or_medications" />
+          <text value="needs help money or medications" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="high_cholesterol" />
+          <text value="high cholesterol" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="traumatic_brain_injury" />
+          <text value="traumatic brain injury" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="pesticide_exposure" />
+          <text value="pesticide exposure" />
+          <answer>
+            <valueBoolean value="false" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="periodical_daily_cough" />
+          <text value="periodical daily cough" />
+          <answer>
+            <valueBoolean value="true" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="diabetes_duration_years" />
+          <text value="diabetes duration years" />
+          <answer>
+            <valueInteger value="8" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="education_years" />
+          <text value="education years" />
+          <answer>
+            <valueInteger value="12" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="pack_years" />
+          <text value="pack years" />
+          <answer>
+            <valueInteger value="18" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="cigarettes_per_day" />
+          <text value="cigarettes per day" />
+          <answer>
+            <valueInteger value="0" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="years_since_quitting" />
+          <text value="years since quitting" />
+          <answer>
+            <valueInteger value="8" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="indoor_smoke_exposure_hours" />
+          <text value="indoor smoke exposure hours" />
+          <answer>
+            <valueInteger value="1" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="fish_servings_per_week" />
+          <text value="fish servings per week" />
+          <answer>
+            <valueInteger value="3" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="mean_words_recalled" />
+          <text value="mean words recalled" />
+          <answer>
+            <valueDecimal value="5.5" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="orientation_correct" />
+          <text value="orientation correct" />
+          <answer>
+            <valueInteger value="7" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="clock_drawing_score" />
+          <text value="clock drawing score" />
+          <answer>
+            <valueInteger value="4" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="nodule_count" />
+          <text value="nodule count" />
+          <answer>
+            <valueInteger value="2" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="pce_race" />
+          <text value="pce race" />
+          <answer>
+            <valueString value="white" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="smoking_status" />
+          <text value="smoking status" />
+          <answer>
+            <valueString value="former" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="alcohol_category" />
+          <text value="alcohol category" />
+          <answer>
+            <valueString value="light_moderate" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="social_engagement_level" />
+          <text value="social engagement level" />
+          <answer>
+            <valueString value="medium_high" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="physical_activity_level" />
+          <text value="physical activity level" />
+          <answer>
+            <valueString value="medium" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="cognitive_activity_level" />
+          <text value="cognitive activity level" />
+          <answer>
+            <valueString value="high" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="nodule_type" />
+          <text value="nodule type" />
+          <answer>
+            <valueString value="solid" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="gad7_q1" />
+          <text value="gad7 q1" />
+          <answer>
+            <valueInteger value="1" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="gad7_q2" />
+          <text value="gad7 q2" />
+          <answer>
+            <valueInteger value="0" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="gad7_q3" />
+          <text value="gad7 q3" />
+          <answer>
+            <valueInteger value="1" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="gad7_q4" />
+          <text value="gad7 q4" />
+          <answer>
+            <valueInteger value="1" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="gad7_q5" />
+          <text value="gad7 q5" />
+          <answer>
+            <valueInteger value="0" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="gad7_q6" />
+          <text value="gad7 q6" />
+          <answer>
+            <valueInteger value="1" />
+          </answer>
+        </item>
+        <item>
+          <linkId value="gad7_q7" />
+          <text value="gad7 q7" />
+          <answer>
+            <valueInteger value="0" />
+          </answer>
+        </item>
+      </QuestionnaireResponse>
+    </resource>
+  </entry>
+</Bundle>

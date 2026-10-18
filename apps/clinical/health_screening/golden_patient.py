@@ -48,7 +48,7 @@ from services.disease_risk_engine.service import (
 
 
 GOLDEN_FIXTURE_KEY = GOLDEN_DEMO_FIXTURE_KEY
-GOLDEN_FIXTURE_VERSION = "2026.07.2"
+GOLDEN_FIXTURE_VERSION = "2026.10.10"
 GOLDEN_SOURCE_NAMESPACE = "allcare365:golden-risk:v1"
 GOLDEN_PATIENT_MRN = GOLDEN_DEMO_MRN
 GOLDEN_PATIENT_FHIR_ID = "golden-risk-patient-v1"
@@ -437,6 +437,24 @@ def _smoking_status_observation() -> Dict[str, Any]:
 
 def _questionnaire_response() -> Dict[str, Any]:
     answers = {
+        "vascular_risk_factor_count": 1,
+        "family_history_dementia": False,
+        "east_asian": True,
+        "load_low_hdl_c": False,
+        "load_high_whr": True,
+        "load_ethnicity": "white",
+        "bcra_population": "chinese_american",
+        "breast_cancer_or_dcis_history": False,
+        "lcis_history": False,
+        "brca_mutation": False,
+        "atypical_hyperplasia": False,
+        "age_at_menarche": 13,
+        "age_at_first_live_birth": 25,
+        "number_of_breast_biopsies": 0,
+        "first_degree_relatives_with_breast_cancer": 0,
+        "diabetes_medication": "oral",
+        "regular_pickled_food": False,
+        "regular_fried_food": False,
         "family_history_diabetes": True,
         "anti_hypertensive_drugs": True,
         "using_lipid_lowering_drugs": False,
@@ -806,6 +824,22 @@ def build_golden_patient_bundle() -> Dict[str, Any]:
         "onsetDateTime": "2020-06-01T00:00:00+08:00",
         "recordedDate": GOLDEN_EFFECTIVE_AT,
     }
+
+    observations.extend([
+        _quantity_observation("golden-risk-obs-ldl", "2089-1", "LDL cholesterol", 120, "mg/dL", "mg/dL"),
+        _quantity_observation("golden-risk-obs-ferritin", "2276-4", "Ferritin", 300, "ng/mL", "ng/mL"),
+        _quantity_observation("golden-risk-obs-fasting-insulin", "allcare365-fasting-insulin", "Fasting insulin", 14, "u[IU]/mL", "u[IU]/mL"),
+        _quantity_observation("golden-risk-obs-collagen", "allcare365-type-iv-collagen-7s", "Type IV collagen 7S", 5, "ng/mL", "ng/mL"),
+        _quantity_observation("golden-risk-obs-gamma", "allcare365-gamma-globulin", "Gamma globulin", 1.5, "g/dL", "g/dL"),
+        _quantity_observation("golden-risk-obs-cimt", "allcare365-cimt", "Carotid intima media thickness", 700, "um", "um"),
+        _quantity_observation("golden-risk-obs-hp", "allcare365-h-pylori-igg-eiu", "Helicobacter pylori IgG", 20, "{EIU}", "{EIU}"),
+        _quantity_observation("golden-risk-obs-pgr", "allcare365-pepsinogen-i-ii-ratio", "Pepsinogen I II ratio", 4, "1", "1"),
+        _quantity_observation("golden-risk-obs-g17", "allcare365-gastrin-17", "Gastrin 17", 3, "pmol/L", "pmol/L"),
+    ])
+    for observation in observations:
+        for coding in observation.get("code", {}).get("coding", []):
+            if coding.get("code", "").startswith("allcare365-"):
+                coding["system"] = "https://allcare365.local/fhir/CodeSystem/clinical-observations"
 
     resources = [patient, encounter, *observations, condition, _questionnaire_response()]
     return {

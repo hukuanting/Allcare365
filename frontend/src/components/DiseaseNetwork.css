@@ -1,0 +1,46 @@
+.disease-network {margin-top:28px}.network-intro {display:flex;justify-content:space-between;gap:24px;align-items:end}.network-intro h2 {font-family:var(--atlas-serif);font-size:28px;font-weight:500;margin:10px 0}.network-intro p,.network-legend {color:var(--atlas-muted);font-size:13px;line-height:1.8}.network-count {font-size:12px;color:var(--atlas-muted);white-space:nowrap}.network-layout {display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px;margin-top:24px;align-items:start}.network-map {min-width:0;border-block:1px solid var(--atlas-line);background:var(--atlas-paper)}.network-map svg {width:100%;display:block}.network-orbit {fill:none;stroke:var(--atlas-line);stroke-dasharray:2 8}.network-edge {fill:none;stroke:var(--atlas-muted);opacity:1}.network-edge.active {stroke:var(--atlas-green);opacity:1}.network-centre {fill:var(--atlas-paper);stroke:var(--atlas-line)}.network-centre-label {font-size:16px;fill:var(--atlas-ink)}.network-centre-count {font-size:12px;fill:var(--atlas-muted)}.network-node {cursor:pointer;outline:none}.network-node rect {fill:var(--atlas-surface);stroke:var(--atlas-line);transition:stroke 150ms,fill 150ms}.network-node.selected rect,.network-node:hover rect {stroke:var(--atlas-green);fill:#eaf0e8}.network-node:focus-visible rect {stroke:var(--atlas-green);stroke-width:3}.network-node-title {font-size:14px;fill:var(--atlas-ink);font-weight:600}.network-node-count {font-size:11px;fill:var(--atlas-muted)}.network-legend {margin:0;padding:14px 20px;border-top:1px solid var(--atlas-line)}.network-detail {border-top:3px solid var(--atlas-green);padding-top:20px;min-width:0}.network-detail h3 {font-size:23px;margin:12px 0}.network-detail p {font-size:13px;line-height:1.85;color:var(--atlas-muted);overflow-wrap:anywhere}.network-detail h4 {font-size:13px;margin:28px 0 10px}.network-totals {display:flex;flex-wrap:wrap;gap:16px 24px;padding-block:18px;border-block:1px solid var(--atlas-line);margin-top:20px}.network-totals span {min-width:0;max-width:100%;overflow-wrap:anywhere;font-size:11px;color:var(--atlas-muted)}.network-totals b {display:block;font-variant-numeric:tabular-nums;font-family:var(--atlas-serif);font-weight:500;font-size:25px;color:var(--atlas-ink)}.network-connection {padding:14px 0;border-bottom:1px solid var(--atlas-line)}.network-connection button,.network-node-list button {font:inherit;color:var(--atlas-green);background:none;border:0;padding:0;cursor:pointer;text-align:left}.network-connection small {font-size:11px;color:var(--atlas-muted)}.network-models {list-style:none;padding:0}.network-models li {display:flex;justify-content:space-between;gap:18px;padding:10px 0;border-bottom:1px solid var(--atlas-line);font-size:12px;line-height:1.7}.network-models strong {font-weight:600;white-space:normal;min-width:0;max-width:45%;overflow-wrap:anywhere;text-align:right}.network-action {display:inline-block;color:var(--atlas-green);margin:20px 0;font-size:13px}.network-node-list {display:flex;flex-wrap:wrap;gap:12px;padding:16px 20px}.network-node-list button {padding:8px 10px;border:1px solid var(--atlas-line);font-size:12px}.network-node-list button[aria-pressed=true] {background:#eaf0e8;border-color:var(--atlas-green)}.network-connection button:focus-visible,.network-node-list button:focus-visible,.network-action:focus-visible {outline:2px solid var(--atlas-green);outline-offset:4px}@media(max-width:1100px){.network-layout {grid-template-columns:1fr}.network-detail {padding:20px}.network-intro {align-items:start;flex-direction:column;gap:4px}}@media(max-width:600px){.network-map svg {min-width:600px}.network-map {overflow-x:auto}.network-intro h2 {font-size:23px}}@media(prefers-reduced-motion:reduce){.network-node rect {transition:none}}
+
+.network-evidence {margin:0;border-block:1px solid var(--atlas-line)}.network-evidence > div {display:flex;gap:16px;justify-content:space-between;padding:10px 0;font-size:12px;line-height:1.8}.network-evidence dt {color:var(--atlas-muted)}.network-evidence dd {margin:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.network-next {list-style:none;padding:0}.network-next li {padding:12px 0;border-bottom:1px solid var(--atlas-line);font-size:12px;line-height:1.8}.network-next strong,.network-next span {display:block}.network-next span {margin-top:6px;color:var(--atlas-muted)}
+
+.network-edge.pending {opacity:.18}.network-edge.pending.active {opacity:.85}.network-edge.observed.active {opacity:.95}
+
+/* Keep the atlas available while users inspect a domain. */
+.network-disclosure {border-block:1px solid var(--atlas-line);margin-top:24px}
+.network-disclosure + .network-disclosure {border-top:0}
+.network-disclosure summary {display:flex;justify-content:space-between;gap:16px;align-items:center;cursor:pointer;list-style:none;padding:17px 0;font-size:13px;font-weight:600;color:var(--atlas-ink)}
+.network-disclosure summary::-webkit-details-marker {display:none}
+.network-disclosure summary span {margin-left:auto;color:var(--atlas-muted);font-size:11px;font-weight:400}
+.network-disclosure summary::after {content:"+";color:var(--atlas-green);font-size:20px;font-weight:400;line-height:1}
+.network-disclosure[open] summary::after {content:"−"}
+.network-disclosure summary:focus-visible {outline:2px solid var(--atlas-green);outline-offset:4px}
+.network-disclosure .network-evidence {border-bottom:0}
+.network-disclosure .network-models {margin:0 0 12px}
+@media(min-width:1101px){.network-map {position:sticky;top:88px}}
+@media(max-width:600px){.network-node-list {gap:8px;padding:12px}.network-node-list button {min-height:44px}.network-detail {padding-inline:0}.network-count {white-space:normal}}
+
+.network-pan-hint {display:none}
+@media(max-width:600px){
+ .network-map {display:flex;flex-direction:column;overflow:visible}
+ .network-node-list {order:-2;border-bottom:1px solid var(--atlas-line);padding-inline:0}
+ .network-pan-hint {display:block;order:-1;font-size:12px;color:var(--atlas-muted);margin:14px 0 0}
+ .network-diagram {overflow-x:auto;overscroll-behavior-x:contain;max-width:100%}
+ .network-legend {padding-inline:0}
+}
+
+/* Consistent hit areas for domain exploration on touch and keyboard. */
+.network-node-list button {min-height:44px}
+.network-connection button {display:flex;align-items:center;min-height:44px;width:100%;line-height:1.6}
+.network-action {display:inline-flex;align-items:center;min-height:44px;line-height:1.6}
+
+.network-detail h3 {scroll-margin-top:100px}
+.network-detail h3:focus-visible {outline:2px solid var(--atlas-green);outline-offset:6px}
+
+.network-model-name {min-width:0;flex:1}
+.network-model-name > span {display:block;overflow-wrap:anywhere}
+.network-model-status {display:block;font-size:11px;color:var(--atlas-muted);margin-top:4px}
+.network-model-status.attention {color:#a83e32;font-weight:600}
+.network-models strong {font-variant-numeric:tabular-nums}
+
+.network-model-reason {margin:6px 0 0;font-size:12px;line-height:1.7}
+
+.network-actions { display:flex; flex-direction:column; align-items:flex-start; gap:4px; margin-block:20px; }.network-actions .network-action { margin:0; overflow-wrap:anywhere; max-width:100%; }

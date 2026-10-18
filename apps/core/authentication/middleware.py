@@ -4,17 +4,47 @@ from django.utils.deprecation import MiddlewareMixin
 
 
 class OAuthScopeCleanupMiddleware(MiddlewareMixin):
-    """Keep legacy CSRF handling and response CORS without fabricating context."""
+    """Compatibility shim; CSRF and CORS belong to Django's standard middleware.
 
-    def process_request(self, request):
-        if request.path == '/o/authorize/' and request.method == 'POST':
-            setattr(request, '_dont_enforce_csrf_checks', True)
-        return None
+    Kept importable for deployments with the historical middleware path. It
+    deliberately neither bypasses CSRF nor changes CORS response headers.
+    """
+
+
+class SensitiveResponseMiddleware(MiddlewareMixin):
+    """Prevent Django dynamic responses from entering browser or proxy caches."""
 
     def process_response(self, request, response):
-        # Patient/encounter context is added only by CustomTokenView after a
-        # persisted launch -> authorization code -> access token link exists.
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
+        from django.conf import settings
+
+        static_url = getattr(settings, 'STATIC_URL', '/static/') or '/static/'
+        if request.path.startswith(static_url):
+            return response
+        # FHIR also has legacy root-level routes (for example /Patient and
+        # /metadata), so cache policy must not depend on a URL prefix allowlist.
+        response['Cache-Control'] = 'no-store'
+        response['Pragma'] = 'no-cache'
         return response
+
+
+class SecuritySessionMiddleware(MiddlewareMixin):
+    """Revoke browser sessions using the same account version as JWTs.
+
+    Session authentication alone cannot preserve access after suspension or a
+    global logout. Missing versions reject sessions created before this release.
+    OTP enrollment remains possible for an approved, password-authenticated user.
+    """
+
+    def process_request(self, request):
+        if not request.user.is_authenticated:
+            return None
+        from django.contrib.auth import logout
+        from .services import get_security_state, user_is_approved
+
+        if (
+            not user_is_approved(request.user)
+            or request.session.get('auth_security_version')
+            != get_security_state(request.user).token_version
+        ):
+            logout(request)
+        return None

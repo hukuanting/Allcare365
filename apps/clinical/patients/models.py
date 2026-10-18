@@ -79,6 +79,18 @@ class Patient(BaseModel):
         ]
         permissions = [
             (
+                'access_all_clinical_records',
+                'Can access all clinical patient records',
+            ),
+            (
+                'edit_all_clinical_records',
+                'Can edit all clinical patient records',
+            ),
+            (
+                'create_patient_records',
+                'Can create patient records',
+            ),
+            (
                 'launch_any_patient_smart_context',
                 'Can launch SMART context for any patient',
             ),
@@ -186,6 +198,37 @@ class PatientPractitionerLink(BaseModel):
             models.Index(fields=['link_type']),
         ]
         unique_together = ['patient', 'practitioner', 'link_type']
+
+
+class PatientUserLink(BaseModel):
+    """An administrator-verified patient portal identity binding.
+
+    This is the only ordinary portal path from an auth user to a patient.  It
+    deliberately does not infer ownership from demographics, email, metadata,
+    or a prior SMART launch.
+    """
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='patient_record_link',
+    )
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.CASCADE,
+        related_name='user_links',
+    )
+    status = models.CharField(max_length=50, default='active')
+    start_at = models.DateTimeField(default=timezone.now)
+    end_at = models.DateTimeField(null=True, blank=True)
+    metadata_json = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = 'patient_user_links'
+        indexes = [
+            models.Index(fields=['patient', 'status']),
+            models.Index(fields=['status', 'start_at']),
+        ]
 
 
 class PatientAllergy(BaseModel):

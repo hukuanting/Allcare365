@@ -27,6 +27,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Optional
 
+from .expert_sources import DEFINITIONS as EXPERT_SOURCE_DEFINITIONS
+
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
@@ -35,7 +37,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REVIEW_CATALOG_PATH = PROJECT_ROOT / "example" / "algorithms.json"
 DEFAULT_REVIEW_SCHEMA_PATH = PROJECT_ROOT / "example" / "algorithm.schema.json"
 
-RUNTIME_CATALOG_VERSION = "3.0.0"
+RUNTIME_CATALOG_VERSION = "4.0.0"
 REVIEWABLE_STATUS = "candidate_after_clinical_validation"
 RUNTIME_APPROVED_STATUS = "runtime_approved"
 CLINICAL_REVIEW_REQUIRED_STATUS = "clinical_review_required"
@@ -639,6 +641,38 @@ _VARIABLE_CONTRACTS = (
     ),
 )
 
+_VARIABLE_CONTRACTS += (
+    _variable("cimt_um", VariableDataType.NUMBER, "um", ClinicalSourceKind.OBSERVATION),
+    _variable("bcra_population", VariableDataType.ENUM, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE, allowed_values=("chinese_american","white","black","hispanic_us","hispanic_foreign","japanese_american","filipino_american","hawaiian","other_pacific_islander","other_asian")),
+    _variable("breast_cancer_or_dcis_history", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("lcis_history", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("brca_mutation", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("age_at_menarche", VariableDataType.INTEGER, "a", ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("age_at_first_live_birth", VariableDataType.INTEGER, "a", ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("number_of_breast_biopsies", VariableDataType.INTEGER, "{count}", ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("atypical_hyperplasia", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("first_degree_relatives_with_breast_cancer", VariableDataType.INTEGER, "{count}", ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("urine_albumin_creatinine_ratio", VariableDataType.NUMBER, "mg/g", ClinicalSourceKind.OBSERVATION, loinc_codes=("9318-7",)),
+    _variable("east_asian", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("load_low_hdl_c", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("load_high_whr", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("load_ethnicity", VariableDataType.ENUM, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE, allowed_values=("white","black","hispanic")),
+    _variable("diabetes_medication", VariableDataType.ENUM, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE, allowed_values=("none","oral","insulin")),
+    _variable("regular_pickled_food", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("regular_fried_food", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("h_pylori_igg_eiu", VariableDataType.NUMBER, "{EIU}", ClinicalSourceKind.OBSERVATION),
+    _variable("pepsinogen_i_ii_ratio", VariableDataType.NUMBER, "1", ClinicalSourceKind.OBSERVATION),
+    _variable("gastrin_17_pmol_l", VariableDataType.NUMBER, "pmol/L", ClinicalSourceKind.OBSERVATION),
+    _variable("ferritin", VariableDataType.NUMBER, "ng/mL", ClinicalSourceKind.OBSERVATION, loinc_codes=("2276-4",)),
+    _variable("fasting_insulin", VariableDataType.NUMBER, "u[IU]/mL", ClinicalSourceKind.OBSERVATION),
+    _variable("type_iv_collagen_7s", VariableDataType.NUMBER, "ng/mL", ClinicalSourceKind.OBSERVATION),
+    _variable("gamma_globulin", VariableDataType.NUMBER, "g/dL", ClinicalSourceKind.OBSERVATION),
+    _variable("vascular_risk_factor_count", VariableDataType.INTEGER, "{count}", ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("family_history_dementia", VariableDataType.BOOLEAN, None, ClinicalSourceKind.QUESTIONNAIRE_RESPONSE),
+    _variable("hip_circumference", VariableDataType.NUMBER, "cm", ClinicalSourceKind.OBSERVATION, loinc_codes=("56074-8",)),
+    _variable("ldl_cholesterol", VariableDataType.NUMBER, "mg/dL", ClinicalSourceKind.OBSERVATION, loinc_codes=("2089-1", "13457-7")),
+)
+
 CLINICAL_VARIABLES: Mapping[str, ClinicalVariableContract] = MappingProxyType(
     {contract.key: contract for contract in _VARIABLE_CONTRACTS}
 )
@@ -715,6 +749,8 @@ class RuntimeAlgorithmMetadata:
     governance_status: str = RUNTIME_APPROVED_STATUS
     runtime_enabled: bool = True
     clinical_review_reason: Optional[str] = None
+    output_unit: str = "1"
+    source_acceptance: str = "existing_runtime_catalog"
 
     def __post_init__(self) -> None:
         _validate_algorithm_id(self.algorithm_id)
@@ -765,6 +801,8 @@ class RuntimeAlgorithmMetadata:
             "method_uri": self.method_uri,
             "score_represents_probability": self.score_represents_probability,
             "clinical_review_reason": self.clinical_review_reason,
+            "output_unit": self.output_unit,
+            "source_acceptance": self.source_acceptance,
             "required_input_keys": list(self.required_inputs),
         }
 
@@ -1273,6 +1311,27 @@ def load_review_catalog(
         source_path=resolved_catalog_path,
     )
 
+
+
+# Explicit promotion requested by the user: this collection has expert review.
+# Published corrections are retained in the source integration ledger.
+ALGORITHM_DISPLAY_NAMES_ZH = MappingProxyType({
+    **ALGORITHM_DISPLAY_NAMES_ZH,
+    **{definition["id"]: definition["name_zh"] for definition in EXPERT_SOURCE_DEFINITIONS},
+})
+RUNTIME_ALGORITHMS += tuple(
+    RuntimeAlgorithmMetadata(
+        algorithm_id=definition["id"], display_name=definition["name"],
+        outcome_key=definition["outcome"], clinical_system=ClinicalSystem(definition["system"]),
+        output_resource=(FHIRResultType.RISK_ASSESSMENT if definition.get("probability") else FHIRResultType.OBSERVATION),
+        required_inputs=tuple(definition["inputs"]),
+        model_version=definition.get("version", "expert-source-2026-10-10"),
+        source_label=definition["source"], time_horizon=definition.get("horizon"),
+        method_uri=definition.get("uri"), score_represents_probability=definition.get("probability", False),
+        output_unit=definition.get("unit", "1"),
+        source_acceptance="user_attested_expert_review_2026_10_10",
+    ) for definition in EXPERT_SOURCE_DEFINITIONS
+)
 
 @dataclass(frozen=True, slots=True)
 class RiskAlgorithmRegistry:

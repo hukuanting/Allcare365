@@ -1,6 +1,10 @@
-from django.core.management.base import BaseCommand
+import os
+
+from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.password_validation import validate_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,6 +20,8 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError('Demo authentication setup is disabled outside local development.')
         self.stdout.write(self.style.SUCCESS('開始設置用戶群組和權限...'))
         
         # 創建用戶群組
@@ -130,7 +136,13 @@ class Command(BaseCommand):
         """創建預設管理員帳戶"""
         username = 'admin'
         email = 'admin@medicalcare.local'
-        password = 'admin123'
+        password = os.environ.get('ALLCARE365_BOOTSTRAP_ADMIN_PASSWORD', '')
+        if len(password) < 16:
+            raise CommandError(
+                'Set ALLCARE365_BOOTSTRAP_ADMIN_PASSWORD to a strong unique password '
+                'of at least 16 characters before using --create-admin.'
+            )
+        validate_password(password)
         
         if not User.objects.filter(username=username).exists():
             user = User.objects.create_superuser(
@@ -145,11 +157,7 @@ class Command(BaseCommand):
             admin_group = Group.objects.get(name='admin')
             user.groups.add(admin_group)
             
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'創建管理員帳戶: {username} (密碼: {password})'
-                )
-            )
+            self.stdout.write(self.style.SUCCESS(f"Created admin account: {username}"))
             self.stdout.write(
                 self.style.WARNING(
                     '請在生產環境中立即更改預設密碼！'
@@ -159,61 +167,3 @@ class Command(BaseCommand):
             logger.info(f'Created admin user: {username}')
         else:
             self.stdout.write(f'管理員帳戶已存在: {username}')
-
-    def create_demo_users(self):
-        """創建示範用戶（可選）"""
-        demo_users = [
-            {
-                'username': 'doctor1',
-                'password': 'doctor123',
-                'email': 'doctor1@medicalcare.local',
-                'first_name': '張',
-                'last_name': '醫師',
-                'group': 'doctor'
-            },
-            {
-                'username': 'nurse1',
-                'password': 'nurse123',
-                'email': 'nurse1@medicalcare.local',
-                'first_name': '李',
-                'last_name': '護理師',
-                'group': 'nurse'
-            },
-            {
-                'username': 'staff1',
-                'password': 'staff123',
-                'email': 'staff1@medicalcare.local',
-                'first_name': '王',
-                'last_name': '行政',
-                'group': 'staff'
-            },
-            {
-                'username': 'patient1',
-                'password': 'patient123',
-                'email': 'patient1@medicalcare.local',
-                'first_name': '陳',
-                'last_name': '病患',
-                'group': 'patient'
-            }
-        ]
-        
-        for user_data in demo_users:
-            username = user_data['username']
-            
-            if not User.objects.filter(username=username).exists():
-                user = User.objects.create_user(
-                    username=user_data['username'],
-                    password=user_data['password'],
-                    email=user_data['email'],
-                    first_name=user_data['first_name'],
-                    last_name=user_data['last_name']
-                )
-                
-                # 添加到對應群組
-                group = Group.objects.get(name=user_data['group'])
-                user.groups.add(group)
-                
-                self.stdout.write(f'創建示範用戶: {username}')
-                logger.info(f'Created demo user: {username}')
-            else:
-                self.stdout.write(f'示範用戶已存在: {username}')

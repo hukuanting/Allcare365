@@ -45,6 +45,18 @@ FHIR_INCLUDE_CONFORMANCE_FIXTURES = config(
     default=False,
     cast=bool,
 )
+# Stable, server-controlled identity boundary for the local FHIR import UI.
+# Production must configure its trusted inbox explicitly.
+FHIR_DEFAULT_ORIGIN_NAMESPACE = config(
+    'FHIR_DEFAULT_ORIGIN_NAMESPACE',
+    default='allcare365:local-ui-import:v1' if DEBUG else '',
+).strip()
+# REST import may only contact administrator-controlled trusted origins.
+FHIR_IMPORT_ALLOWED_ORIGINS = config(
+    'FHIR_IMPORT_ALLOWED_ORIGINS',
+    default='http://localhost:8000,http://127.0.0.1:8000' if DEBUG else '',
+    cast=lambda value: [origin.strip().rstrip('/') for origin in value.split(',') if origin.strip()],
+)
 # PUBLIC_BASE_URL 優先級：環境變數 > HTTPS 預設
 PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default='').rstrip('/')
 INFERNO_BULK_JWKS_URL = config(
@@ -110,10 +122,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
+    'two_factor',
     'rest_framework',
     'rest_framework.authtoken',  # 添加token認證
     'rest_framework_simplejwt',  # 添加JWT認證
-    # 'rest_framework_simplejwt.token_blacklist',  # 移除blacklist避免問題
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     # 認證系統
     'apps.core.authentication',
@@ -122,11 +138,12 @@ INSTALLED_APPS = [
     'apps.clinical.health_screening',
     'apps.integration.fhir_integration',
     'oauth2_provider',  # SMART on FHIR OAuth2 Support
-    'sslserver',        # 支援本地開發 HTTPS (ONC 認證必備)
+    # The optional django-sslserver helper is not a core dependency; local
+    # development uses the normal HTTP server by default.
 ]
 
 MIDDLEWARE = [
-    'apps.core.authentication.middleware.OAuthScopeCleanupMiddleware',  # Clean scopes before OAuth processing
+    'apps.core.authentication.middleware.SensitiveResponseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'apps.integration.fhir_integration.middleware.DynamicBaseURLMiddleware',  # Reverse-proxy URL compatibility
     'django.middleware.security.SecurityMiddleware',
@@ -135,6 +152,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',
+    'apps.core.authentication.middleware.SecuritySessionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # 暫時禁用自定義認證中間件
@@ -143,6 +162,15 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'medical_system.urls'
+
+# Real deployments require MFA for privileged users. Local development remains
+# usable while synthetic accounts are being configured.
+MFA_REQUIRED_FOR_PRIVILEGED = config('MFA_REQUIRED_FOR_PRIVILEGED', default=not DEBUG, cast=bool)
+LOGIN_URL = 'two_factor:login'
+LOGIN_REDIRECT_URL = '/admin/'
+TWO_FACTOR_PATCH_ADMIN = False
+TWO_FACTOR_QR_FACTORY = 'qrcode.image.svg.SvgPathImage'
+PUBLIC_REGISTRATION_ENABLED = config('PUBLIC_REGISTRATION_ENABLED', default=True, cast=bool)
 
 TEMPLATES = [
     {
@@ -249,12 +277,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # SMART on FHIR OAuth2
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'apps.core.authentication.jwt_authentication.VersionedJWTAuthentication',
+        'apps.core.authentication.jwt_authentication.ApprovedSessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'auth_login': '5/minute',
+        'auth_register': '3/hour',
+        'auth_token_refresh': '20/minute',
+    },
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
     'DEFAULT_FILTER_BACKENDS': [
@@ -383,16 +416,17 @@ ENCRYPT_SENSITIVE_DATA = True
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024  # 10 MB FHIR payload plus JSON/form overhead
 
 # Simple JWT settings
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=90),
-    'ROTATE_REFRESH_TOKENS': False,  # 修復：關閉token輪換避免blacklist問題
-    'BLACKLIST_AFTER_ROTATION': False,  # 修復：關閉blacklist
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=10),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'CHECK_REVOKE_TOKEN': True,
     'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
@@ -401,8 +435,8 @@ SIMPLE_JWT = {
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
-    'TOKEN_OBTAIN_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenObtainPairSerializer',
-    'TOKEN_REFRESH_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenRefreshSerializer',
+    'TOKEN_OBTAIN_SERIALIZER': 'apps.core.authentication.jwt_authentication.VersionedTokenObtainPairSerializer',
+    'TOKEN_REFRESH_SERIALIZER': 'apps.core.authentication.jwt_authentication.VersionedTokenRefreshSerializer',
 }
 
 # SMART on FHIR OAuth2 Settings

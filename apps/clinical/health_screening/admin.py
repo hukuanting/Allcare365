@@ -1,4 +1,5 @@
 from django.contrib import admin
+from apps.clinical.patients.admin_permissions import PatientScopedAdminMixin
 from .models import (
     HealthScreening, VitalSigns, LaboratoryResults,
     Problem, Procedure, Immunization, HealthStatusAssessment
@@ -17,34 +18,38 @@ class HealthStatusAssessmentInline(admin.StackedInline):
     extra = 0
 
 @admin.register(HealthScreening)
-class HealthScreeningAdmin(admin.ModelAdmin):
+class HealthScreeningAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
+    patient_lookup = "patient"
     list_display = ['patient', 'encounter_type', 'screening_date', 'encounter_location']
     list_filter = ['encounter_type', 'screening_date']
     inlines = [VitalSignsInline, LaboratoryResultsInline, HealthStatusAssessmentInline]
 
 @admin.register(VitalSigns)
-class VitalSignsAdmin(admin.ModelAdmin):
+class VitalSignsAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
+    patient_lookup = "health_screening__patient"
     list_display = ['health_screening', 'systolic_blood_pressure', 'diastolic_blood_pressure', 'heart_rate']
 
 @admin.register(LaboratoryResults)
-class LaboratoryResultsAdmin(admin.ModelAdmin):
+class LaboratoryResultsAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
+    patient_lookup = "health_screening__patient"
     list_display = ['health_screening', 'test_name', 'value_result', 'result_status']
 
 @admin.register(Problem)
-class ProblemAdmin(admin.ModelAdmin):
+class ProblemAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
     list_display = ['patient', 'problem_name', 'status', 'date_of_onset']
     list_filter = ['status', 'sdoh_problem']
 
 @admin.register(Procedure)
-class ProcedureAdmin(admin.ModelAdmin):
+class ProcedureAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
     list_display = ['patient', 'procedure_name', 'performance_time']
 
 @admin.register(Immunization)
-class ImmunizationAdmin(admin.ModelAdmin):
+class ImmunizationAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
     list_display = ['patient', 'vaccine_name', 'administration_date', 'lot_number']
 
 @admin.register(HealthStatusAssessment)
 
-class HealthStatusAssessmentAdmin(admin.ModelAdmin):
+class HealthStatusAssessmentAdmin(PatientScopedAdminMixin, admin.ModelAdmin):
+    patient_lookup = "health_screening__patient"
 
     list_display = ['health_screening', 'smoking_status', 'pregnancy_status']

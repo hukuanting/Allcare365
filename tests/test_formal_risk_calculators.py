@@ -30,7 +30,7 @@ def test_all_hospital_approved_algorithms_have_one_formula_binding():
     ]
     runtime_ids = [metadata.algorithm_id for metadata in RUNTIME_ALGORITHMS]
     assert formula_ids == runtime_ids
-    assert len(formula_ids) == len(set(formula_ids)) == 42
+    assert len(formula_ids) == len(set(formula_ids)) == 82
 
 
 def test_public_catalog_has_no_stale_review_cards_or_blocked_conflicts():
@@ -40,9 +40,10 @@ def test_public_catalog_has_no_stale_review_cards_or_blocked_conflicts():
         for group in catalog["systems"]
         for item in group["algorithms"]
     }
-    assert catalog["counts"]["executable_models"] == 42
+    assert catalog["counts"]["executable_models"] == 82
     assert catalog["counts"]["review_candidate_models"] == 0
-    assert not {"new_zealand_dcs_cvd", "hunt_lung_cancer_6y", "china_nonobese_nafld_1y"} & visible
+    assert {"hunt_lung_cancer_6y", "nzdcs_cvd_5y", "nzdcs_mi_5y"} <= visible
+    assert not {"new_zealand_dcs_cvd", "china_nonobese_nafld_1y"} & visible
 
 
 def test_formula_corrections_are_locked_by_vectors():

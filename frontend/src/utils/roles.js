@@ -1,4 +1,6 @@
 export const RESEARCH_ACCESS_ROLES = [
+  'admanager',
+  'manager',
   'admin',
   'administrator',
   'system_admin',
@@ -15,6 +17,8 @@ export const RESEARCH_ACCESS_ROLES = [
 ];
 
 export const RESEARCH_APPROVAL_ROLES = [
+  'admanager',
+  'manager',
   'admin',
   'administrator',
   'system_admin',
@@ -50,4 +54,13 @@ export const hasAnyRole = (userInfo, allowedRoles) => {
   if (!allowedRoles || allowedRoles.length === 0) return true;
   const userRoles = new Set(getUserRoles(userInfo));
   return allowedRoles.some((role) => userRoles.has(normalizeRole(role)));
+};
+
+export const CLINICAL_WRITE_ROLES = RESEARCH_APPROVAL_ROLES.concat('professional');
+
+export const getAccessLevel = (userInfo) => {
+  if (hasAnyRole(userInfo, ['admanager', 'admin', 'administrator', 'system_admin'])) return 'Admanager';
+  if (hasAnyRole(userInfo, CLINICAL_WRITE_ROLES)) return 'Manager';
+  if (hasAnyRole(userInfo, RESEARCH_ACCESS_ROLES)) return 'Researcher';
+  return 'Viewer';
 };

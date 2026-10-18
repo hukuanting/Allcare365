@@ -141,6 +141,32 @@ class ProductUser(models.Model):
     def __str__(self):
         return self.display_name
 
+
+class AuthSecurityState(models.Model):
+    """Server-side security state used to invalidate otherwise stateless JWTs.
+
+    JWT access tokens cannot be individually recalled without a central lookup.
+    The monotonically increasing version is included in every JWT and checked by
+    ``VersionedJWTAuthentication``.  Incrementing it invalidates every access
+    token issued before the change, including a token whose refresh token was
+    already blacklisted.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='auth_security_state',
+    )
+    token_version = models.PositiveBigIntegerField(default=1)
+    last_revoked_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'auth_security_states'
+
+    def __str__(self):
+        return f'{self.user_id}:v{self.token_version}'
+
 class UserProfile(models.Model):
     """
     用戶個人資料擴展模型

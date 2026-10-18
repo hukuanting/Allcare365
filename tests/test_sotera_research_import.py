@@ -4,7 +4,7 @@ import zipfile
 
 import pandas as pd
 import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from fhirclient.models.observation import Observation as FHIRObservation
 from fhirclient.models.provenance import Provenance as FHIRProvenance
 from rest_framework.test import APIClient
@@ -137,8 +137,10 @@ def test_sotera_commit_is_pseudonymous_fhir_traceable_and_idempotent(tmp_path):
     archive_path = _session_archive(tmp_path)
     service = SoteraResearchSessionService(archive_path)
 
-    first = service.run(commit=True)
-    second = service.run(commit=True)
+    # This archive contains only synthetic rows. The isolated PostgreSQL
+    # service has a container hostname; retain the production import guard.
+    first = service.run(commit=True, allow_remote_database=True)
+    second = service.run(commit=True, allow_remote_database=True)
 
     assert first["committed"] is True
     assert first["idempotent"] is False
@@ -185,7 +187,9 @@ def test_sotera_commit_is_pseudonymous_fhir_traceable_and_idempotent(tmp_path):
 @pytest.mark.django_db
 def test_sotera_report_endpoint_is_research_only_and_separates_ao_status(tmp_path):
     archive_path = _session_archive(tmp_path)
-    imported = SoteraResearchSessionService(archive_path).run(commit=True)
+    imported = SoteraResearchSessionService(archive_path).run(
+        commit=True, allow_remote_database=True
+    )
 
     anonymous_response = APIClient().get(
         "/api/health-screening/research/continuous-signals/latest/"
@@ -198,6 +202,12 @@ def test_sotera_report_endpoint_is_research_only_and_separates_ao_status(tmp_pat
         display_name="Sotera Researcher",
         role="researcher",
         status="active",
+    )
+    user.user_permissions.add(
+        Permission.objects.get(
+            content_type__app_label="health_screening",
+            codename="view_research_aggregates",
+        )
     )
     client = APIClient()
     client.force_authenticate(user=user)
@@ -216,6 +226,23 @@ def test_sotera_report_endpoint_is_research_only_and_separates_ao_status(tmp_pat
     }
     assert response.data["source"]["session_pseudonym"].startswith("session-")
     assert str(imported["patient_id"]) not in str(response.data)
+
+
+@pytest.mark.django_db
+def test_sotera_research_role_without_explicit_permission_is_denied():
+    user = User.objects.create_user(username="sotera-role-only", password="password")
+    ProductUser.objects.create(
+        auth_user=user,
+        display_name="Sotera Role Only",
+        role="researcher",
+        status="active",
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.get("/api/health-screening/research/continuous-signals/latest/")
+
+    assert response.status_code == 403
 
 
 @pytest.mark.django_db

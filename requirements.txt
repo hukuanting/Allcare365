@@ -1,9 +1,9 @@
 # Allcare365 - ONC Certified EMR System Requirements
 # Django Core Framework
-Django==5.0.8
-djangorestframework==3.14.0
-django-cors-headers==4.3.1
-django-filter==23.3
+Django==5.2.17
+djangorestframework==3.17.2
+django-cors-headers==4.9.0
+django-filter==25.2
 django-extensions==3.2.3
 python-decouple==3.8
 
@@ -12,9 +12,14 @@ psycopg2-binary==2.9.7
 django-environ==0.11.2
 
 # Authentication & Security
-djangorestframework-simplejwt==5.3.0
-django-oauth-toolkit==1.7.1
-cryptography==41.0.7
+djangorestframework-simplejwt==5.5.1
+django-oauth-toolkit==3.4.1
+cryptography==50.0.1
+django-otp==1.7.3
+django-two-factor-auth==1.18.1
+django-storages[google,s3]==1.14.6
+oauthlib==4.0.0
+PyJWT==2.15.1
 
 # FHIR R4 Support for ONC Certification
 fhir.resources==7.0.2
@@ -32,7 +37,7 @@ openpyxl==3.1.2
 xlsxwriter==3.1.9
 
 # Risk Analysis & Clinical Decision Support
-scikit-learn==1.3.0
+scikit-learn==1.5.2
 scipy==1.11.3
 jsonschema==4.26.0
 
@@ -41,7 +46,7 @@ drf-spectacular==0.26.5
 drf-spectacular[sidecar]==0.26.5
 
 # File Processing
-Pillow==10.0.1
+Pillow==12.3.0
 python-magic==0.4.27
 boto3==1.43.82
 pyarrow==25.0.1
@@ -53,14 +58,14 @@ channels==4.3.1
 
 # Development Tools
 django-debug-toolbar==4.2.0
-pytest-django==4.5.2
+pytest-django==4.14.0
 factory-boy==3.3.0
 
 # Production
-gunicorn==21.2.0
+gunicorn==23.0.0
 whitenoise==6.5.0
 
 # Monitoring & Logging
-sentry-sdk==1.32.0
-reportlab
-psutil
+sentry-sdk==2.71.0
+reportlab==4.4.5
+psutil==7.1.3

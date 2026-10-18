@@ -47,7 +47,7 @@ Browser → React (`frontend/src`)
 - Removed 39 unreferenced server-rendered templates for retired appointment, billing, document, encounter, form, laboratory, pharmacy, and therapy-group modules.
 - Preserved active patient, authentication, OAuth, FHIR/SMART, and health-screening templates.
 - Removed neither migrations nor source-risk evidence. Migrations are historical database contracts and must not be deleted from a deployed system.
-- Corrected two frontend cloud-deployment blockers: refresh-token calls and SMART launch configuration now use `REACT_APP_API_URL` instead of a hard-coded localhost backend.
+- The Vite frontend reads its API origin from `VITE_API_URL` for refresh-token calls and SMART launch configuration.
 
 The repository already contained substantial uncommitted deletions under `archive/` before this review. They are intentionally left untouched so the owner can decide whether to publish that historical removal in the next commit.
 

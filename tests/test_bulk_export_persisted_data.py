@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from datetime import date
+from datetime import date, timedelta
 from types import SimpleNamespace
 from unittest import mock
 
@@ -14,13 +14,14 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "medical_system.settings")
 django.setup()
 
 from django.test import override_settings
+from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from apps.clinical.health_screening.models import HealthScreening, Problem
 from apps.clinical.patients.models import Patient
 from apps.integration.fhir_integration.projectors.registry import ProjectorRegistry
 from apps.integration.fhir_integration.resource_identity import identity
-from apps.integration.fhir_integration.models import FHIRResource
+from apps.integration.fhir_integration.models import BulkExportFile, BulkExportJob, FHIRResource
 from apps.integration.fhir_integration.views import BulkExportViewSet
 
 
@@ -256,7 +257,6 @@ def test_projector_failure_returns_operation_outcome_without_partial_ndjson():
     _persist_group([patient])
     Problem.objects.create(patient=patient, problem_name="Persisted condition")
     factory = APIRequestFactory()
-    job_id = _kickoff(factory, export_type="group", resource_types=["Condition"])
     projector = ProjectorRegistry.get("Condition")
 
     with mock.patch.object(
@@ -264,7 +264,13 @@ def test_projector_failure_returns_operation_outcome_without_partial_ndjson():
         "project_batch",
         side_effect=RuntimeError("projection failed"),
     ):
-        response = _download(factory, job_id=job_id, resource_type="Condition")
+        response = _get(
+            factory,
+            "/fhir/R4/Group/example-group/$export",
+            action="export_group",
+            query={"_type": "Condition"},
+            pk="example-group",
+        )
 
     assert response.status_code == 500
     payload = json.loads(response.content)
@@ -311,6 +317,23 @@ def test_bulk_export_requires_system_scope_for_every_requested_resource_type():
 
     assert response.status_code == 403
     assert b"Observation" in response.content
+
+
+@pytest.mark.django_db
+@override_settings(ALLOWED_HOSTS=["testserver"])
+@pytest.mark.parametrize("filter_parameter", ["_since", "_typeFilter"])
+def test_bulk_export_rejects_filters_that_are_not_applied(filter_parameter):
+    factory = APIRequestFactory()
+    response = _get(
+        factory,
+        "/fhir/R4/$export",
+        action="export_system",
+        query={"_type": "Patient", filter_parameter: "2026-01-01T00:00:00Z"},
+    )
+
+    assert response.status_code == 400
+    assert b"not implemented" in response.content
+    assert BulkExportJob.objects.count() == 0
 
 
 @pytest.mark.django_db
@@ -365,3 +388,69 @@ def test_bulk_job_status_download_and_cancel_are_bound_to_the_creating_oauth_cli
         job_id=job_id,
     )
     assert owner_status.status_code == 200
+
+
+@pytest.mark.django_db
+@override_settings(ALLOWED_HOSTS=["testserver"])
+def test_bulk_job_and_ndjson_snapshot_survive_view_instance_recreation():
+    patient = _patient(
+        first_name="SnapshotBeforeChange",
+        mrn="SNAPSHOT-001",
+        fhir_id="snapshot-patient",
+    )
+    factory = APIRequestFactory()
+    job_id = _kickoff(factory, export_type="system", resource_types=["Patient"])
+    assert BulkExportJob.objects.filter(pk=job_id).exists()
+    output = BulkExportFile.objects.get(job_id=job_id, resource_type="Patient")
+    assert output.content.name.startswith(f"bulk-exports/{job_id}/")
+
+    patient.first_name = "ChangedAfterExport"
+    patient.save(update_fields=["first_name"])
+    download_after_recreation = _download(factory, job_id=job_id, resource_type="Patient")
+
+    assert download_after_recreation.status_code == 200
+    assert b"SnapshotBeforeChange" in download_after_recreation.content
+    assert b"ChangedAfterExport" not in download_after_recreation.content
+
+
+@pytest.mark.django_db
+@override_settings(ALLOWED_HOSTS=["testserver"])
+def test_cancelling_bulk_job_removes_persisted_output_file():
+    _patient(first_name="Cancelled", mrn="CANCEL-001", fhir_id="cancelled-patient")
+    factory = APIRequestFactory()
+    job_id = _kickoff(factory, export_type="system", resource_types=["Patient"])
+    _download(factory, job_id=job_id, resource_type="Patient")
+    output = BulkExportFile.objects.get(job_id=job_id, resource_type="Patient")
+    storage = output.content.storage
+    output_name = output.content.name
+    assert storage.exists(output_name)
+
+    request = factory.delete(f"/fhir/R4/bulk-status/{job_id}", HTTP_HOST="testserver")
+    force_authenticate(request, token=TOKEN)
+    response = BulkExportViewSet.as_view({"delete": "cancel_job"})(request, job_id=job_id)
+
+    assert response.status_code == 202
+    assert BulkExportJob.objects.get(pk=job_id).status == BulkExportJob.STATUS_CANCELLED
+    assert not BulkExportFile.objects.filter(job_id=job_id).exists()
+    assert not storage.exists(output_name)
+
+
+@pytest.mark.django_db
+@override_settings(ALLOWED_HOSTS=["testserver"])
+def test_expired_bulk_job_and_output_are_purged_before_status_lookup():
+    _patient(first_name="Expired", mrn="EXPIRE-001", fhir_id="expired-patient")
+    factory = APIRequestFactory()
+    job_id = _kickoff(factory, export_type="system", resource_types=["Patient"])
+    _download(factory, job_id=job_id, resource_type="Patient")
+    output = BulkExportFile.objects.get(job_id=job_id, resource_type="Patient")
+    storage = output.content.storage
+    output_name = output.content.name
+    BulkExportJob.objects.filter(pk=job_id).update(expires_at=timezone.now() - timedelta(seconds=1))
+
+    status_response = _get(
+        factory, f"/fhir/R4/bulk-status/{job_id}", action="job_status", job_id=job_id
+    )
+
+    assert status_response.status_code == 404
+    assert not BulkExportJob.objects.filter(pk=job_id).exists()
+    assert not storage.exists(output_name)

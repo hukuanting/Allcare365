@@ -78,7 +78,7 @@ class DiseaseRiskInputRepository:
         },
         "alt_gpt": {"types": {"alt_gpt", "alt"}, "codes": {"1742-6"}, "text": {"alanine", "alt"}},
         "ast_got": {"types": {"ast_got", "ast"}, "codes": {"1920-8"}, "text": {"aspartate", "ast"}},
-        "ast_uln": {"types": {"ast_uln"}, "codes": {"1916-6"}, "text": {"ast upper"}},
+        "ast_uln": {"types": {"ast_uln"}, "codes": {"1916-6", "allcare365-ast-uln"}, "text": {"ast upper"}},
         "ggt": {"types": {"ggt"}, "codes": {"2324-2"}, "text": {"gamma glutamyl", "ggt"}},
         "ggt_uln": {"types": {"ggt_uln", "ggt_upper_limit"}, "codes": {"allcare365-ggt-uln"}, "text": {"ggt upper"}},
         "platelet_count": {"types": {"platelet_count", "platelet"}, "codes": {"777-3"}, "text": {"platelet"}},
@@ -94,7 +94,29 @@ class DiseaseRiskInputRepository:
         "apoe_e4": {"types": {"apoe_e4"}, "codes": {"79713-2"}, "text": {"apoe"}},
     }
 
+    OBSERVATION_ALIASES["ldl_cholesterol"] = {"types": {"ldl_cholesterol", "ldl"}, "codes": {"2089-1", "13457-7"}, "text": {"ldl"}}
+
+    for _field, _codes in {
+        "h_pylori_igg_eiu": {"allcare365-h-pylori-igg-eiu"},
+        "pepsinogen_i_ii_ratio": {"allcare365-pepsinogen-i-ii-ratio"},
+        "gastrin_17_pmol_l": {"allcare365-gastrin-17"},
+        "ferritin": {"2276-4"}, "fasting_insulin": {"allcare365-fasting-insulin"},
+        "type_iv_collagen_7s": {"allcare365-type-iv-collagen-7s"},
+        "gamma_globulin": {"allcare365-gamma-globulin"},
+    }.items():
+        OBSERVATION_ALIASES[_field] = {"types": {_field}, "codes": _codes, "text": {_field}}
+
+    OBSERVATION_ALIASES["cimt_um"] = {"types": {"cimt_um"}, "codes": {"allcare365-cimt"}, "text": {"cimt"}}
+
     QUESTIONNAIRE_BOOL_FIELDS = {
+        "breast_cancer_or_dcis_history": [["breast_cancer_or_dcis_history"]],
+        "lcis_history": [["lcis_history"]], "brca_mutation": [["brca_mutation"]],
+        "atypical_hyperplasia": [["atypical_hyperplasia"]],
+        "east_asian": [["east_asian"]], "load_low_hdl_c": [["load_low_hdl_c"]],
+        "load_high_whr": [["load_high_whr"]],
+        "regular_pickled_food": ("regular_pickled_food",),
+        "regular_fried_food": ("regular_fried_food",),
+        "family_history_dementia": [["family_history_dementia"]],
         "family_history_diabetes": [["family", "diabetes"]],
         "anti_hypertensive_drugs": [
             ["anti", "hyper"],
@@ -165,6 +187,10 @@ class DiseaseRiskInputRepository:
     }
 
     QUESTIONNAIRE_SCALAR_FIELDS = (
+        "diabetes_medication",
+        "bcra_population", "age_at_menarche", "age_at_first_live_birth", "number_of_breast_biopsies", "first_degree_relatives_with_breast_cancer",
+        "load_ethnicity",
+        "vascular_risk_factor_count",
         "parental_hypertension_count",
         "deprivation_quintile",
         "diabetes_duration_years",

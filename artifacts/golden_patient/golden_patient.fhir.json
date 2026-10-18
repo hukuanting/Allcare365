@@ -1,0 +1,3185 @@
+{
+  "resourceType": "Bundle",
+  "id": "trial-golden-20261010-bundle",
+  "meta": {
+    "tag": [
+      {
+        "system": "https://allcare365.local/fhir/CodeSystem/conformance-data",
+        "code": "golden-patient"
+      }
+    ]
+  },
+  "type": "collection",
+  "timestamp": "2026-10-10T10:00:00+08:00",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "trial-golden-20261010-patient-v1",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "identifier": [
+          {
+            "use": "usual",
+            "system": "https://allcare365.local/identifier/synthetic-trial-mrn",
+            "value": "SYNTHETIC-GOLDEN-20261010-001"
+          }
+        ],
+        "active": true,
+        "name": [
+          {
+            "use": "official",
+            "family": "Synthetic",
+            "given": [
+              "Golden"
+            ],
+            "text": "Golden Synthetic (TEST ONLY)"
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1961-02-14",
+        "communication": [
+          {
+            "language": {
+              "coding": [
+                {
+                  "system": "urn:ietf:bcp:47",
+                  "code": "zh-TW",
+                  "display": "Chinese (Taiwan)"
+                }
+              ]
+            },
+            "preferred": true
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "trial-golden-20261010-encounter-v1",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "identifier": [
+          {
+            "system": "https://allcare365.local/identifier/encounter",
+            "value": "SYNTHETIC-ENC-20261010-001"
+          }
+        ],
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB",
+          "display": "ambulatory"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "185349003",
+                "display": "Encounter for check up"
+              }
+            ]
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "period": {
+          "start": "2026-10-10T09:00:00+08:00",
+          "end": "2026-10-10T10:00:00+08:00"
+        },
+        "reasonCode": [
+          {
+            "text": "Synthetic risk-engine import trial"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c9ee0ea2-aff0-5a7d-bbc7-824d90e927d6",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-height",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body height"
+            }
+          ],
+          "text": "Body height"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 170,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:5f661a0f-99fd-5794-92b9-533a1c02a819",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-weight",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body weight"
+            }
+          ],
+          "text": "Body weight"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 82,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ddb57c80-5a0f-5817-b7b3-807c750fa554",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-bmi",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "39156-5",
+              "display": "Body mass index"
+            }
+          ],
+          "text": "Body mass index"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 28.4,
+          "unit": "kg/m2",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg/m2"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7c82d145-1f0e-5204-b536-3070e0ed9f33",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-waist",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8280-0",
+              "display": "Waist circumference"
+            }
+          ],
+          "text": "Waist circumference"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 96,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:03c38eb0-51cf-58dd-8ef7-9b829ae1c762",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-hip",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "56074-8",
+              "display": "Hip circumference"
+            }
+          ],
+          "text": "Hip circumference"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 102,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:27968a89-d916-57fc-8b3f-dd9eef1b096d",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-alcohol-weekly",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "social-history",
+                "display": "Social History"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "74013-4",
+              "display": "Alcoholic drinks per week"
+            }
+          ],
+          "text": "Alcoholic drinks per week"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 4,
+          "unit": "drinks/week",
+          "system": "http://unitsofmeasure.org",
+          "code": "1/wk"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a9673f7b-dc76-5ffb-b574-cb15b5800d8c",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-heart-rate",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8867-4",
+              "display": "Heart rate"
+            }
+          ],
+          "text": "Heart rate"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 72,
+          "unit": "beats/minute",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:14f71e0d-1a6e-50bb-907c-019754c59693",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-blood-pressure",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel with all children optional"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 138,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 86,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:9bbd85b2-5dcf-5a02-aad3-f30a2997ad13",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-glucose",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "1558-6",
+              "display": "Fasting glucose"
+            }
+          ],
+          "text": "Fasting glucose"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 108,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:0f77737c-8e8a-563f-bab1-a33c8ec6187b",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-total-cholesterol",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2093-3",
+              "display": "Total cholesterol"
+            }
+          ],
+          "text": "Total cholesterol"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 210,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:67620320-c7e8-5278-9ca0-e3e469cec803",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-hdl",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2085-9",
+              "display": "HDL cholesterol"
+            }
+          ],
+          "text": "HDL cholesterol"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 44,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:4d665772-5a7a-5747-9d21-76df1f8c15de",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-triglycerides",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2571-8",
+              "display": "Triglycerides"
+            }
+          ],
+          "text": "Triglycerides"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 165,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:eec40132-7a94-5df6-a81a-a2661bf6574d",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-creatinine",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2160-0",
+              "display": "Creatinine"
+            }
+          ],
+          "text": "Creatinine"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 1.1,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3f6a128d-908d-5eab-b522-ad51c4f0e8b4",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-egfr",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "33914-3",
+              "display": "Glomerular filtration rate/1.73 sq M predicted"
+            }
+          ],
+          "text": "Glomerular filtration rate/1.73 sq M predicted"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 83,
+          "unit": "mL/min/1.73m2",
+          "system": "http://unitsofmeasure.org",
+          "code": "mL/min/{1.73_m2}"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:d1f9eb84-0dfc-5c2e-82dd-6c5253d633d7",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-alt",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "1742-6",
+              "display": "Alanine aminotransferase"
+            }
+          ],
+          "text": "Alanine aminotransferase"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 42,
+          "unit": "U/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "U/L"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7e30aa8e-11ac-5e66-9e0f-f8569a21a154",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-ast",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "1920-8",
+              "display": "Aspartate aminotransferase"
+            }
+          ],
+          "text": "Aspartate aminotransferase"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 38,
+          "unit": "U/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "U/L"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:6ebbbcae-4cd9-52f0-9283-d33cb15956ff",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-ast-uln",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-ast-uln",
+              "display": "AST ULN"
+            }
+          ],
+          "text": "AST ULN"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 40,
+          "unit": "U/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "U/L"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:2e05d007-e5c9-593d-882c-8e3cd50f7385",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-ggt",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2324-2",
+              "display": "Gamma glutamyl transferase"
+            }
+          ],
+          "text": "Gamma glutamyl transferase"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 55,
+          "unit": "U/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "U/L"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:98e9a6fc-bd64-563f-85fb-f7ec9b637673",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-ggt-uln",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-ggt-uln",
+              "display": "GGT upper limit of normal"
+            }
+          ],
+          "text": "GGT upper limit of normal"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 50,
+          "unit": "U/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "U/L"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c6cac22b-ea25-51a5-b4ec-0f6b3691200f",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-platelets",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "777-3",
+              "display": "Platelet count"
+            }
+          ],
+          "text": "Platelet count"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 220,
+          "unit": "10*3/uL",
+          "system": "http://unitsofmeasure.org",
+          "code": "10*3/uL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:890c4b6b-4d14-5543-a1dc-fcedded3d16e",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-albumin",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "1751-7",
+              "display": "Albumin"
+            }
+          ],
+          "text": "Albumin"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 4.2,
+          "unit": "g/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "g/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c8d0b025-9c04-5d94-b416-aaba1c458675",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-insulin",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "20448-7",
+              "display": "Insulin"
+            }
+          ],
+          "text": "Insulin"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 14,
+          "unit": "uIU/mL",
+          "system": "http://unitsofmeasure.org",
+          "code": "[uIU]/mL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:6c1e0749-d3fd-5cd6-812e-27a0c47586e4",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-rdw",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "788-0",
+              "display": "Red cell distribution width"
+            }
+          ],
+          "text": "Red cell distribution width"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 13.2,
+          "unit": "%",
+          "system": "http://unitsofmeasure.org",
+          "code": "%"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3cf9cb83-fa64-50bc-b15d-f31708b39482",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-mpv",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "32623-1",
+              "display": "Mean platelet volume"
+            }
+          ],
+          "text": "Mean platelet volume"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 10.2,
+          "unit": "fL",
+          "system": "http://unitsofmeasure.org",
+          "code": "fL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a5b66a36-38cd-5e78-92ab-4e61d14f17a8",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-hba1c",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "4548-4",
+              "display": "Hemoglobin A1c"
+            }
+          ],
+          "text": "Hemoglobin A1c"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 7.2,
+          "unit": "%",
+          "system": "http://unitsofmeasure.org",
+          "code": "%"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:0265895a-ec7b-5e1f-9719-992c3d39a572",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-hs-crp",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "30522-7",
+              "display": "High sensitivity C-reactive protein"
+            }
+          ],
+          "text": "High sensitivity C-reactive protein"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 2.2,
+          "unit": "mg/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/L"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a56023c6-f576-5750-aa06-a43a327a07b2",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-microalbumin-rate",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "14956-7",
+              "display": "Urine albumin excretion rate"
+            }
+          ],
+          "text": "Urine albumin excretion rate"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 20,
+          "unit": "ug/min",
+          "system": "http://unitsofmeasure.org",
+          "code": "ug/min"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:af0e4259-d2f0-5b49-a2a9-70a5f83a0d6d",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-nodule-diameter",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "imaging",
+                "display": "Imaging"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-nodule-diameter",
+              "display": "Pulmonary nodule diameter"
+            }
+          ],
+          "text": "Pulmonary nodule diameter"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 8,
+          "unit": "mm",
+          "system": "http://unitsofmeasure.org",
+          "code": "mm"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:13ead658-4840-5885-9783-690a1c768861",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-uacr",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "9318-7",
+              "display": "Albumin/Creatinine ratio in urine"
+            }
+          ],
+          "text": "Albumin/Creatinine ratio in urine"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 18,
+          "unit": "mg/g",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/g"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:00514975-6cbc-5a00-a2f6-77f87176bbfc",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-apoe-e4",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "79713-2",
+              "display": "APOE e4 allele count"
+            }
+          ],
+          "text": "APOE e4 allele count"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 1,
+          "unit": "allele",
+          "system": "http://unitsofmeasure.org",
+          "code": "{allele}"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3f43cf5f-50c9-5d92-b67e-667ec2490db6",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-smoking-status",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "social-history",
+                "display": "Social History"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "72166-2",
+              "display": "Tobacco smoking status"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "8517006",
+              "display": "Ex-smoker"
+            }
+          ],
+          "text": "Former smoker"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3c219bf1-64de-5644-86d8-0c5c11440ef7",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-ldl",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2089-1",
+              "display": "LDL cholesterol"
+            }
+          ],
+          "text": "LDL cholesterol"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 120,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:88966b88-50ef-5d96-9389-ff4d55a84cff",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-ferritin",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2276-4",
+              "display": "Ferritin"
+            }
+          ],
+          "text": "Ferritin"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 300,
+          "unit": "ng/mL",
+          "system": "http://unitsofmeasure.org",
+          "code": "ng/mL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7ba18e01-a59d-52a8-a7ab-4e6d436d2e5b",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-fasting-insulin",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-fasting-insulin",
+              "display": "Fasting insulin"
+            }
+          ],
+          "text": "Fasting insulin"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 14,
+          "unit": "u[IU]/mL",
+          "system": "http://unitsofmeasure.org",
+          "code": "u[IU]/mL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ac8c76d3-ce31-5068-9c0a-be0cbd8fbcef",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-collagen",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-type-iv-collagen-7s",
+              "display": "Type IV collagen 7S"
+            }
+          ],
+          "text": "Type IV collagen 7S"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 5,
+          "unit": "ng/mL",
+          "system": "http://unitsofmeasure.org",
+          "code": "ng/mL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:6fdc0bab-a9e9-5bd7-92fb-54d70a121dc4",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-gamma",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-gamma-globulin",
+              "display": "Gamma globulin"
+            }
+          ],
+          "text": "Gamma globulin"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 1.5,
+          "unit": "g/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "g/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:733e3dcf-9777-5a54-9c97-c406499ff6b3",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-cimt",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-cimt",
+              "display": "Carotid intima media thickness"
+            }
+          ],
+          "text": "Carotid intima media thickness"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 700,
+          "unit": "um",
+          "system": "http://unitsofmeasure.org",
+          "code": "um"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:40c203ab-2fd2-5d58-b93c-395b07c54a0e",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-hp",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-h-pylori-igg-eiu",
+              "display": "Helicobacter pylori IgG"
+            }
+          ],
+          "text": "Helicobacter pylori IgG"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 20,
+          "unit": "{EIU}",
+          "system": "http://unitsofmeasure.org",
+          "code": "{EIU}"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cfbce1ab-9ed9-5c7f-906f-3e5eb17d5bf5",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-pgr",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-pepsinogen-i-ii-ratio",
+              "display": "Pepsinogen I II ratio"
+            }
+          ],
+          "text": "Pepsinogen I II ratio"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 4,
+          "unit": "1",
+          "system": "http://unitsofmeasure.org",
+          "code": "1"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:42ad1ad4-108c-5a6f-9d24-44c6a2ad5662",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "trial-golden-20261010-obs-g17",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory",
+                "display": "Laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/risk-input",
+              "code": "allcare365-gastrin-17",
+              "display": "Gastrin 17"
+            }
+          ],
+          "text": "Gastrin 17"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "effectiveDateTime": "2026-10-10T09:30:00+08:00",
+        "valueQuantity": {
+          "value": 3,
+          "unit": "pmol/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "pmol/L"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:5073e306-d789-5ec6-9f4f-c5d952b0e5b8",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "trial-golden-20261010-condition-hypertension-v1",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "38341003",
+              "display": "Essential hypertension"
+            }
+          ],
+          "text": "Essential hypertension"
+        },
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "onsetDateTime": "2020-06-01T00:00:00+08:00",
+        "recordedDate": "2026-10-10T09:30:00+08:00"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:32556828-2f43-509f-b12e-d642dacea656",
+      "resource": {
+        "resourceType": "QuestionnaireResponse",
+        "id": "trial-golden-20261010-questionnaire-v1",
+        "meta": {
+          "tag": [
+            {
+              "system": "https://allcare365.local/fhir/CodeSystem/test-data",
+              "code": "synthetic-only",
+              "display": "Synthetic test data; not a real patient"
+            }
+          ]
+        },
+        "questionnaire": "https://allcare365.local/fhir/Questionnaire/allcare365-risk-intake-v1",
+        "status": "completed",
+        "subject": {
+          "reference": "urn:uuid:bb9d003b-0dc9-55d3-ab21-cfd180df5dcf"
+        },
+        "encounter": {
+          "reference": "urn:uuid:61e85356-55e0-533f-96eb-a65ec4c2cbe0"
+        },
+        "authored": "2026-10-10T09:30:00+08:00",
+        "item": [
+          {
+            "linkId": "vascular_risk_factor_count",
+            "text": "vascular risk factor count",
+            "answer": [
+              {
+                "valueInteger": 1
+              }
+            ]
+          },
+          {
+            "linkId": "family_history_dementia",
+            "text": "family history dementia",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "east_asian",
+            "text": "east asian",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "load_low_hdl_c",
+            "text": "load low hdl c",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "load_high_whr",
+            "text": "load high whr",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "load_ethnicity",
+            "text": "load ethnicity",
+            "answer": [
+              {
+                "valueString": "white"
+              }
+            ]
+          },
+          {
+            "linkId": "bcra_population",
+            "text": "bcra population",
+            "answer": [
+              {
+                "valueString": "chinese_american"
+              }
+            ]
+          },
+          {
+            "linkId": "breast_cancer_or_dcis_history",
+            "text": "breast cancer or dcis history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "lcis_history",
+            "text": "lcis history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "brca_mutation",
+            "text": "brca mutation",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "atypical_hyperplasia",
+            "text": "atypical hyperplasia",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "age_at_menarche",
+            "text": "age at menarche",
+            "answer": [
+              {
+                "valueInteger": 13
+              }
+            ]
+          },
+          {
+            "linkId": "age_at_first_live_birth",
+            "text": "age at first live birth",
+            "answer": [
+              {
+                "valueInteger": 25
+              }
+            ]
+          },
+          {
+            "linkId": "number_of_breast_biopsies",
+            "text": "number of breast biopsies",
+            "answer": [
+              {
+                "valueInteger": 0
+              }
+            ]
+          },
+          {
+            "linkId": "first_degree_relatives_with_breast_cancer",
+            "text": "first degree relatives with breast cancer",
+            "answer": [
+              {
+                "valueInteger": 0
+              }
+            ]
+          },
+          {
+            "linkId": "diabetes_medication",
+            "text": "diabetes medication",
+            "answer": [
+              {
+                "valueString": "oral"
+              }
+            ]
+          },
+          {
+            "linkId": "regular_pickled_food",
+            "text": "regular pickled food",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "regular_fried_food",
+            "text": "regular fried food",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "family_history_diabetes",
+            "text": "family history diabetes",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "anti_hypertensive_drugs",
+            "text": "anti hypertensive drugs",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "using_lipid_lowering_drugs",
+            "text": "using lipid lowering drugs",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "statin_use",
+            "text": "statin use",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "has_diabetes",
+            "text": "has diabetes",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "prediabetes",
+            "text": "prediabetes",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "metabolic_syndrome",
+            "text": "metabolic syndrome",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "has_hypertension",
+            "text": "has hypertension",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "vegetables_daily",
+            "text": "vegetables daily",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "physical_activity_active",
+            "text": "physical activity active",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "moderate_alcohol",
+            "text": "moderate alcohol",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "heavy_alcohol",
+            "text": "heavy alcohol",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "is_smoker",
+            "text": "is smoker",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "former_smoker",
+            "text": "former smoker",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "chd_history",
+            "text": "chd history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "cvd_history",
+            "text": "cvd history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "pvd_history",
+            "text": "pvd history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "prescribed_steroids",
+            "text": "prescribed steroids",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "family_history_diabetes_both",
+            "text": "family history diabetes both",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "parental_hypertension_count",
+            "text": "parental hypertension count",
+            "answer": [
+              {
+                "valueInteger": 1
+              }
+            ]
+          },
+          {
+            "linkId": "deprivation_quintile",
+            "text": "deprivation quintile",
+            "answer": [
+              {
+                "valueInteger": 3
+              }
+            ]
+          },
+          {
+            "linkId": "depression_or_antidepressant",
+            "text": "depression or antidepressant",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "aspirin_use",
+            "text": "aspirin use",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "stroke_tia_history",
+            "text": "stroke tia history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "atrial_fibrillation",
+            "text": "atrial fibrillation",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "race_black",
+            "text": "race black",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "ethnicity_hispanic",
+            "text": "ethnicity hispanic",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "moderate_heavy_activity",
+            "text": "moderate heavy activity",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "ever_smoker",
+            "text": "ever smoker",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "extrathoracic_cancer_over_5y",
+            "text": "extrathoracic cancer over 5y",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "nodule_spiculation",
+            "text": "nodule spiculation",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "nodule_upper_lobe",
+            "text": "nodule upper lobe",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "education_high_school_or_below",
+            "text": "education high school or below",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "ever_high_blood_glucose",
+            "text": "ever high blood glucose",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "ausdrisk_indigenous_or_pacific",
+            "text": "ausdrisk indigenous or pacific",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "ausdrisk_high_risk_birth_region",
+            "text": "ausdrisk high risk birth region",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "ausdrisk_lower_waist_threshold_group",
+            "text": "ausdrisk lower waist threshold group",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "ascvd_history",
+            "text": "ascvd history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "heart_failure_history",
+            "text": "heart failure history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "parental_mi_before_60",
+            "text": "parental mi before 60",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "family_history_lung_cancer",
+            "text": "family history lung cancer",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "has_emphysema",
+            "text": "has emphysema",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "weather_affected_cough",
+            "text": "weather affected cough",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "sputum_without_cold",
+            "text": "sputum without cold",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "morning_sputum",
+            "text": "morning sputum",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "wheeze_sometimes_or_often",
+            "text": "wheeze sometimes or often",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "allergy_history",
+            "text": "allergy history",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "has_amnestic_mci",
+            "text": "has amnestic mci",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "stubborn_or_resistive",
+            "text": "stubborn or resistive",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "upset_when_separated_from_caregiver",
+            "text": "upset when separated from caregiver",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "difficulty_shopping_alone",
+            "text": "difficulty shopping alone",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "forgets_appointments",
+            "text": "forgets appointments",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "depressive_symptoms",
+            "text": "depressive symptoms",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "needs_help_money_or_medications",
+            "text": "needs help money or medications",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "high_cholesterol",
+            "text": "high cholesterol",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "traumatic_brain_injury",
+            "text": "traumatic brain injury",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "pesticide_exposure",
+            "text": "pesticide exposure",
+            "answer": [
+              {
+                "valueBoolean": false
+              }
+            ]
+          },
+          {
+            "linkId": "periodical_daily_cough",
+            "text": "periodical daily cough",
+            "answer": [
+              {
+                "valueBoolean": true
+              }
+            ]
+          },
+          {
+            "linkId": "diabetes_duration_years",
+            "text": "diabetes duration years",
+            "answer": [
+              {
+                "valueInteger": 8
+              }
+            ]
+          },
+          {
+            "linkId": "education_years",
+            "text": "education years",
+            "answer": [
+              {
+                "valueInteger": 12
+              }
+            ]
+          },
+          {
+            "linkId": "pack_years",
+            "text": "pack years",
+            "answer": [
+              {
+                "valueInteger": 18
+              }
+            ]
+          },
+          {
+            "linkId": "cigarettes_per_day",
+            "text": "cigarettes per day",
+            "answer": [
+              {
+                "valueInteger": 0
+              }
+            ]
+          },
+          {
+            "linkId": "years_since_quitting",
+            "text": "years since quitting",
+            "answer": [
+              {
+                "valueInteger": 8
+              }
+            ]
+          },
+          {
+            "linkId": "indoor_smoke_exposure_hours",
+            "text": "indoor smoke exposure hours",
+            "answer": [
+              {
+                "valueInteger": 1
+              }
+            ]
+          },
+          {
+            "linkId": "fish_servings_per_week",
+            "text": "fish servings per week",
+            "answer": [
+              {
+                "valueInteger": 3
+              }
+            ]
+          },
+          {
+            "linkId": "mean_words_recalled",
+            "text": "mean words recalled",
+            "answer": [
+              {
+                "valueDecimal": 5.5
+              }
+            ]
+          },
+          {
+            "linkId": "orientation_correct",
+            "text": "orientation correct",
+            "answer": [
+              {
+                "valueInteger": 7
+              }
+            ]
+          },
+          {
+            "linkId": "clock_drawing_score",
+            "text": "clock drawing score",
+            "answer": [
+              {
+                "valueInteger": 4
+              }
+            ]
+          },
+          {
+            "linkId": "nodule_count",
+            "text": "nodule count",
+            "answer": [
+              {
+                "valueInteger": 2
+              }
+            ]
+          },
+          {
+            "linkId": "pce_race",
+            "text": "pce race",
+            "answer": [
+              {
+                "valueString": "white"
+              }
+            ]
+          },
+          {
+            "linkId": "smoking_status",
+            "text": "smoking status",
+            "answer": [
+              {
+                "valueString": "former"
+              }
+            ]
+          },
+          {
+            "linkId": "alcohol_category",
+            "text": "alcohol category",
+            "answer": [
+              {
+                "valueString": "light_moderate"
+              }
+            ]
+          },
+          {
+            "linkId": "social_engagement_level",
+            "text": "social engagement level",
+            "answer": [
+              {
+                "valueString": "medium_high"
+              }
+            ]
+          },
+          {
+            "linkId": "physical_activity_level",
+            "text": "physical activity level",
+            "answer": [
+              {
+                "valueString": "medium"
+              }
+            ]
+          },
+          {
+            "linkId": "cognitive_activity_level",
+            "text": "cognitive activity level",
+            "answer": [
+              {
+                "valueString": "high"
+              }
+            ]
+          },
+          {
+            "linkId": "nodule_type",
+            "text": "nodule type",
+            "answer": [
+              {
+                "valueString": "solid"
+              }
+            ]
+          },
+          {
+            "linkId": "gad7_q1",
+            "text": "gad7 q1",
+            "answer": [
+              {
+                "valueInteger": 1
+              }
+            ]
+          },
+          {
+            "linkId": "gad7_q2",
+            "text": "gad7 q2",
+            "answer": [
+              {
+                "valueInteger": 0
+              }
+            ]
+          },
+          {
+            "linkId": "gad7_q3",
+            "text": "gad7 q3",
+            "answer": [
+              {
+                "valueInteger": 1
+              }
+            ]
+          },
+          {
+            "linkId": "gad7_q4",
+            "text": "gad7 q4",
+            "answer": [
+              {
+                "valueInteger": 1
+              }
+            ]
+          },
+          {
+            "linkId": "gad7_q5",
+            "text": "gad7 q5",
+            "answer": [
+              {
+                "valueInteger": 0
+              }
+            ]
+          },
+          {
+            "linkId": "gad7_q6",
+            "text": "gad7 q6",
+            "answer": [
+              {
+                "valueInteger": 1
+              }
+            ]
+          },
+          {
+            "linkId": "gad7_q7",
+            "text": "gad7 q7",
+            "answer": [
+              {
+                "valueInteger": 0
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
